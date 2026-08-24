@@ -1,0 +1,175 @@
+{
+  "commit_count": 15,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-23T22:55:19Z",
+      "committed_at": "2026-08-23T22:55:19Z",
+      "message": "[levanter] Avoid retaining checkpoint host copies (#8609)\n\nStage unsliced GPU checkpoint shards through a transient pinned-host JAX\narray before materializing NumPy. This prevents checkpoint\nmaterialization from retaining a host-value cache on the training-owned\nsource shard. Sliced shards and TPU keep their current paths.\n\nA two-GB200, 100-step synthetic run saved a checkpoint and ran normal\nplus dropless evaluation every step. Across both ranks, the\npost-evaluation RSS floor slope fell from 11.0 to 3.6 MiB/step. The\nmedian floor increase between the first and last 15 measured steps fell\nfrom 0.93 to 0.27 GiB.\n[Control](https://iris.oa.dev/#/job/%2Fpower%2Fcodex-hostmem-micro-main-off-r1-20260823-coord)\nand\n[treatment](https://iris.oa.dev/#/job/%2Fpower%2Fcodex-hostmem-micro-fixed-off-r1-20260823-coord)\nretain the raw logs. The profiling harness and residual-growth\ninvestigation remain in #8599.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "8aaeb40fe2dd152734801edafe474f8e52ef78f8",
+      "url": "https://github.com/marin-community/marin/commit/8aaeb40fe2dd152734801edafe474f8e52ef78f8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-23T22:53:33Z",
+      "committed_at": "2026-08-23T22:53:33Z",
+      "message": "[training] Initialize JAX before CuTeDSL cache setup (#8608)\n\nInitialize JAX distributed before importing the CuTeDSL adapter. The\nadapter can query `jax.devices()` at import time; the synthetic smoke\njob initialized XLA before Iris called `jax.distributed.initialize()`\nand failed before training.\n\nRun `FineStoreDirectory`'s interpreter-exit sync on its existing daemon\nand wait at most 10 seconds. Explicit close still waits for and\npublishes the final file set. The previous `atexit` callback opened S3\nsynchronously through `fsspec` after Python shut down\n`concurrent.futures`, leaving the failed process blocked in FineStore\nflush.\n\nIncident: https://echo.oa.dev/wiki/225\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "5dfeba79ed322f6e29780160ead3d71838adb990",
+      "url": "https://github.com/marin-community/marin/commit/5dfeba79ed322f6e29780160ead3d71838adb990",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-23T21:28:44Z",
+      "committed_at": "2026-08-23T21:28:44Z",
+      "message": "[echo] Show useful context for search results (#8607)\n\nPrint each Echo search result as a header followed by one primary source\nexcerpt capped at 240 characters. The excerpt no longer shares a\nfixed-width\nrow with the grading key, qualified source ID, and title. Long\nidentifiers\ntherefore cannot reduce useful context to the 20-character minimum.\n\nThe reported host-memory query still returns eight results. Its first\nissue\nexcerpt expands from `Full accounting of gr…` to about 200 source\ncharacters, and the checkpoint host-memory wiki result shows its\ncomplete\napplicability sentence.\n\nA local replay captured 505 fixed results for all 80 checked-in\nbenchmark\nqueries. Across 60 presentation judgments covering 46 unique cases, the\none-excerpt format was preferred 47 times and scored 4.45/5 for\nusefulness\nand 4.20/5 for scanability. Two richer formats scored 4.70/5 for\nusefulness;\ntheir scanability scores were 2.95 and 3.17. The\n[Loom session](https://loom.rjp.io/s/326w47ik) contains the\n`echo-result-detail-study` artifact with the local setup, variant\ndefinitions,\nper-grader results, exact-query output, and limitations.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "e7c34f396f8f2780fc76bb60bcb7263900540534",
+      "url": "https://github.com/marin-community/marin/commit/e7c34f396f8f2780fc76bb60bcb7263900540534",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-08-23T18:54:17Z",
+      "committed_at": "2026-08-23T18:54:17Z",
+      "message": "[dependencies] Advance external runtimes (#8606)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`b2b9049f3184`](https://github.com/marin-community/evalchemy/commit/b2b9049f3184d3601146f4f157e549573ce2c652)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`d7337ccc42f6`](https://github.com/marin-community/harbor/commit/d7337ccc42f68789b2a9f612f01c326d137cc9e8)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`7f43cf9b87eb`](https://github.com/marin-community/MarinSkyRL/commit/7f43cf9b87eb75781af771d05ec96454448f521e)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`0a41dee9cd88` → `7f43cf9b87eb`)\n\n-\n[`30c492755166`](https://github.com/marin-community/MarinSkyRL/commit/30c4927551661ba7e88f49d8c272c8a0c314cf3f):\n[training] Stochastically round BF16 AdamW updates (#452)\n-\n[`e2268617332e`](https://github.com/marin-community/MarinSkyRL/commit/e2268617332efbadee8a62c6579585c0dba900ee):\n[RL] Require sequence-mean reduction for GSPO (#453)\n-\n[`7f43cf9b87eb`](https://github.com/marin-community/MarinSkyRL/commit/7f43cf9b87eb75781af771d05ec96454448f521e):\n[MoE] Add DeepSeek loss-free balancing for Grug (#454)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "a19650e718dd7190efa05b4e7c12382bd15bf922",
+      "url": "https://github.com/marin-community/marin/commit/a19650e718dd7190efa05b4e7c12382bd15bf922",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-23T16:28:28Z",
+      "committed_at": "2026-08-23T16:28:28Z",
+      "message": "[agents] Narrow skill activation (#8494)\n\nKeep all 43 repository skill entrypoints while reducing their total\ncontext\nfrom 5,971 to 5,092 lines, a 14.7% reduction.\n\nClassify activation by task semantics. Direct task matches load without\nnaming\nthe skill. Optional resource reservations, persistent monitoring,\nmulti-session\nresearch, durable artifacts, and costly benchmark workflows require\nexplicit\nrequests. Scheduled scrubs and the read-only lint reporter run only from\ntheir\nnamed harnesses or explicit requests. Commit, writing style,\nstale-document\nupdates, and Echo incident publication remain automatic companions or\npostconditions; every incident produces a tagged Echo record linked from\nits\nassociated pull request or issue.\n\nRemove duplicated repository policy, generic setup narration, and\nrepeated\nworkflow explanation. Retain approval boundaries, costly or destructive\noperation guards, behavior-changing commands and flags, source-of-truth\nrules,\nand workflow state transitions. Preserve decision-relevant examples and\nenvironment-specific caveats, including the known-good TensorBoard scope\nsettings, Finelog metric semantics, fork-refresh pitfalls, logscan\ndefaults,\nand terminal issue schemas.",
+      "sha": "beef16856ac96e40e94cbde9602e05d686463d52",
+      "url": "https://github.com/marin-community/marin/commit/beef16856ac96e40e94cbde9602e05d686463d52",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-23T16:21:36Z",
+      "committed_at": "2026-08-23T16:21:36Z",
+      "message": "[canary] Use 10M model with one-day outputs (#8600)\n\nUse a fixed 9,933,376-parameter MoE for both TPU and GPU canaries. The\nprevious heuristic kept 256 experts and produced a 2.04B-parameter model\nwhose model-plus-optimizer checkpoint was 22.8 GiB.\n\nWrite each run to a unique path under the one-day lifecycle temp prefix.\nDisable time-policy checkpoints and their resume search path; retain the\nforced final checkpoint, which is about 120 MB at the new size. GCS\nmetric validation resolves the object key through mirror so Actions can\nfind the regional output, while S3 remains absolute.\n\nRegion locality comes from #8605. Fixes #8595.\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "b0b57e3b6d21b5dd429d5eb8b56e730db342ed72",
+      "url": "https://github.com/marin-community/marin/commit/b0b57e3b6d21b5dd429d5eb8b56e730db342ed72",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-23T16:19:24Z",
+      "committed_at": "2026-08-23T16:19:24Z",
+      "message": "Restore region-local ferry placement (#8605)\n\nRestore Iris's documented default that a child job with no region\npreference inherits the physical region of its parent. The August 23\nTier 2 ferry resolved its temporary cache in us-central2, then scheduled\na worker in europe-west4 after #8396 removed the worker-region metadata\nand client fallback five days earlier. Iris workers again expose their\nauthoritative region after user environment merging; child submission\npreserves explicit region choices and the ANY_REGION opt-out.\n\nThe TPU ferry now uses the primary requested TPU variant as an empirical\navailability reservation for its CPU launcher. This selects among\nregions where Iris has observed usable TPU capacity and adds no\nhard-coded region. The resolved launcher region then propagates to\ntraining and retries.\n\nThe Actions history audit found useful defect signal in all six\npurpose-built ferries. This change keeps them, adds missing failure\ntriage to weekly Datakit Tier 3, and replaces the CoreWeave GPU ferry's\n6B-token preparation dependency with the 10M-token prebuilt cache.\nDataset scale is not part of the GPU assertion. CoreWeave data remains\nin its canonical east02a prefix, where LOTA caches reads for west04\nworkers. Tier 1–3 remain on GCP because their distributed and\nhigh-memory coverage does not fit the single west04 CPU node.\n\nMarin Cluster Smoke had zero successful scheduled runs: all 38 runs from\nJuly 17 through August 23 were cancelled around its 100-minute timeout.\nThe workflow and its Grafana lane are deleted. The underlying tests\nremain directly runnable through the cluster-test runbook.\n\nThe full audit, failure-to-fix links, methodology, alternatives, and\ncaveats are in the [GitHub Actions real-resource canary\naudit](https://loom.oa.dev/s/ujx6ugrk/artifacts/github-actions-real-resource-audit).\nThe response procedure and root cause are preserved in [Echo incident\n223](https://echo.oa.dev/wiki/223). Small status and performance control\nfiles remain in their existing central GCS paths so the off-cluster\nrunner can discover the dynamically placed run; large step outputs and\ncaches inherit the run region.\n\nValidated with the required changed-file lint, formatting, and Pyrefly\ngate; 58 focused Iris placement/worker tests; the CoreWeave THD canary\nconstruction test; four Grafana nightly-projection tests; and Marin's\naffected-test selection. The affected suite passed 4,233 tests with one\nunrelated xdist worker crash in test_viz_lm; that test passed when rerun\nalone. Live-cluster tests were not run locally.\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "368d792e8045c22113a87f4e2ba8ff625ecff985",
+      "url": "https://github.com/marin-community/marin/commit/368d792e8045c22113a87f4e2ba8ff625ecff985",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-23T15:58:09Z",
+      "committed_at": "2026-08-23T15:58:09Z",
+      "message": "[iris] Propagate supervised rank failures (#8593)\n\nUse one clean-exit handler on every process in an Iris JAX world. The\nhandler skips finalization when an exception is active, performs\ncoordinated JAX shutdown with a 120-second bound, and then invokes the\noptional global-rank-zero `CompleteJob` callback. If shutdown raises, it\nterminates the process with status 1 instead of letting Python preserve\nexit 0.\n\nThree 16-rank GB200 restore benchmarks emitted every final `RESULT`\nline, then recorded `JobCompletedTaskSucceeded` four to six seconds\nbefore supervisors received SIGTERM and later reaped local ranks at -6\nor -9. The same ordering occurred in one-replica, HBM one-replica, and\nevery-replica restores, isolating teardown accounting from restore\ncollective behavior.\n\nWhen every rank reaches JAX shutdown cleanly, rank zero completes the\ngang and Iris reports success. A child that exits nonzero, is signaled,\nmaps a recovery exception, or fails bounded shutdown prevents that\ncompletion call. The multi-GPU supervisor reports a nonzero task exit,\nand Iris applies its normal retry policy; an exhausted task fails and\nthe job cannot succeed.\n\nIncident: https://echo.oa.dev/wiki/217\n\nOriginal reproduction:\nhttps://iris.oa.dev/#/job/%2Fapp%2Frestore-d1536-one-r2-coord\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "aa165f93ae2bc01b9f6f1da5cab5308c8b7e79da",
+      "url": "https://github.com/marin-community/marin/commit/aa165f93ae2bc01b9f6f1da5cab5308c8b7e79da",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-23T15:52:29Z",
+      "committed_at": "2026-08-23T15:52:29Z",
+      "message": "[iris] Retry unknown Kubernetes pod phases as worker loss (#8587)\n\nHold empty and `Unknown` Kubernetes pod phases for three consecutive\nreconciliation polls before ending the attempt as `WORKER_FAILED`. A\ntransient empty phase in the 704-GPU hero run was previously recorded as\nan application `FAILED` attempt, consuming user failure quota and\nbouncing all 176 gang members.\n\nShare the grace counter with missing-pod handling and reset it whenever\nKubernetes returns `Pending`, `Running`, `Succeeded`, or `Failed`.\nPersistent unknown observations retain the pod identity and a\n`PodUnknown` terminal reason while charging the preemption budget.\n\nIncident: https://echo.oa.dev/wiki/213\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "ac17b4c7601e5e5b64c2e9f188fc5c37f45f9e84",
+      "url": "https://github.com/marin-community/marin/commit/ac17b4c7601e5e5b64c2e9f188fc5c37f45f9e84",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-23T15:40:03Z",
+      "committed_at": "2026-08-23T15:40:03Z",
+      "message": "iris: tighten disruption telemetry tests (#8604)\n\nThe terminal-reason assertion added in #8601 was attached to a\nresubmission test, so a propagation regression would report as a replay\nfailure. This gives terminal-reason mirroring its own federation sync\ntest and returns the resubmission regression to replay and replacement\nonly.\n\nThe same pass removes redundant disruption-field assertions, trims\ntelemetry docstrings to their persisted contracts, and states how\nprovider, system, and boot identifiers should be used during\nnode-history triage.\n\nFollow-up to [review feedback on\n#8601](https://github.com/marin-community/marin/pull/8601#discussion_r3838864918).",
+      "sha": "1b6f29dca249a5555dfb53f7a71d809e9c801688",
+      "url": "https://github.com/marin-community/marin/commit/1b6f29dca249a5555dfb53f7a71d809e9c801688",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-23T15:38:50Z",
+      "committed_at": "2026-08-23T15:38:50Z",
+      "message": "[levanter] Bound Hero loader fetch requests (#8603)\n\nFetch Hero training data in four-batch storage requests while retaining\nthe 512-batch completed queue. Rename `prefetch_size` to\n`fetch_batch_size` so request size is distinct from queue capacity. The\nshared Trainer retains its existing 32-batch request.\n\nThe previous 256-batch request asked each of 704 processes for 4,096\nsequences and enqueued nothing until the whole request returned. The\ncited retry spent about 30 seconds opening 200 training-component\nledgers, then about 100 seconds waiting for that first data request.\nCheckpoint restore, first-step compilation, and an earlier CUDA/NVLink\nrestart account for the rest of the reported startup interval.\n\nOn one GB200 tray with four concurrent processes, the slowest 256-batch\nrequest took 29.1 seconds. Four-batch requests made data available in\n3.7 seconds and had a worst-process median of 1.16 seconds per steady\nrequest; retrieving 256 batches took 84.4 seconds. One-batch requests\nreached data in 1.34 seconds but took 118.6 seconds for the same 256\nbatches. First-batch hashes were unchanged across treatments. These\ntimings compare request sizes on one tray; they do not predict the\nabsolute result of the next 704-process run.\n\nThe open cache-catalog PR #8472 can reduce the separate metadata phase.\nThis measured four-batch choice supersedes the unmeasured one-batch\nproposal in #8439. The production timeline, benchmark jobs, and loader\ndiagrams are in the [Loom\ninvestigation](https://loom.oa.dev/s/zjeg132h/artifacts/hero-dataloader-startup);\nthe reusable diagnostic is in [Echo](https://echo.oa.dev/wiki/222).\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "92b3c5624c32645d8a5194a1b92b49a9998f6946",
+      "url": "https://github.com/marin-community/marin/commit/92b3c5624c32645d8a5194a1b92b49a9998f6946",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-23T15:24:53Z",
+      "committed_at": "2026-08-23T15:24:53Z",
+      "message": "iris: retain Kubernetes disruption evidence (#8601)\n\nKubernetes' `DeletionByTaintManager` reason identifies the eviction\nmechanism but loses the initiating node fault after the pod and node are\ngarbage-collected. Record `DisruptionTarget` as `k8s/disruption` in\n`iris.task_event`, together with stable pod and node identity, deletion\ntiming, tolerations, taints, health conditions, and selected hardware\nand provider metadata. Retry failed Finelog writes and emit an enriched\nrow when a temporarily unavailable node snapshot appears. Retain task\nevents for up to 30 days under the existing 1 GiB cap.\n\nFederation now preserves the member controller's pod name, pod UID, node\nname, and terminal reason when mirroring attempt history, so the hub\ntask view retains its backend evidence.\n\nThe fleet investigation found 17 attempts with this exact terminal text\nacross 15 nodes. Three attempts on one node were evicted together during\na single drain; no node had the exact eviction at multiple distinct\ntimes. The triggering incident and response guidance are recorded in\n[Echo](https://echo.oa.dev/wiki/221).",
+      "sha": "d892e56b21387e9dbaed09e16084a543b2d5f1e9",
+      "url": "https://github.com/marin-community/marin/commit/d892e56b21387e9dbaed09e16084a543b2d5f1e9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-23T13:53:24Z",
+      "committed_at": "2026-08-23T13:53:24Z",
+      "message": "[levanter] Restore replicated checkpoint shards once (#8589)\n\nOn GPU and CPU, read each unique checkpoint shard on one replica and\ndistribute\nit across the replica axes with a JAX reduction. On the 704-rank Grug\nhero,\neach rank read 91.19 GiB during the cold step-7459 restore: 62.69 TiB of\naddressable reads for a 4.88 TiB checkpoint, or 12.85x amplification.\n\nHash reader selection by array path and shard index so S3 reads remain\nspread\nacross the 11 replica groups. Replicas stage zeros alongside the\nselected\nTensorStore shard in accelerator memory, reduce the leading replica\ndimension,\nand return the result to its original device or pinned-host memory kind.\nDeterministic, memory-bounded batches keep every rank in the same\ncollective\norder. The collective reduces unsigned bytes so signed zero, NaN\npayloads, and\nsubnormal values remain bit-exact. `every_replica` remains available in\nthe\nrestore benchmark as a control.\n\nAn eight-device test with two replicas lowers TensorStore chunk reads\nfrom 16\nto 8 and preserves pinned-host output. A two-process JAX test reads two\nreplicated chunks once each across the fleet. TPU keeps the established\nevery-replica path because JAX 0.11 aborts when a collective returns\npinned-host buffers.\n\nA four-node GB200 d1536 benchmark used an eight-device expert mesh with\ntwo\nreplica groups. The [replica-aware\nrun](https://iris.oa.dev/#/job/%2Fapp%2Frestore-d1536-one-hbm-r2-coord)\nread 108.92 GiB from TensorStore across 16 ranks; the\n\n[control](https://iris.oa.dev/#/job/%2Fapp%2Frestore-d1536-every-r2-coord)\nread 257.28 GiB, a 57.7% reduction. Peak staging was 14.75 GiB against\nthe\n16 GiB process budget, and XLA emitted no host-compute lowering\nwarnings.\nCold and warm restore times were 6.9 and 3.6 seconds, against 4.7 and\n4.3\nseconds for the control. This small run did not saturate object storage,\nso it\nvalidates traffic reduction and memory placement. Hero-scale latency\nremains\nunmeasured. Both jobs emitted every result before JAX distributed\nteardown\naborted ranks; Iris incorrectly recorded those exits as successful,\ntracked\nseparately in Loom issue 283.\n\nEcho [incident 205](https://echo.oa.dev/wiki/205) records the earlier\n306 Gb/s\ncold restore burst.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "1d9d2c266926d627857f4ce33b55c92158a5e248",
+      "url": "https://github.com/marin-community/marin/commit/1d9d2c266926d627857f4ce33b55c92158a5e248",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-08-23T13:08:01Z",
+      "committed_at": "2026-08-23T13:08:01Z",
+      "message": "[dependencies] Advance external runtimes (#8598)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`b2b9049f3184`](https://github.com/marin-community/evalchemy/commit/b2b9049f3184d3601146f4f157e549573ce2c652)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`d7337ccc42f6`](https://github.com/marin-community/harbor/commit/d7337ccc42f68789b2a9f612f01c326d137cc9e8)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`0a41dee9cd88`](https://github.com/marin-community/MarinSkyRL/commit/0a41dee9cd88d8f50ebaf99b61a02ba90243f802)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`8c1229400293` → `0a41dee9cd88`)\n\n-\n[`0f64884513b5`](https://github.com/marin-community/MarinSkyRL/commit/0f64884513b54cb05d8e9802561847590422ff20):\n[iris] Reap silent training drivers (#449)\n-\n[`0a41dee9cd88`](https://github.com/marin-community/MarinSkyRL/commit/0a41dee9cd88d8f50ebaf99b61a02ba90243f802):\n[MoE] Keep Grug query-bias interpolation on one device (#448)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "97acfe9ec66c15d4eb5f5e0027011d25b9191719",
+      "url": "https://github.com/marin-community/marin/commit/97acfe9ec66c15d4eb5f5e0027011d25b9191719",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-08-23T02:05:43Z",
+      "committed_at": "2026-08-23T02:05:43Z",
+      "message": "[dependencies] Advance external runtimes (#8592)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`b2b9049f3184`](https://github.com/marin-community/evalchemy/commit/b2b9049f3184d3601146f4f157e549573ce2c652)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`d7337ccc42f6`](https://github.com/marin-community/harbor/commit/d7337ccc42f68789b2a9f612f01c326d137cc9e8)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`8c1229400293`](https://github.com/marin-community/MarinSkyRL/commit/8c12294002937a21e3e39461459608df379f182d)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`7c66c4006a1c` → `8c1229400293`)\n\n-\n[`d19bf30459cd`](https://github.com/marin-community/MarinSkyRL/commit/d19bf30459cd1ce112e64593e43e649ee61312a3):\n[MoE] Interpolate Grug query-bias updates (#442)\n-\n[`8aa8c8dabad3`](https://github.com/marin-community/MarinSkyRL/commit/8aa8c8dabad3ccd4d87e7d2c726b7a7288167fb1):\n[RL] Use shaped rewards for DAPO sampling (#443)\n-\n[`569d86356b57`](https://github.com/marin-community/MarinSkyRL/commit/569d86356b577273252cb83e52be2b1e87a8199b):\n[checkpoint] Survive transient S3 save failures (#444)\n-\n[`8c1229400293`](https://github.com/marin-community/MarinSkyRL/commit/8c12294002937a21e3e39461459608df379f182d):\n[iris] Report a succeeded SkyRL job as a success (#423)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "c70ae376c2bb680728a2b61434ff443d1d5c6103",
+      "url": "https://github.com/marin-community/marin/commit/c70ae376c2bb680728a2b61434ff443d1d5c6103",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-08-24T00:00:00Z",
+    "start": "2026-08-23T00:00:00Z"
+  }
+}

@@ -1,0 +1,102 @@
+name: Track Marin
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "要采集的 UTC 日期（YYYY-MM-DD）；留空则采集前一 UTC 日"
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: track-marin-${{ github.ref }}
+  queue: max
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Require a branch ref
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          if [[ "$REF_TYPE" != "branch" ]]; then
+            echo "Track Marin must run from a branch, not $REF_TYPE."
+            exit 1
+          fi
+
+      - name: Resolve target UTC date
+        id: target-date
+        env:
+          REQUESTED_DATE: ${{ inputs.date }}
+          RUN_API_URL: ${{ github.api_url }}/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from datetime import date, datetime, timedelta, timezone
+          from urllib.request import Request, urlopen
+
+          requested = os.environ.get("REQUESTED_DATE", "").strip()
+          if requested:
+              target = date.fromisoformat(requested)
+          else:
+              request = Request(
+                  os.environ["RUN_API_URL"],
+                  headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                  },
+              )
+              with urlopen(request, timeout=30) as response:
+                  created_at = json.load(response)["created_at"]
+              anchor = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+              target = anchor.date() - timedelta(days=1)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"date={target.isoformat()}\n")
+          PY
+
+      - name: Run tests
+        run: |
+          python -m unittest discover -s tests -v
+          python -m compileall -q scripts tests
+
+      - name: Collect upstream evidence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MARIN_GITHUB_TOKEN: ${{ secrets.MARIN_GITHUB_TOKEN }}
+          TRACK_DATE: ${{ steps.target-date.outputs.date }}
+        run: |
+          python scripts/track_marin.py --date "$TRACK_DATE"
+
+      - name: Commit and push new evidence
+        run: |
+          git add data/snapshots notes/daily
+          if git diff --cached --quiet; then
+            echo "No new snapshot or daily note to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: update Marin tracking snapshot"
+          git fetch origin "$GITHUB_REF_NAME"
+          git rebase FETCH_HEAD
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"

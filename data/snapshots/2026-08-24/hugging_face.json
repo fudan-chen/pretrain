@@ -1,0 +1,16 @@
+{
+  "dataset_count": 0,
+  "datasets": [],
+  "model_count": 0,
+  "models": [],
+  "observation_end": "2026-08-25T03:14:16Z",
+  "source": "marin-community",
+  "spillover_dataset_count": 0,
+  "spillover_datasets": [],
+  "spillover_model_count": 0,
+  "spillover_models": [],
+  "window": {
+    "end": "2026-08-25T00:00:00Z",
+    "start": "2026-08-24T00:00:00Z"
+  }
+}

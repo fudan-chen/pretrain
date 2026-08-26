@@ -1,0 +1,208 @@
+{
+  "commit_count": 18,
+  "commits": [
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-25T22:51:34Z",
+      "committed_at": "2026-08-25T22:51:34Z",
+      "message": "[iac] Make GCP IAM role bindings authoritative (#8650)\n\nReplace additive GCP IAM member resources in the `marin` stack with one\nauthoritative binding per target, role, and condition. Grant\ndeclarations split\nacross deploy-target modules are coalesced so each binding owns the\ncomplete\ndeclared member set.\n\nA fresh version-3 live-policy audit covered 57 targets, 197 bindings,\nand 736\nmembers with no managed-binding drift. The refresh preview contains only\nthe\nexpected 197 binding creates and 736 obsolete member deletes. The\nunredacted\npreview, resolved Program-first import manifest, and state-only handoff\ntool are\nstored in private Loom artifacts because they contain human principals.\n\nA normal `pulumi up` is unsafe until the 197 bindings are imported and\nthe 736\nmember resources are removed from Pulumi state. The pull request should\nremain\nin draft until that handoff and a no-IAM-change refresh preview\ncomplete.\n\nFixes #8455\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "1e7be17e592250475c7c2b8d4212eefe7d7f84c5",
+      "url": "https://github.com/marin-community/marin/commit/1e7be17e592250475c7c2b8d4212eefe7d7f84c5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-25T21:35:58Z",
+      "committed_at": "2026-08-25T21:35:58Z",
+      "message": "[canary] Run the TPU ferry on v6e by default (#8682)\n\nRun the scheduled TPU canary on v6e-4 and reserve that same primary\nvariant for the CPU launcher. v5p capacity is effectively unavailable,\nand the previous v5p-first default contributed `availability:v5p-8` to a\nlauncher that Iris auto-pinned non-preemptible; no scaling group\nsatisfied both constraints.\n\nKeep comma-separated manual TPU overrides. [PR\n#8630](https://github.com/marin-community/marin/pull/8630) independently\nadds the explicit `--preemptible` launcher preference and retains\non-demand fallback. Together, the two branches implement the requested\nv6e-only default and preemptible launcher configuration.\n\nThe failure signature and response are recorded in [Echo incident\n244](https://echo.oa.dev/wiki/244).\n\nPart of #8658\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "04751985c77c2007c4f7ef09b606f265494b9d86",
+      "url": "https://github.com/marin-community/marin/commit/04751985c77c2007c4f7ef09b606f265494b9d86",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-25T21:35:12Z",
+      "committed_at": "2026-08-25T21:35:12Z",
+      "message": "[ci] Pass canary context to auto-triage (#8681)\n\nScheduled canary triage now receives its non-secret invocation context\nin the consultation prompt. Matching environment variables remain\navailable to diagnostic commands, and the reusable action applies the\nfix to GPU, TPU, Grug, and Datakit lanes.\n\n[GPU canary run\n32836620592](https://github.com/marin-community/marin/actions/runs/32836620592)\nran the triage step successfully, but its execution artifact ended\nwithout an issue or Slack summary because the agent could not discover\nthe environment variables. [Echo incident\n243](https://echo.oa.dev/wiki/243) records the diagnostic and response.\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "40069c1aa9e4723f4b776362f102cd234cfbbfe8",
+      "url": "https://github.com/marin-community/marin/commit/40069c1aa9e4723f4b776362f102cd234cfbbfe8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-08-25T21:33:58Z",
+      "committed_at": "2026-08-25T21:33:58Z",
+      "message": "[grafana] Repair vLLM overview Finelog planning (#8614)\n\nFinelog can plan the shared vLLM overview query again. Every\noutput-union branch now names the endpoint's ten columns explicitly.\n\nProduction histogram components from one logical scrape can arrive on\nadjacent millisecond timestamps. An alias-only candidate planned\nsuccessfully but produced 0 of 42 valid TPOT samples. The query now keys\nhistogram completeness by its existing 15-second scrape interval. This\nkeeps reset and incomplete-family filtering while restoring separate\nTPOT and inter-token-latency results. The endpoint schema and dashboard\nmappings do not change.\n\nFixes #8613\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "bb9628d25e52c4b81410a86d22571769c57bcc40",
+      "url": "https://github.com/marin-community/marin/commit/bb9628d25e52c4b81410a86d22571769c57bcc40",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-08-25T21:31:38Z",
+      "committed_at": "2026-08-25T21:31:38Z",
+      "message": "[rl] Return errors from failed runs (#8510)\n\nFix 2 issues with skyrl dispatch.\n\n`entrypoint` now resolves through a registry of names, so\n`skyrl_train.entrypoints.main_base` was rejected. `standard` maps to the\nsame module.\n\nAlso include the last few lines of stderr in the response to allow\neasier debugging of skyrl launch failures.",
+      "sha": "93427281a276641e653e7c6ddf8596070d78be03",
+      "url": "https://github.com/marin-community/marin/commit/93427281a276641e653e7c6ddf8596070d78be03",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-08-25T20:29:00Z",
+      "committed_at": "2026-08-25T20:29:00Z",
+      "message": "grug: share the ep hero recipe with diagnostics (#8661)\n\n* share the d6144 model, trainer settings, Harrier mix, process\ntopology, cache, and dropless evaluation between production scaling runs\nand bounded diagnostics\n* rename `launch_mfu_test.py` to `launch_diagnostics.py`\n* default to histogram QB, one JAX process per GPU, inline watch, and\nthe 890 GB worker request\n* keep short diagnostics on simulated epoching unless `--schedule-steps\n390251` selects the raw production mixture\n* document the single-rack XProf launch\n* the trace excludes 11-rack `replica_dcn` collectives and their global\nhistogram reduction\n* part of #7279\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "dcd89eeb1de15fef194ac9dfd125eb5269882dde",
+      "url": "https://github.com/marin-community/marin/commit/dcd89eeb1de15fef194ac9dfd125eb5269882dde",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-25T20:28:31Z",
+      "committed_at": "2026-08-25T20:28:31Z",
+      "message": "[iac] Trace Pulumi diffs to pull requests (#8649)\n\nAdd a read-only agent skill that previews a specified `marin-iac` stack,\nreads the latest successful update's `git.head` when it came from a\nclean checkout, and matches later `main` commits to the planned resource\nchanges.\n\nReport associated pull requests for matched changes and leave unmatched\nchanges as live drift or unresolved attribution. Never run a Pulumi\nstate mutation or publish raw preview output.\n\nFixes #8501\n\nCo-authored-by: Will Moss <187472+wmoss@users.noreply.github.com>",
+      "sha": "da74a2195ea3080959af12ce0f44c13dac81f12c",
+      "url": "https://github.com/marin-community/marin/commit/da74a2195ea3080959af12ce0f44c13dac81f12c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-08-25T19:43:54Z",
+      "committed_at": "2026-08-25T19:43:54Z",
+      "message": "[grafana] Route hero alerts through an operator behavior (#8575)\n\n🤖  Route Grafana alerts through one `ops` Loom profile and a trusted\noperator-behavior registry. Unlabeled alerts use the `operator` channel;\nthe static `operator_behavior=hero` label on Hero's four critical rules\nselects `operator:hero` and Hero-specific instructions. Unknown or mixed\nbehavior values fall back to the default, so webhook data cannot invent\na profile or channel.\n\nThe distinct channels give generic and Hero operations separate durable\ncoordinators while sharing the `ops` profile's four-session concurrency\npool. Every nonterminal session explicitly using `ops` consumes that\npool; an agent-launched child without `--profile` uses Loom's `default`\nprofile. The additional capacity leaves room for handoffs or explicit\nsame-profile delegation, but it does not hard-reserve capacity for Hero.\n\nHero alerts now provide stable discovery and live-query guidance instead\nof injecting a precomputed evidence snapshot. The operator starts from\nthe alert's cluster, run, and job labels, follows recent `execution_uid`\nvalues across coordinator retries, and queries current `telemetry_v1`,\nexact `iris.task_state` roots, literal-prefix `iris.task_event` and\n`log` rows, and deduplicated event counts. It resolves `cluster=unknown`\nbefore treating empty results as meaningful and compares ranks/tasks to\nseparate a causal failure from gang-scheduling fallout without relying\non a fixed error-signature catalog.\n\nThis removes alert-path log collection, redaction, fanout ranking,\ntruncation, and timeout handling. Slow or partial evidence queries can\nno longer delay delivery or become the operator's starting facts.\n\nValidation: Grafana alert/bridge tests (78 passed), Loom infrastructure\ntests (18 passed), and changed-file pre-commit checks pass.",
+      "sha": "64a9483cf1a928e6db97b83130d8a5d171a4aead",
+      "url": "https://github.com/marin-community/marin/commit/64a9483cf1a928e6db97b83130d8a5d171a4aead",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-25T19:41:07Z",
+      "committed_at": "2026-08-25T19:41:07Z",
+      "message": "[levanter] Stop nonprimary telemetry publication (#8678)\n\nNonzero JAX processes suppress generic tracker metrics today but still\npublish step, progress, and phase rows, including periodic heartbeats.\nThis multiplies Levanter telemetry by the process count.\n\nReturn a named no-op telemetry tracker for nonzero processes so only\nprocess zero publishes training telemetry. The tracker remains\ndiscoverable as `telemetry`, while stall and NCCL publication stays on\nprocess zero.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "5294a3d9cf15ca44f5e40b3f7392ba2b66328169",
+      "url": "https://github.com/marin-community/marin/commit/5294a3d9cf15ca44f5e40b3f7392ba2b66328169",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-08-25T19:25:40Z",
+      "committed_at": "2026-08-25T19:25:40Z",
+      "message": "[grug] Add standalone H100 hero scaling ladder (#8673)\n\nAdd a standalone H100 launcher for a 791-token-per-active-parameter hero\nladder. The existing GB200 scaling ladder and small-scale ablation\nlauncher remain unchanged. d512 uses one eight-GPU EP8 task, and d768\nuses two eight-GPU EP8 tasks. Both rungs use a global batch of 1,024;\nthe step budget and compute-scaled optimizer are rebuilt for that batch.\n\nHopper runs use SM90 FA4 attention, the Triton Sonic backend for\ndropless evaluation, and QuACK's SM90 symmetric GEMM for MuonH. Full\nd512/batch1024 and d768/batch1024 runs reached 3,929/3,930 and\n11,419/11,420 optimizer steps.",
+      "sha": "9a90497cc05918440ababf47bb827e7fcae3b27c",
+      "url": "https://github.com/marin-community/marin/commit/9a90497cc05918440ababf47bb827e7fcae3b27c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-08-25T18:51:21Z",
+      "committed_at": "2026-08-25T18:51:21Z",
+      "message": "[grug] Fix EP MoE edge bounds and capacity (#8610)\n\n## Changes\n\n- **Ragged-dot bounds:** Restore Tokamax-equivalent K-load and M/N-store\nmasks on non-tile-aligned Triton edge tiles.\n- **Ring capacity:** Cap local ring EP capacity at the gathered\nassignment count before calling `top_k`.\n- **Regression coverage:** Compare EP values and gradients with a dense\nMoE reference, retain the CPU-interpreter Triton trace, and verify that\nGPU `auto` dispatch selects Triton.\n\n## Context and motivation\n\nHaliax adapted Tokamax's Triton ragged dot from bounds-aware\n`block.pallas_call` to raw `pl.pallas_call`. That adaptation lost the\nautomatic bounds masks supplied by Tokamax's `BlockRef`. On GB200, an\nN=192 projection uses a physical N tile of 256, so accesses to logical\npadding corrupted values and gradients. The fix restores the Tokamax\nbounds contract only for dimensions with edge tiles; aligned paths\nremain unmasked. **This is a Haliax adaptation defect, not an upstream\nTokamax defect.**\n\nRing EP had a separate failure: its capacity-factor calculation could\nproduce a local capacity larger than the gathered selection pool. In the\nreported configuration, capacity factor 4.0 requested `top_k(k=512)`\nfrom 256 rows. The capacity is now limited to the number of gathered\nassignments.\n\nThe dense reference covers cross-shard values and gradients for ring,\nfixed all-to-all, and pooled-wave on CPU, plus supported accelerator\nbackends. Accelerator parity names the implementation explicitly, while\na separate dispatch test fails if GPU `implementation=\"auto\"` falls\nthrough to XLA.\n\n## Validation\n\n- **Regression proof:** At tests-only commit `dc168c4ddd`, the [full\nunit workflow\nfailed](https://github.com/marin-community/marin/actions/runs/32780486622)\nin CPU and TPU jobs when the ring test requested `top_k(k=8)` from four\nrows.\n- **Fix verification:** The [same full unit workflow\npassed](https://github.com/marin-community/marin/actions/runs/32782477887)\nafter the production fixes at `df5d8b48f6`.\n- **GB200 reproduction:** Across four seeds on four GB200s, ring forward\nrelative max error fell from 0.79–1.93 to 0.005–0.007; all gradients\nbecame finite and remained within 0.006 of the fp32 dense reference.\n- **Local checks:** Haliax tests, targeted Levanter MoE tests,\ndiff-selected repository tests, pre-commit, and Pyrefly passed.\n- **Coverage limits:** Stock GB200 `main` segfaults inside XLA's ragged\nall-to-all before parity can run; #8549 tracks that transport rewrite.\nDeepEP still requires its external source tree and FFI build.\n\nFixes #8578",
+      "sha": "916ab86eb39fd2fbb4d17f002041b3d3e70f86fb",
+      "url": "https://github.com/marin-community/marin/commit/916ab86eb39fd2fbb4d17f002041b3d3e70f86fb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-25T17:48:13Z",
+      "committed_at": "2026-08-25T17:48:13Z",
+      "message": "[iris] Preserve bounded task outputs after completion (#8638)\n\nPreserve files written to `$IRIS_OUTPUT_DIR` as one bounded `tar.zst`\narchive per task attempt. Execution-cluster policy owns the fsspec\ndestination, TTL, byte and entry limits, and finalization timeout.\nProduction defaults resolve through `marin_temp_bucket` and reject\nobject destinations without a lifecycle-managed TTL prefix;\n`LocalCluster` stores archives below its temporary root.\n\nRPC workers report output finalization separately from command execution\nand hold the attempt non-terminal until capture finishes. Kubernetes\ntasks share an `emptyDir` with a managed uploader, reserving the\nconfigured finalization window beyond the command deadline. Capture\nerrors and deadlines are recorded on the archive while the command\noutcome remains unchanged.\n\nStore output metadata in a joined `task_attempt_outputs` table with\nfirst-result-wins persistence, carry it across federation, and expose\nuploaded, empty, failed, or unavailable status through task and attempt\nclients and `iris attempt describe`. The Iris documentation and\n`use-iris` skill cover the environment contract, retention, limits, and\ncredential exposure.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "ba7ba164baafdb249c2f9650a34387417b90bb6b",
+      "url": "https://github.com/marin-community/marin/commit/ba7ba164baafdb249c2f9650a34387417b90bb6b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-08-25T16:09:40Z",
+      "committed_at": "2026-08-25T16:09:40Z",
+      "message": "Drop unread parameters and a wasted write-mode TensorStore open (#8662)\n\nOpening a `JaggedArrayStore` with `mode=\"w\"` issued two TensorStore\nopens per\narray instead of one. The guard that skips the metadata-reuse open read\n`mode_config.get(\"delete_existing\", False)`, but `_mode_to_open_mode`\nreturns\n`{\"open_mode\": ts.OpenMode(...)}`, so the key was never present and the\nguard\nnever fired. That speculative open cannot succeed under `mode=\"w\"`: its\nspec\ncarries no dtype or domain, and it recursively deletes the existing\nstore before\nraising. Reading `delete_existing` off the `OpenMode` drops write-mode\nopens from\n4 to 2 per store (one each for offsets and data), measured by\ninstrumenting\n`ts.open`; modes `a` and `r` stay at 2. On a GCS cache that saves one\nround trip\nand one recursive delete per array, per shard, while building.\n\nThe other three changes remove parameters and an option that no callee\nreads.\n\n`ScalingGroup.scale_up` documented a `timestamp` argument \"for testing\"\nand\nignored it; scale-up timing is recorded separately by `begin_scale_up`\nand\n`complete_scale_up`. Removing it also made\n`Autoscaler._issue_scale_up`'s `ts`\ndead, so the bounded I/O fan-out passes the bound method instead of a\nlambda.\n`_run_tpu_bootstrap` took a `project_id` it already reaches through its\n`GcpService`, and `CloudK8sService._apply_pod` took a `name` the\nmanifest\ncarries.\n\n`include_raw_paths` threaded through `lm_mixture_data_config`,\n`step_to_lm_mixture_component`, and\n`TokenizeConfigBase.as_lm_dataset_source_config`\nwith all three implementations, but nothing has passed `False` since the\nlast\ncaller was deleted in #6649. Only `TokenizeConfig` honored it.\n`HfTokenizeConfig`\nand `PretokenizedCacheDownloadConfig` accepted and ignored it, so\nsetting it\nsilently did nothing for two of the three config types. Every remaining\ncall site\nused the default, so mixture configs are unchanged.\n\nZephyr's `ScatterReader` held its chunks as `(source_path, chunk_paths)`\npairs\nand never read `source_path`; it now stores a flat path list and takes\nthe\nsource-shard count from the sidecars. Its docstring predated the\ncombined-file\nscatter format, describing each entry as the files one source shard\nwrote for\nthis reader's target shard. Every file actually holds rows for all\ntarget shards,\nand `get_frames` filters each scan down to its own.\n\n---------\n\nCo-authored-by: Nightshift Scout <nightshift@marin.local>",
+      "sha": "299c7f3245e2e6998345980cadad75f45088f63f",
+      "url": "https://github.com/marin-community/marin/commit/299c7f3245e2e6998345980cadad75f45088f63f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-08-25T08:40:58Z",
+      "committed_at": "2026-08-25T08:40:58Z",
+      "message": "Point infra hero graphs at the 535B W&B report (#8660)\n\nPoint the infra dashboard train-loss, Paloma macro-loss, and MFU panels\nat the 535B-A23B hero-run report.\n\nThe bridge reads the first panel grid, which pins\n`hero-12d8b6f0-dee637`. The report supplies all three metrics against\n`throughput/total_tokens`, so the panel query format does not change.",
+      "sha": "bda0207a5a13e743eb07afe56f15d7487998cc22",
+      "url": "https://github.com/marin-community/marin/commit/bda0207a5a13e743eb07afe56f15d7487998cc22",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-25T04:04:23Z",
+      "committed_at": "2026-08-25T04:04:23Z",
+      "message": "[levanter] Overlap checkpoint staging with TensorStore opens (#8647)\n\nStart each lazy asynchronous TensorStore open for arrays this rank\nwrites before host staging, without awaiting it. Each admitted shard is\ncopied into a detached host buffer, then its write attaches to the\nshared open future. Ranks with no local write leave the future unforced,\navoiding object-store database access. Open, write, and commit resolve\nthrough a promise-backed future consumed by JAX's async checkpoint\nmanager, preserving commit errors and the cross-process barrier.\n\nTensorStore database opens previously completed before host staging\ninside the synchronous serializer. A slow S3 open could pause training\nfor more than 60 seconds even when a process's complete checkpoint share\nfit within the 16 GiB staging budget. With sufficient staging capacity,\nall snapshots can complete and the training thread can return while\ndatabase setup and writes remain in flight. Opens run concurrently with\nstaging; no staging path awaits them. Saves larger than the budget\ncontinue waiting as commits release admission.\n\nThe unresolved-open regression holds two TensorStore opens pending while\ntwo mutable leaves stage and serialization returns. Mutating the source\nbuffers before resolving the opens does not change the eventual writes.\nA constrained-budget regression admits one of two leaves at a time and\nverifies that both rank-owned opens start before the second staging\nwait. The affected selector completed 854 tests and skipped 6; its only\nload-sensitive 60-second shutdown timeout passed in 10.7 seconds when\nrerun serially.\n\nA live d1024/E384 memory soak exercised about 4.0B parameters on two\nfour-GPU GB200 trays. Six training steps, six periodic saves, and the\nforced final save completed under `s3://hero-checkpoints/tmp/ttl=1d`.\nFinelog recorded 56 staging completions, 56 commit starts, and 56 commit\nfinishes across eight ranks. Each rank staged 4.73–4.78 GiB against the\n16 GiB budget, and the two tasks peaked at 93.8 and 106.9 GiB. Rank 0\nreached the step-3 checkpoint 0.335 seconds after the step-2 commit\nbegan and 1.862 seconds before it finished. The region-local run did not\nreproduce the production S3-open tail; the unresolved-open regression\ncovers that sequencing. [Iris\nrun](https://iris.oa.dev/#/job/%2Floom%2Fts-open-pr8647-d1024-e384-2tray-simplified-20260825-coord).\n[Incident record](https://echo.oa.dev/wiki/237).\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "5beeda67c01c93e4f1dd1a40a93c621503721b70",
+      "url": "https://github.com/marin-community/marin/commit/5beeda67c01c93e4f1dd1a40a93c621503721b70",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-08-25T03:51:28Z",
+      "committed_at": "2026-08-25T03:51:28Z",
+      "message": "[grafana] Add a training run's progress efficiency to the status strip (#8623)\n\nThe training-run status strip gains a progress-efficiency tile beside\nactive share:\n`tokens_since_start / (reference_tps * wall_since_creation)` — the\nfraction of an ideal\nrun that held its steady token rate from creation with no downtime.\nActive share sees\nonly downtime; progress efficiency also charges the throughput lost to\ncheckpoints,\nevals, and steps redone after a rollback, so it is the stricter \"are we\non schedule\"\nnumber.\n\nThe reference rate is the mean of a sampled history of\n`throughput/tokens_per_second`,\nnot the value in `summaryMetrics`. The summary carries only the last\nstep's rate, which\na checkpoint or eval step drives ~15x low (162K vs a ~2.49M norm on the\ncurrent hero);\nreading that raw would swing the ratio wildly whenever the dashboard\nloaded just after a\nslow step. The mean over history is stable and matches the strip's\nexisting `AVG(tokens/s)`\ntile, so the two agree.\n\nThe numerator counts only tokens this W&B run produced. Levanter derives\n`throughput/total_tokens` from the global step, which restore sets to\nthe checkpoint's, so\na run resumed under a fresh id from a mid-schedule checkpoint logs a\nnonzero cumulative\ncount from its first step; crediting that inherited count would push the\nratio past 100%.\nThe smallest cumulative-token value in the sampled history marks where\nthe run began and\nis subtracted, carried in the same request as the reference rate.\nSame-id resumes like the\nhero are unaffected (baseline is one step's tokens).\n\nBoth clocks must come from W&B, not finelog: this needs the run's true\ncreation time and\nfull-run tokens, and finelog only retains a recent window (the reason\nactive time already\nlives on this route). For hero-12d8b6f0-dee637 it reads 0.65 against a\n0.90 active share.\n\nSupersedes #8622, which auto-closed when its branch was renamed; the\nCodex baseline finding\nraised there is fixed in this branch.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "7989ec04ebea542a605225ccf376da024a7eaa00",
+      "url": "https://github.com/marin-community/marin/commit/7989ec04ebea542a605225ccf376da024a7eaa00",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-25T02:56:24Z",
+      "committed_at": "2026-08-25T02:56:24Z",
+      "message": "[agents] Document Finelog query stdin (#8654)\n\nDocument that `finelog query <deployment>` reads SQL from stdin when the\npositional SQL argument is omitted. This makes the existing heredoc\nexample explicit for bounded multi-line queries.\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "ef0179359b9db7d0a11b0bc7e8b0bc5093508684",
+      "url": "https://github.com/marin-community/marin/commit/ef0179359b9db7d0a11b0bc7e8b0bc5093508684",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-25T01:47:46Z",
+      "committed_at": "2026-08-25T01:47:46Z",
+      "message": "[grafana] Show priority and Iris links for active jobs (#8643)\n\nShow each active job's effective Kubernetes priority on the cluster\ncapacity dashboard. Priority values come from the existing pod\npriority-class feed; the standard `iris-` prefix is omitted in the\ntable.\n\nAdd a separate link to the canonical Iris job route with the selected\ncluster coordinate. Preserve the Grafana jobs link used for capacity\nfiltering. The public Iris parent supplies up to 1,000 recent job IDs,\nwhich are intersected with live workloads so CoreWeave jobs submitted\ndirectly to a child controller do not receive a broken parent-dashboard\nlink.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "371cf33cc9c8cc5be369cd725789de3baf9ced06",
+      "url": "https://github.com/marin-community/marin/commit/371cf33cc9c8cc5be369cd725789de3baf9ced06",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-08-26T00:00:00Z",
+    "start": "2026-08-25T00:00:00Z"
+  }
+}

@@ -1,0 +1,219 @@
+{
+  "commit_count": 19,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-26T23:02:39Z",
+      "committed_at": "2026-08-26T23:02:39Z",
+      "message": "[iris] Scrape node metrics from the local kubelet (#8712)\n\nThe Kubernetes node agent reads its own kubelet's metrics/resource\nendpoint over\nloopback instead of routing the request through the apiserver's\nnodes/proxy\nsubresource. Every sample previously crossed the cluster's Konnectivity\ntunnel,\nthe control-plane path that also carries exec, port-forward, and logs.\nOn\ncw-rno2a that was 65 agents at roughly 2.2 requests per second and about\n33 KiB\nper response, and while the control plane was congested a third of those\nrequests were failing with 503. After the rollout the cluster's\nnodes/proxy rate\nmeasures 0.00/s on a replica-pinned 60-second window, against 776,931\ncumulative\nrequests before it, and task stats keep landing in finelog.\n\nThe agent already runs on the host network, so the kubelet is reachable\nat\n127.0.0.1:10250. The kubelet authorizes that endpoint against the\nnodes/metrics\nsubresource rather than nodes/proxy, so the controller ClusterRole\ngrants\nnodes/metrics; IaC owns that role and renders it from these shared\nmanifest\nbuilders, so the stacks must be applied before the agents roll or the\nnew agents\n403. The kubelet's serving certificate is issued by the node and does\nnot verify\nagainst the service-account CA bundle, so the loopback connection does\nnot\nverify it.\n\nThe kubernetes client reports transport failures as urllib3 errors\nrather than\nApiException, so a read timeout escaped every call site in the k8s\nservice\nwrapper. In the node agent that exception propagated out of the\ncollection loop\nand terminated the process, and the kubelet restarted it straight back\ninto the\nsame scrape; agents on cw-rno2a had accumulated 11 to 24 restarts each,\ntwo of\nthem above 50. A _k8s_call context manager now wraps the existing\nslow_log\ntiming and converts those errors to KubectlError once, naming the\noperation for\nboth the slow-call warning and the raised error. Call sites that select\nhandling\nfrom a status code keep their own except ApiException; exec keeps a\ncombined\nclause because it reports failure as an ExecResult, and delete_many and\ndelete_by_labels issue no direct API calls.\n\nThe node agent's apiserver timeout moves from 2 to 15 seconds. The\n2-second\nvalue was tripping whenever apiserver latency rose, which is what turned\ncongestion into a restart loop.\n\nDeployed to cw-rno2a, cw-us-east-02a, cw-us-east-08a, and\ncw-us-west-04a, each\nwith a smoke job and, except for CI, a five-minute verify against a\npre-restart\nbaseline. All four report healthy controllers with node counts\nunchanged. The\ndeployed trees predate the error-translation consolidation, which is\nbehavior-preserving.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "db9fdf2d322dba301cc7f05ff3a94d4f9f11c41b",
+      "url": "https://github.com/marin-community/marin/commit/db9fdf2d322dba301cc7f05ff3a94d4f9f11c41b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "wmoss",
+      "author_name": "Will Moss",
+      "authored_at": "2026-08-26T22:15:49Z",
+      "committed_at": "2026-08-26T22:15:49Z",
+      "message": "[zephyr] Compute shuffle memory limits from a shared budget model (#8204)\n\nCollapse Zephyr memory calculation down to the following knobs:\n- R_WRITE and R_READ: mapping bytes-at-risk to peak RSS growth\n- SAFETY_FRACTION_WRITE and SAFETY_FRACTION_READ: amount of available\nmemory to utilize\n\nCollapse the in-memory-vs-external-sort decision into a single fan_in\nvalue and merging the two codepaths for external sort and in-memory\nsort.\n\nDesign and the calibration plan are in\n.agents/projects/2026-08-11_zephyr_shuffle_memory_budget.md.\n\nFixes #7946.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "9866e766a603e83de88bebf0563f1a41fbff8ec7",
+      "url": "https://github.com/marin-community/marin/commit/9866e766a603e83de88bebf0563f1a41fbff8ec7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-26T21:49:08Z",
+      "committed_at": "2026-08-26T21:49:08Z",
+      "message": "[finelog] Partition Levanter metrics online (#8707)\n\nPartition `levanter.metrics` by exact `run_id` metadata while keeping L0\nflat. Exact run predicates prune current partitions; legacy and\ntransition files remain visible during online migration. Compacted files\nuse the bounded directory layout `levanter.metrics/run_id/00..31/`\nwithout weakening the full run-id partition recorded in segment\nmetadata.\n\nConverge existing local and archived segments without stopping\ningestion. A store-wide two-worker permit bounds rebuild memory, and\nnamespaces without a physical partition policy stay on ordinary\ncompaction. `levanter.metrics` intentionally uses no secondary indexes:\nmanaged registration withdraws the inherited telemetry declarations,\nreaders ignore old bundles, and bounded maintenance removes local\nderived files online.\n\nCarry the current execution identity from Hero phase enrollment into\nhealth aggregation and scan `levanter.metrics` once with exact run and\nexecution predicates. The training run selector now uses a fixed 12-hour\ndiscovery window rather than inheriting the graph window. The former\nseven-day selector scanned 1.068 billion rows across 17,411 segments and\nexceeded the server's 10-second deadline; production probes of the\nbounded selector completed in 2.10–3.58 seconds. Explicitly selected\nhistorical runs remain queryable.\n\nThe production migration routed 1,723,699,039 of 2,173,077,173 legacy\nrows into semantic telemetry and typed Levanter tables. After Grafana\nswitched to semantic queries, Finelog returned to normal single-write\nmode, accepted a semantic-only canary exactly once, and retired the\ncompatibility root. Removing the rollback tree and retired local root\nfiles reclaimed about 92 GB; the GCS compatibility archive remains\nintact.\n\nThe complete Finelog suite passes with 458 tests and one pre-existing\nignored test. The Grafana suite passes all 252 tests. Rust checks,\nclippy, repository lint, and required CI checks pass.\n\nIncident records: https://echo.oa.dev/wiki/254 and\nhttps://echo.oa.dev/wiki/256\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "4d0a4c40f2f1c85561971b48e287c9e3f067e035",
+      "url": "https://github.com/marin-community/marin/commit/4d0a4c40f2f1c85561971b48e287c9e3f067e035",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-26T20:12:57Z",
+      "committed_at": "2026-08-26T20:12:57Z",
+      "message": "[zephyr] Cache shuffle schemas and consolidate merge passes (#8677)\n\nRecord each scatter Parquet chunk's Arrow schema alongside its path in\nthe mapper sidecar. Reducers use those schemas to reconcile merge\ninputs, eliminating one object-storage footer read per input during\nschema unification while preserving widening for source-shard dtype\ndrift.\n\nMove the bounded multi-pass merge into `shuffle.py` and use it for\ndirect and spilling merges. The existing memory decision remains\nunchanged: the 0.4 read fraction, both 2× overhead factors,\n`ceil(sqrt(total_chunks))` first-pass fan-in, and 32-run cap for later\npasses are preserved.\n\nPR [#8204](https://github.com/marin-community/marin/pull/8204) replaces\nthose memory limits with a shared budget model.\n\nAn [ad-hoc Datakit Tier 1\nferry](https://iris.oa.dev/#/job/%2Floom%2Firis-run-job-20260825-202343)\nin `us-central2` completed in 5,820.7 seconds, 2.0% faster than the\n[same-day\nreference](https://iris.oa.dev/#/job/%2Frunner%2Firis-run-job-20260825-072626)\nat 5,939.7 seconds. Stage wall-time deltas were download +26.1%,\nnormalize +0.4%, minhash -24.4%, fuzzy deduplication -6.9%, consolidate\n+8.4%, and tokenize -6.1%. Aggregate task-seconds increased 14.2%.\n\nPeak worker memory was 4.84 GiB versus 4.82 GiB. Both runs had zero OOMs\nand zero failed final shards. All 917 observed treatment tasks ran on\n`us-central2-b` scale groups under `MARIN_MIRROR_BUDGET_GB=0`, and the\nferry logs contained no cross-region event. One fuzzy worker exited\nafter five coordinator heartbeat failures during a phase transition. The\nroot ferry exited 0.\n\n---------\n\nCo-authored-by: Will Moss <187472+wmoss@users.noreply.github.com>",
+      "sha": "6a44327ddfb54c35f011d0c29918352273090a24",
+      "url": "https://github.com/marin-community/marin/commit/6a44327ddfb54c35f011d0c29918352273090a24",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-08-26T20:12:24Z",
+      "committed_at": "2026-08-26T20:12:24Z",
+      "message": "[dependencies] Advance external runtimes (#8708)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`e59e88bccdc1`](https://github.com/marin-community/evalchemy/commit/e59e88bccdc1b8e8e18a4d52e041aff2dfac548e)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`72dee18fc150`](https://github.com/marin-community/harbor/commit/72dee18fc15096c9d15b75ae8c3739ec8bf56b06)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`1280f59d8cfd`](https://github.com/marin-community/MarinSkyRL/commit/1280f59d8cfd7cc51da861310bab63b69174f24c)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`909655125027` → `1280f59d8cfd`)\n\n-\n[`6195eeba046c`](https://github.com/marin-community/MarinSkyRL/commit/6195eeba046cd8b64ca5b2fff88aa06d0ac1b50c):\n[ops] Let the RL supervisor edit experiment artifacts (#457)\n-\n[`2f8bf40dee3d`](https://github.com/marin-community/MarinSkyRL/commit/2f8bf40dee3d11d6530eaa0665e2de42ade0b7c4):\n[ci] Cancel leftover Iris nightly jobs (#459)\n-\n[`1280f59d8cfd`](https://github.com/marin-community/MarinSkyRL/commit/1280f59d8cfd7cc51da861310bab63b69174f24c):\n[fault-injection] Document codex worktree staging in README\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "f6a352b5e7aeea4104ebab627289e7ad1daa9330",
+      "url": "https://github.com/marin-community/marin/commit/f6a352b5e7aeea4104ebab627289e7ad1daa9330",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-08-26T18:43:47Z",
+      "committed_at": "2026-08-26T18:43:47Z",
+      "message": "[profiling] Recover XPlane semantic scope paths (#8691)\n\nRecover JAX named-scope paths from GPU XPlane events whose `tf_op` stat\ncontains only `XlaModule:`. These events carry the semantic path in the\nadjacent `name` stat. Using that path for the generic marker lets\n`profile_summary.py` attribute device time to model regions and\npreserves\nmeaningful `tf_op` values.\n\nOn the Snowball PP8 profile, each stage summary increased from 3-4\nhierarchical\nregions to 89-135. Seven stages recovered `moe_route`, `moe_experts`,\n`routed_moe`, `attention`, `shared_expert`, and `moe_up_down`; the\nremaining\nstage recovered the scope attached to its events.\n\nPart of #6468",
+      "sha": "20a39a5facececd060f5aa3364c5674f1e53cc99",
+      "url": "https://github.com/marin-community/marin/commit/20a39a5facececd060f5aa3364c5674f1e53cc99",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-26T18:32:47Z",
+      "committed_at": "2026-08-26T18:32:47Z",
+      "message": "[levanter] Restore the W&B run type alias (#8703)\n\nBind `WandbRun` to `wandb.sdk.wandb_run.Run` as a type alias. The\nprevious cleanup left the alias as a bare string value, which Pyrefly\ninterpreted as `Literal[\"wandb.sdk.wandb_run.Run\"]` and rejected at all\nthree annotation sites in `Marin - Lint` on main.\n\nThe pinned Pyrefly check reports zero errors after the change. The W&B\nand background tracker tests pass (27 tests).\n\nIncident record: https://echo.oa.dev/wiki/253\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "27806d701dfa34bf56eb8f4bfb313b567eb9a8b4",
+      "url": "https://github.com/marin-community/marin/commit/27806d701dfa34bf56eb8f4bfb313b567eb9a8b4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "claude[bot]",
+      "author_name": "claude[bot]",
+      "authored_at": "2026-08-26T16:47:19Z",
+      "committed_at": "2026-08-26T16:47:19Z",
+      "message": "[levanter] Split ArrayStacked norm logging by layer (#8689)\n\nEmit per-layer parameter and gradient norms for ArrayStacked when\nsplit_scan_layers is set. summary_statistics_for_tree previously\nspecial-cased\nonly haliax.nn.Stacked, whose named Block axis it vmaps over. Grug MoE\nstacks\nits transformer blocks in haliax.nn.ArrayStacked, which stores\nlayer-batched\nplain arrays with a leading num_layers axis and no named Block, so those\ntrees\nfell through to the plain-leaf branch and collapsed the layer axis into\none norm\nper stacked parameter. The metric keys carried no layer index, so a\nlayer with\nrunaway parameter or gradient growth could not be identified.\n\nArrayStacked is now treated as a split-scan container: the recursive\nnorm helper\nis vmapped over the leading layer axis (axis 0 for layer-batched leaves,\nNone for\nshared leaves), and each result is indexed to key.{layer}.{name},\nmatching the\nexisting Stacked keys.\n\nFixes #8688\n\nCo-authored-by: claude[bot] <41898282+claude[bot]@users.noreply.github.com>",
+      "sha": "8e27d964c1e3852f755036e74314a230a9920381",
+      "url": "https://github.com/marin-community/marin/commit/8e27d964c1e3852f755036e74314a230a9920381",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-08-26T16:41:29Z",
+      "committed_at": "2026-08-26T16:41:29Z",
+      "message": "[cleanup] Collapse duplicated helpers and delete dead scatter plumbing (#8696)\n\nConsolidate three duplicated definitions and delete one dead statistic.\n\nThe GCP slice-bootstrap `/health` poll and the autoscaler's liveness\nprobe each\ncarried their own copy of the worker health check, and the copies had\ndrifted.\nThe autoscaler opens through a `ProxyHandler({})` opener because worker\naddresses are private cluster IPs; the bootstrap copy called\n`urllib.request.urlopen`, which consults `HTTP_PROXY`. Both run in the\ncontroller process, so a proxy in the controller environment made\nbootstrap\nprobes fail or hang against private IPs while autoscaler probes worked.\nThe two\nalso disagreed on success: 2xx versus exactly 200. The probe now lives\nonce in\n`iris.cluster.platforms.types` beside the other network helpers, keeps\nthe proxy\nbypass and the 2xx check, and takes the per-probe timeout as a required\nargument\nso each caller retains its value (3 s fanned-out, 5 s serial).\n\n`marin.evaluation.perplexity_gap` held a byte-identical copy of\nLevanter's\n`_summary_scalars`, so both W&B loggers for the same gap summary owned\ntheir own\n`gap/...` metric-key policy; #5337 had to edit the two in lockstep. The\nLevanter\nfunction is now public as `gap_summary_scalars` and Marin imports it.\nMetric keys\nand values are unchanged.\n\n`levanter/store` had two copies of `_render_path_elem` and four inlined\nspellings\nof the join over it. That joined string is the on-disk layout contract:\n`TreeStore` opens each leaf's `JaggedArrayStore` under it and\n`CacheLedger.field_counts` is keyed by it, so the copies must agree or\nledger\ncounts stop naming the stores they describe. `render_tree_path` in\n`tree_store.py` now owns it.\n\nZephyr's scatter `avg_item_bytes` has had no consumer since #5963 moved\nthe\nreducer's external-sort sizing onto the exact per-shard `shard_bytes`.\nEvery\nmapper still accumulated it and wrote it to its `metadata.msgpack`\nsidecar, and\nevery reducer read it back into a file-count-weighted mean that reached\nonly a\nlog line — and that mean averaged per-mapper row-averages by file count,\nwhich\nis not what the name suggests. The accumulators, sidecar field,\n`ScatterReader`\nparameter, and derived attribute are gone; `shard_bytes` and the\nper-flush\n`estimated_size()` behind the GC threshold are untouched.\n\n---------\n\nCo-authored-by: Nightshift Agent <nightshift@marin.local>",
+      "sha": "9d4cd59943f4ab4a66dc24ecec7f764df2679fa2",
+      "url": "https://github.com/marin-community/marin/commit/9d4cd59943f4ab4a66dc24ecec7f764df2679fa2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dmitryduev",
+      "author_name": "Dmitry Duev",
+      "authored_at": "2026-08-26T16:40:01Z",
+      "committed_at": "2026-08-26T16:40:01Z",
+      "message": "Drop RunDisabled from the WandbRun type alias (#8693)\n\nwandb deprecated `RunDisabled` in v0.17.6 (wandb/wandb#8064): since\nthen, `wandb.init(mode=\"disabled\")` returns a regular no-op `wandb.Run`,\nand `RunDisabled` has been an empty compatibility shim that emits a\ndeprecation warning on attribute access. The shim is being removed in an\nupcoming wandb release (wandb/wandb#12586), after which importing it\nraises `ImportError`.\n\nDetails: the `WandbRun` union alias in the vendored levanter tracker\nuses a string forward ref to `wandb.sdk.lib.disabled.RunDisabled`; there\nis no runtime break, but type checkers would fail to resolve it. The\nalias becomes a plain forward ref to `wandb.sdk.wandb_run.Run`.",
+      "sha": "5741515b11a7e8c8f465ff1ffb8619355ee9dc05",
+      "url": "https://github.com/marin-community/marin/commit/5741515b11a7e8c8f465ff1ffb8619355ee9dc05",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-26T16:38:45Z",
+      "committed_at": "2026-08-26T16:38:45Z",
+      "message": "[canary] Recalibrate CoreWeave loss ceiling (#8698)\n\nRaise the CoreWeave canary final-loss ceiling from 8.0 to 10.0. The\nfixed 9.9M MoE introduced in #8600 finishes the lane's 50-step budget at\n9.1720–9.1724, causing three deterministic validation failures despite\nsuccessful training.\n\nLeave the TPU ceiling at 8.0. No post-#8600 TPU workflow run has\ncompleted its 238-step budget, so there is no measured loss to support\nrecalibration.\n\nFixes #8695\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "d1e3f59bc76c6f75a770378ba3062b0b4e6c3d36",
+      "url": "https://github.com/marin-community/marin/commit/d1e3f59bc76c6f75a770378ba3062b0b4e6c3d36",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-08-26T16:37:16Z",
+      "committed_at": "2026-08-26T16:37:16Z",
+      "message": "[iac] Grant Iris job submission to the XLA fork's CI (#8685)\n\n## What changed\n\nOne member added to `github-iris@hai-gcp-models`, for\n`roles/iam.workloadIdentityUser`:\n\n```\nprincipalSet://.../workloadIdentityPools/github-pool/attribute.repository/marin-community/xla\n```\n\n## Why\n\n`marin-community/xla` is Marin's XLA fork. It carries a ragged\nall-to-all device-kernel change that expert-parallel MoE training on\nGB200 needs and that is not upstream, and it builds a patched\n`jax-cuda13-pjrt` wheel.\n\nThe fork's CI must run that wheel on a real GB200 before Marin can pin\nit. A wheel whose change is inert still passes a correctness test, and\nstill benchmarks as a null result, so without a hardware check \"the\nchange did not help\" and \"the change was never present\" look the same.\nThat job submits to Iris, which needs this service account.\n\nThe grant matches what the other five fork repositories already have. It\nadds no new role and no new pool. It is scoped by\n`attribute.repository`, so only workflows running in\n`marin-community/xla` can use it.\n\n## Related\n\n- marin-community/xla#1 and marin-community/xla#3 carry the kernel\nchange and the build.\n- marin-community/marin#8684 is the Marin-side pin. It stays in draft\nuntil a validated wheel exists, which is what this grant unblocks.\n\n## For the reviewer\n\nRun `review-grant`, then `pulumi up` on the `marin` stack.\n\n`infra/pulumi/tests` passes with this change: 89 passed, 1 failed. The\n12 tests that read `iam_data.yaml` (`test_iam_targets.py`,\n`test_iam.py`, `test_iam_config.py`) all pass.\n\nThe one failure is\n`test_iris_service.py::TestCodeHash::test_content_change_changes_hash`,\nwhich fails identically on unmodified `main`. It is unrelated to IAM:\n`code_hash` returns the empty-input digest on both calls, so it never\nreads the file contents.\n\nRun them with:\n\n```bash\nuv sync --package marin-iac --extra deploy --group test\nuv run --package marin-iac --extra deploy --group test pytest infra/pulumi/tests -q\n```",
+      "sha": "7bf76a0790cab9fc3821c303c00b09efd660ab1a",
+      "url": "https://github.com/marin-community/marin/commit/7bf76a0790cab9fc3821c303c00b09efd660ab1a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-26T16:02:10Z",
+      "committed_at": "2026-08-26T16:02:10Z",
+      "message": "[echo] Expose search timings and reduce rerank latency (#8692)\n\nReport federated-search query embedding, database setup, per-domain\nretrieval,\nreranking, history persistence, and total application time through the\nstandard\n`Server-Timing` header. The CLI prints these stages beside caller wall\ntime so\nqueueing, token acquisition, network delay, and response decoding remain\ndistinguishable from API execution.\n\nScore the existing 24 INT8 MiniLM candidates one document at a time and\nrun\nONNX inference with four threads. Move Echo from one always-allocated\n1-vCPU\ninstance accepting four requests to request-based 4-vCPU instances with\none\nwarm minimum, concurrency one, and a maximum of four. Separate startup\nCPU\nboost from always-allocated CPU, preserve existing Grafana and EvalDash\nbehavior explicitly, and use lazy Cloud SQL certificate refresh while\nidle CPU\nis throttled.\n\nOn the reported Finelog query, single-document batches reduced the warm\nlocal\nmedian from 4.32 to 3.78 seconds and reranking from 3.80 to 3.23\nseconds. Four\ninference threads reduced the exact 24-document rerank further, from\n3.26 to\n1.01 seconds, for an estimated warm search near 1.6 seconds. Production\nhardware\nmay scale differently, so the new stage timings expose the rollout\nresult.\n\nA 16-candidate cap kept development hit rate but lost one\nanswerable-query hit\non the frozen held-out split, so the candidate budget remains 24. INT8\nBGE query\nembedding saved 32 milliseconds, under 1% of the local baseline, and\nwould\nrequire a quality evaluation and corpus reindex. Smaller rerankers were\nfaster\nbut remain unevaluated on Echo's frozen judgments.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "d12f0d8bde7f966d6e546e29e856065c4150f0a3",
+      "url": "https://github.com/marin-community/marin/commit/d12f0d8bde7f966d6e546e29e856065c4150f0a3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-26T15:41:22Z",
+      "committed_at": "2026-08-26T15:41:22Z",
+      "message": "[telemetry] Separate training metrics from service telemetry (#8571)\n\nLevanter produced 66.2% of retained telemetry rows in the measured\nproduction snapshot, while node-agent telemetry contributed 28.0%. A\n10.08 GiB replay containing 431,783,340 rows projected a 68.6%\ncompressed-byte reduction from process-zero publication, lower detail\ncadence, and narrower metric selection. Compaction-time downsampling\nremains a follow-up: 60-second sampling already moved some five-minute\nGPU aggregates, and 300-second sampling degraded them materially.\n\nThis separates explicitly collected training metrics from automatically\nsampled service telemetry. Levanter now writes typed scalar, summary,\nand histogram rows to the canonical `levanter.metrics` table through the\nper-run writer name `levanter.metrics.<run_id>`. `run_id` and `step` are\ncolumns; step is no longer a standalone metric row. Finelog stores exact\nhidden `run_id` partition metadata in each segment, uses it during\ncompaction, and prunes partitions for exact run queries without creating\na table or query-provider union per run.\n\nLevanter publishes training metrics only from process zero. Loss, phase,\nand progress remain available every step; other scalars and reduced\nsummaries are emitted every ten steps. Histogram moments and buckets\noccupy one typed row rather than many gauge rows. Automatic Levanter\nservice telemetry, including NCCL RAS, remains under\n`telemetry_v1.levanter`. Node-agent collection moves from 30 to 60\nseconds, and vLLM and Iris RPC collection move from 15 to 60 seconds.\nHistogram sibling coherence remains 15 seconds so historical\nhigh-cadence vLLM samples are not merged when reading the new 60-second\nstream.\n\nFinelog now registers ordered ingestion, storage, and physical-partition\npolicies in `policies.rs`. An ingestion policy receives the complete\nrecord batch and returns logical destinations. Unregistered schemas\nretain identity ingestion and default storage. The same telemetry policy\ndrives live ingestion and migration: old `telemetry_v1` Levanter gauge\nrows become typed `levanter.metrics` rows, while automatic service rows\nmove to semantic tables such as `telemetry_v1.node_agent`,\n`telemetry_v1.iris.rpc`, `telemetry_v1.vllm`, and `telemetry_v1.zephyr`.\n`/v1/telemetry` has no client-selected group or namespace field.\n\nThe legacy root receives a 50 GiB retention budget for rollout breathing\nroom. Typed Levanter metrics receive 32 GiB; automatic semantic streams\nhave bounded per-service budgets. Grafana, Iris RPC, vLLM, alerting, and\ndiagnostic queries now address concrete semantic tables. There is no\nroot rollup, storage-class name in a client API, or\n`priority`/`bulk`/`core`/`extra` namespace.\n\n`finelog-migrate` plans from catalog metadata and Parquet footers,\nbuilds a narrow historical step index, then applies the registered\ningestion and partition policies to full batches. Preparation is\nresumable while the server serves traffic. Verification rereads the\nsource snapshot and staged Parquets, then records a durable marker in\nthe migration manifest. Publish refuses an unverified manifest; during\nthe stopped interval it only hard-links the staged files, builds and\nswaps the catalog, and checks the catalog rows. Root retirement is a\nseparate stopped-server catalog cutover with a rollback snapshot.\nFinelog forwarders need no special configuration: they forward the\nphysical tables produced by the edge policy, and the migration refuses\nforwarding stores. Rigging treats non-429 HTTP 4xx responses as\npermanent rejection, so invalid writes fail visibly rather than\nreplaying forever.\n\nThe corrected local rehearsal used 45,289,841 production rows across\nL0/L1 shards. Planning took 21 ms; preparation took 111 seconds with\nabout 683 MiB peak RSS. It produced 31,101,772 rows, including 8,069,638\ntyped Levanter rows. Of those, 99.969% carried a reconstructed step; the\nremaining 2,503 all preceded the first observed step for their\nexecution, with zero missing afterward.\n\nThe marin-dev rehearsal used a frozen 250 MiB known-good snapshot while\nlegacy-root writes, direct typed writes, RPC writes, and sample queries\nran throughout deployment and cutover. Planning took 307 ms; preparation\ntook 69 seconds. All 457 legacy step writes, 457 direct typed step\nwrites, and 598 acknowledged RPC writes persisted, with no rejected or\nlost client records. The root was retired and the corrected typed layout\nis serving on marin-dev.\n\nProduction publication verified 524 source segments, 53.58 GiB, 2.173\nbillion input rows, and all 34,286 staged files containing 1.724 billion\nrouted rows. Stop-to-health publication took 22.295 seconds. Dual-write\nremains enabled and the root table remains available for rollback.\n\nThe first production query validation found that `levanter.metrics`\ninherited the global 1,000-segment cap. Its 12,468 migrated local L0\nsegments caused each fresh compacted L1 to be offloaded even though the\nnamespace used only 9.6 GiB of its 32 GiB budget. The namespace now\nretains by bytes with an effectively disabled count cap. A bounded\nrecovery restored 5,399 recent segments totaling 122,781,735 bytes.\nActive hero, node-agent, and vLLM probes match exactly between root and\nsemantic tables. All 61 checked-in semantic-table dashboard queries\ncompleted; maximum query time was 909 ms and maximum planning time was\n498 ms. Repeated generated hero-health queries took 2.6–3.2 seconds,\nbelow the 10-second server deadline.\n\nValidation on current main passes Clippy with warnings denied, 446\nFinelog library tests with one ignored test, six server-binary tests,\n1,522 repository tests with three skips and five expected failures, the\nfocused Levanter and Grafana suites, repository lint and Pyrefly, and\nstrict MkDocs.\n\nAnalysis:\nhttp://127.0.0.1:7878/s/l7xftsek/artifacts/telemetry-volume-mitigation-analysis\n\nTyped metrics proposal:\nhttp://127.0.0.1:7878/s/l7xftsek/artifacts/levanter-metrics-layout-research\n\nPolicy flow:\nhttp://127.0.0.1:7878/s/l7xftsek/artifacts/telemetry-layout-policy-flow\n\nRollout rehearsal:\nhttp://127.0.0.1:7878/s/l7xftsek/artifacts/telemetry-policy-rollout-runbook\n\nMigration rehearsal incident: https://echo.oa.dev/wiki/239\n\nProduction retention incident: https://echo.oa.dev/wiki/252\n\nIndex cleanup:\nhttp://127.0.0.1:7878/s/l7xftsek/artifacts/levanter-metrics-index-cleanup\n\nTracks #8563.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "51d245cde28d43e7455d0b87cf39aa5a55e55b0f",
+      "url": "https://github.com/marin-community/marin/commit/51d245cde28d43e7455d0b87cf39aa5a55e55b0f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-08-26T07:15:20Z",
+      "committed_at": "2026-08-26T07:15:20Z",
+      "message": "[dependencies] Advance external runtimes (#8694)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`e59e88bccdc1`](https://github.com/marin-community/evalchemy/commit/e59e88bccdc1b8e8e18a4d52e041aff2dfac548e)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`72dee18fc150`](https://github.com/marin-community/harbor/commit/72dee18fc15096c9d15b75ae8c3739ec8bf56b06)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`909655125027`](https://github.com/marin-community/MarinSkyRL/commit/909655125027462e0299951daaa1ad42ffd00d2a)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`ba9ef5243023` → `909655125027`)\n\n-\n[`909655125027`](https://github.com/marin-community/MarinSkyRL/commit/909655125027462e0299951daaa1ad42ffd00d2a):\n[trainer] Delete the unused weights manager (#437)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "e9e77ee6d9603aa2fe665a3f0e0a2db7ed950fda",
+      "url": "https://github.com/marin-community/marin/commit/e9e77ee6d9603aa2fe665a3f0e0a2db7ed950fda",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-08-26T04:25:29Z",
+      "committed_at": "2026-08-26T04:25:29Z",
+      "message": "[levanter] Publish checkpoint phase telemetry (#8663)\n\nPublish checkpoint phase duration, total duration, staged host bytes,\nand process peak RSS to Finelog when checkpoint debug mode is enabled.\nThe numeric series make synchronous staging and asynchronous commit time\navailable without parsing task logs.\n\nEach JAX process reports its local phases. Process zero reports total\nduration after the distributed barrier and metadata commit. Nonprimary\nprogress loggers stop after their local TensorStore commits finish.\n\nDocument a configuration that disables `tracemalloc`, forced garbage\ncollection, allocation reports, and forced log output. The stacked hero\ndiagnostic launcher exposes this configuration through\n`--checkpoint-debug` for a bounded checkpoint smoke test. The reference\nincludes a bounded regional Finelog query.\n\nThree one-rack GB200 runs used the 535B model, synthetic data, batch 64,\nand two training steps. Normal-step throughput changed from -0.1% to\n+5.1% across two debug runs. Post-checkpoint throughput decreased by\n83.5% and 87.9% against the no-debug control. In the last matched pair,\nduration increased from 10.17 seconds to 84.02 seconds. These results\nlimit debug mode to bounded diagnostics until its checkpoint-path cost\nis removed.",
+      "sha": "0a0b91977c6fed61d6495ed1ac54ed1f813cebd1",
+      "url": "https://github.com/marin-community/marin/commit/0a0b91977c6fed61d6495ed1ac54ed1f813cebd1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-08-26T02:04:53Z",
+      "committed_at": "2026-08-26T02:04:53Z",
+      "message": "[dependencies] Advance external runtimes (#8690)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`e59e88bccdc1`](https://github.com/marin-community/evalchemy/commit/e59e88bccdc1b8e8e18a4d52e041aff2dfac548e)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`72dee18fc150`](https://github.com/marin-community/harbor/commit/72dee18fc15096c9d15b75ae8c3739ec8bf56b06)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`ba9ef5243023`](https://github.com/marin-community/MarinSkyRL/commit/ba9ef52430230cdc6558f4de2bccd9988c227f26)\n|\n\n## Upstream commits\n\n### harbor (`2b6a406cfef9` → `72dee18fc150`)\n\n-\n[`72dee18fc150`](https://github.com/marin-community/harbor/commit/72dee18fc15096c9d15b75ae8c3739ec8bf56b06):\n[telemetry] Make Harbor telemetry joinable on run_id (#90)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "a8e866f384e596f4f3ca4f094dd125acb186a630",
+      "url": "https://github.com/marin-community/marin/commit/a8e866f384e596f4f3ca4f094dd125acb186a630",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-26T00:53:38Z",
+      "committed_at": "2026-08-26T00:53:38Z",
+      "message": "[levanter] Add merged cache catalogs (#8472)\n\nOpening hundreds of cache-backed mixture components currently requires\none ledger read per component. Add a versioned catalog that embeds each\nnamed cache path and ledger by split, and let `LmDataConfig` load that\ncatalog once as the authoritative cache snapshot. Catalog creation\nincludes components whose current training weight is zero so later jobs\ncan choose mixture frequencies at runtime. Required training components\nmissing from the snapshot fail before dataset construction; optional\nvalidation entries may be omitted.\n\nExisting cache stores can gain a catalog by rolling up their ledgers\nwithout rewriting token data. New Zarr arrays use an explicit Blosc Zstd\nlevel 1 write codec. Readers rely on each array's persisted Zarr\nmetadata, so existing LZ4 caches remain readable; converting their\nchunks to Zstd still requires a data rewrite.\n\nAn Iris benchmark on `cw-rno2a` reading and writing `marin-us-east-02a`\nused 300 components with ten shards each. The 312,034-byte catalog took\n2.89 seconds to build once. Median startup fell from 1.886 seconds for\nindividual ledgers to 0.485 seconds for the catalog, a 3.89x speedup.\n\nThe same job wrote and fully read 256 MiB of Zipf-distributed token IDs.\nZstd level 1 stored 86,990,443 bytes versus 114,189,567 bytes for LZ4\nlevel 5, a 23.8% reduction. Median write time fell from 3.114 to 3.010\nseconds, and median read time fell from 1.117 to 1.038 seconds. Each\ncodec had two repetitions with visible cold/warm spread, so the\nthroughput comparison is directional; the stored-byte reduction is the\nstronger result. The benchmark is reproducible with\n`scripts/levanter_cache_benchmark.py`; Iris job\n`/app/levanter-cache-benchmark-20260820-154341` completed successfully.\n\nThe focused cache and text suites pass all 65 tests. After rebasing onto\n`main`, the affected-test selector passes 657 tests with 6 skips.\nChanged-file lint, formatting, and type checks pass.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "b2c114dc4c1af9b13855c90fe0b3007c33626ca9",
+      "url": "https://github.com/marin-community/marin/commit/b2c114dc4c1af9b13855c90fe0b3007c33626ca9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-08-26T00:18:08Z",
+      "committed_at": "2026-08-26T00:18:08Z",
+      "message": "[canary] Allow TPU ferry launcher on preemptible capacity (#8630)\n\nAllow the TPU ferry's small CPU launcher to prefer preemptible capacity\nwhile retaining on-demand fallback.\n\n[Scheduled run\n32699287522](https://github.com/marin-community/marin/actions/runs/32699287522)\nrequested v5p-8 availability. Iris also inferred a required\nnon-preemptible constraint for the one-core launcher. The only two v5p-8\ngroups were preemptible, so no scaling group satisfied both constraints\nand submission ended before Iris returned a job ID.\n\nThe explicit preference suppresses that executor inference. The existing\nv5p-8 reservation continues to select a region where the TPU child can\nrun. Changed-file checks and seven focused Iris constraint and scheduler\ntests pass.\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "e720ffe02e19442855dcaf435c79ae42e8fbfb52",
+      "url": "https://github.com/marin-community/marin/commit/e720ffe02e19442855dcaf435c79ae42e8fbfb52",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-08-27T00:00:00Z",
+    "start": "2026-08-26T00:00:00Z"
+  }
+}

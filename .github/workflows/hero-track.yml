@@ -2,12 +2,13 @@ name: hero-track
 # Marin 535B hero run 定时追踪
 # 触发时刻: 北京时间 08:00 / 20:00  =  UTC 00:00 / 12:00
 # 本文件需位于默认分支 main 才会被 schedule 触发；
-# 数据与报告写入 marin-deep-track 分支。
+# 修改后必须同步合入 main，否则定时器仍按旧逻辑执行。
+# 数据与报告写入 marin-deep-track 分支。运维细节见 docs/OPERATIONS.md。
 
 on:
   schedule:
     - cron: "0 0,12 * * *"
-  workflow_dispatch: {}   # 允许手动触发
+  workflow_dispatch: {}   # 允许手动触发（dispatch 的 ref 选 main）
 
 permissions:
   contents: write
@@ -32,11 +33,15 @@ jobs:
           python track_hero.py update
           python track_hero.py dashboard
 
+      - name: Refresh system metrics snapshot (optional, non-blocking)
+        working-directory: scripts
+        run: python pull_hero_system.py || echo "::warning::system metrics refresh failed, continuing"
+
       - name: Commit & push updates to marin-deep-track
         run: |
           git config user.name "marin-track-bot"
           git config user.email "marin-track-bot@users.noreply.github.com"
-          git add data/ reports/daily/ dashboard/hero_data.json
+          git add -A
           if git diff --cached --quiet; then
             echo "no changes, skip commit"
           else

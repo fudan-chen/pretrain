@@ -1,0 +1,45 @@
+name: hero-track
+# Marin 535B hero run 定时追踪
+# 触发时刻: 北京时间 08:00 / 20:00  =  UTC 00:00 / 12:00
+# 本文件需位于默认分支 main 才会被 schedule 触发；
+# 数据与报告写入 marin-deep-track 分支。
+
+on:
+  schedule:
+    - cron: "0 0,12 * * *"
+  workflow_dispatch: {}   # 允许手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout marin-deep-track
+        uses: actions/checkout@v4
+        with:
+          ref: marin-deep-track
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run tracker (pull + update + dashboard)
+        working-directory: scripts
+        run: |
+          python track_hero.py update
+          python track_hero.py dashboard
+
+      - name: Commit & push updates to marin-deep-track
+        run: |
+          git config user.name "marin-track-bot"
+          git config user.email "marin-track-bot@users.noreply.github.com"
+          git add data/ reports/daily/ dashboard/hero_data.json
+          if git diff --cached --quiet; then
+            echo "no changes, skip commit"
+          else
+            git commit -m "track: hero update $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin marin-deep-track
+          fi

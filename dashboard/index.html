@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marin 535B Hero Run · 实时追踪仪表盘</title>
+<style>
+:root{
+  --bg:#0b0f17; --panel:#121826; --panel2:#0f1420; --line:#1f2a3d;
+  --txt:#e6edf7; --dim:#8b98ad; --acc:#5aa9ff; --acc2:#7ef0c8;
+  --warn:#ffb454; --bad:#ff6b6b; --good:#51d88a; --purple:#b78cff;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.6}
+a{color:var(--acc);text-decoration:none}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px 80px}
+header.hero{padding:56px 0 28px;border-bottom:1px solid var(--line);margin-bottom:28px;
+  background:radial-gradient(1200px 300px at 20% -50px,rgba(90,169,255,.12),transparent),radial-gradient(900px 260px at 85% -30px,rgba(126,240,200,.08),transparent)}
+.eyebrow{color:var(--acc2);font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:600}
+h1{font-size:34px;font-weight:800;margin:10px 0 6px;letter-spacing:-.02em}
+h1 .grad{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--dim);font-size:15px;max-width:820px}
+.meta{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:16px;font-size:13px;color:var(--dim)}
+.meta b{color:var(--txt);font-weight:600}
+.live{display:inline-flex;align-items:center;gap:7px;background:rgba(81,216,138,.1);border:1px solid rgba(81,216,138,.35);color:var(--good);padding:3px 12px;border-radius:99px;font-size:12px;font-weight:600}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--good);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:26px 0 8px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.kpi .l{font-size:12px;color:var(--dim);letter-spacing:.05em}
+.kpi .v{font-size:26px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--dim);margin-top:2px}
+.kpi.hl{border-color:rgba(90,169,255,.5);background:linear-gradient(180deg,rgba(90,169,255,.08),var(--panel))}
+section{margin-top:38px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.sec-h h2{font-size:20px;font-weight:700}
+.sec-h .n{color:var(--acc2);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.sec-d{color:var(--dim);font-size:13.5px;margin-bottom:16px;max-width:900px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 12px}
+.card h3{font-size:14.5px;font-weight:700;margin-bottom:2px}
+.card .cd{font-size:12px;color:var(--dim);margin-bottom:8px}
+.card canvas{width:100%;height:260px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--dim);margin:6px 2px 8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.note{margin-top:10px;font-size:12.5px;color:var(--dim);border-left:3px solid var(--acc);padding:6px 12px;background:rgba(90,169,255,.05);border-radius:0 8px 8px 0}
+table.mix{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+table.mix th,table.mix td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--line)}
+table.mix th:first-child,table.mix td:first-child{text-align:left}
+table.mix th{color:var(--dim);font-weight:600}
+.bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--acc),var(--acc2));display:inline-block;vertical-align:middle}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--dim);font-size:12.5px;display:flex;flex-wrap:wrap;gap:6px 20px;justify-content:space-between}
+.tip{position:fixed;pointer-events:none;background:#1a2334;border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--txt);display:none;z-index:50;box-shadow:0 6px 24px rgba(0,0,0,.5);font-variant-numeric:tabular-nums;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div class="eyebrow">Marin Community · marin_moe · Live Tracker</div>
+  <h1>Marin <span class="grad">535B Hero Run</span> 实时追踪仪表盘</h1>
+  <p class="sub">对 <b>hero-12d8b6f0-dee637</b> 正式训练（535.3B 总参 / 22.8B 激活 LatentMoE，390,251 步 / 18T tokens）的自动化追踪：训练曲线、缩放定律预测、MoE 路由健康度、数据配比与吞吐，每日北京时间 08:00 / 20:00 更新。</p>
+  <div class="meta">
+    <span class="live"><i></i>TRACKING</span>
+    <span>Run: <b id="m-run">—</b></span>
+    <span>数据更新: <b id="m-updated">—</b></span>
+    <span>追踪分支: <b>marin-deep-track</b></span>
+    <span>日报: <b>reports/daily/</b>（16 份回填 + 持续更新）</span>
+  </div>
+</header>
+
+<div class="kpis" id="kpis"></div>
+
+<section>
+  <div class="sec-h"><span class="n">01</span><h2>Loss：训练实况 vs 缩放定律预测</h2></div>
+  <p class="sec-d">训练交叉熵（train CE）与四档 Ladder 拟合的幂律外推 L(C)=1.5+87.1·C<sup>−0.0894</sup> 对比；右图 dropless Paloma macro loss 与全程预测曲线。团队预注册终值预测 2.04，本追踪独立复算 2.070。</p>
+  <div class="grid2">
+    <div class="card"><h3>训练交叉熵 + 幂律预测</h3><div class="cd">hero 实测（蓝）· 缩放定律预测（紫虚线）· 团队终值 2.04（灰虚线）</div><canvas id="c-train"></canvas></div>
+    <div class="card"><h3>Paloma 评测 vs 全程预测</h3><div class="cd">dropless paloma macro（绿点）· 预测曲线（紫）· 双预测终值带</div><canvas id="c-eval"></canvas></div>
+  </div>
+  <div class="note" id="eval-note"></div>
+</section>
+
+<section>
+  <div class="sec-h"><span class="n">02</span><h2>优化健康度：梯度 / 学习率</h2></div>
+  <p class="sec-d">grad norm 峰值区（约 25% 进度）已通过；LR 为 muon 主组（0.00329 峰值）余弦衰减，adam 组 0.000759。</p>
+  <div class="grid2">
+    <div class="card"><h3>Grad Norm（总）</h3><div class="cd">尖峰 = 数据难度/路由调整；当前已回落至 ~0.23</div><canvas id="c-gn"></canvas></div>
+    <div class="card"><h3>学习率（muon 组）</h3><div class="cd">warmup → 峰值 0.00329 → 余弦衰减；80% 处进入 phase-2 decay</div><canvas id="c-lr"></canvas></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-h"><span class="n">03</span><h2>系统效率：吞吐 / MFU</h2></div>
+  <p class="sec-d">tokens/s 与 MFU（原始指标即百分比）。冷启动后稳定在 ~2.5M tok/s、MFU ~21%，显著高于 d1024 档的 9%。</p>
+  <div class="grid2">
+    <div class="card"><h3>吞吐（tokens/s）</h3><div class="cd">冷启动爬升 → 稳态 ~2.5M tok/s</div><canvas id="c-tp"></canvas></div>
+    <div class="card"><h3>MFU（%）</h3><div class="cd">MoE + Latent 注意力在 TPU v5p 上的模型算力利用率</div><canvas id="c-mfu"></canvas></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-h"><span class="n">04</span><h2>MoE 路由健康度</h2></div>
+  <p class="sec-d">384 专家 top-8 + QB 路由。drop_fraction 从冷启动 ~10% 降至 ~3%；router bias 有界、容量溢出率 ~0.1–0.2%，负载均衡良好、无路由塌缩迹象。</p>
+  <div class="grid2">
+    <div class="card"><h3>Token Drop Fraction</h3><div class="cd">容量因子丢弃比例（越低越好）</div><canvas id="c-drop"></canvas></div>
+    <div class="card"><h3>Router Bias Max / 容量溢出率</h3><div class="cd">bias 有界（橙）· overflow 均值（红，右轴×100）</div><canvas id="c-router"></canvas></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-h"><span class="n">05</span><h2>数据配比快照（stage 0）</h2></div>
+  <p class="sec-d">40 语义簇 × 5 质量桶（Q0–Q4），292 源 → 23.11T 有效 tokens。当前为 stage-0 权重；80% 进度处切换 phase-2 边界。下表为占比最高的 12 个簇。</p>
+  <div class="card"><h3>Top 语义簇权重</h3><div class="cd">权重 = 该簇 5 个质量桶之和 · 完整 200 维权重见 data/hero/.../mixture.jsonl</div>
+    <div style="overflow-x:auto"><table class="mix" id="mixtab"></table></div>
+  </div>
+</section>
+
+<footer>
+  <span>Marin 535B 追踪 · 自动生成于 marin-deep-track 分支 · 数据: W&B marin-community/marin_moe（匿名只读）</span>
+  <span id="f-updated"></span>
+</footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const INLINE_DATA = null;
+const HERO_STEPS_F = 390251;
+
+function fmt(n,d){return n==null?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:d==null?2:d});}
+function last(a){return a&&a.length?a[a.length-1][1]:null;}
+function lastStep(a){return a&&a.length?a[a.length-1][0]:null;}
+function lastBefore(a,s){if(!a)return null;let v=null;for(const p of a){if(p[0]<=s)v=p[1];else break;}return v;}
+
+const PAL=['#5aa9ff','#7ef0c8','#ffb454','#ff6b6b','#b78cff','#51d88a','#f472b6','#93c5fd'];
+function chart(id,cfg){
+  const cv=document.getElementById(id),ctx=cv.getContext('2d'),tip=document.getElementById('tip');
+  const dpr=window.devicePixelRatio||1;
+  function resize(){const r=cv.getBoundingClientRect();cv.width=r.width*dpr;cv.height=r.height*dpr;draw();}
+  const P={l:56,r:16,t:14,b:30};
+  function draw(hl){
+    const W=cv.width/dpr,H=cv.height/dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+    const iw=W-P.l-P.r,ih=H-P.t-P.b;
+    let xmin=cfg.xmin!=null?cfg.xmin:Infinity,xmax=-Infinity,ymin=Infinity,ymax=-Infinity;
+    cfg.series.forEach(s=>s.data.forEach(p=>{if(cfg.xmin==null&&p[0]<xmin)xmin=p[0];if(p[0]>xmax)xmax=p[0];}));
+    if(cfg.xmin!=null)xmin=cfg.xmin;
+    cfg.series.forEach(s=>{if(s.y2)return;s.data.forEach(p=>{const y=s.log?Math.log10(Math.max(p[1],1e-9)):p[1];if(y<ymin)ymin=y;if(y>ymax)ymax=y;});});
+    (cfg.hlines||[]).forEach(h=>{const y=cfg.log||h.log?Math.log10(h.y):h.y;if(y<ymin)ymin=y;if(y>ymax)ymax=y;});
+    if(cfg.ymin!=null)ymin=cfg.ymin;if(cfg.ymax!=null)ymax=cfg.ymax;
+    const pad=(ymax-ymin)*0.08||1;ymin-=pad;ymax+=pad;
+    const X=s=>P.l+(s-xmin)/(xmax-xmin)*iw;
+    const Y=v=>{const y=cfg.log?Math.log10(Math.max(v,1e-9)):v;return P.t+ih-(y-ymin)/(ymax-ymin)*ih;};
+    // grid
+    ctx.strokeStyle='#1f2a3d';ctx.fillStyle='#8b98ad';ctx.font='11px sans-serif';ctx.lineWidth=1;
+    const ny=4;ctx.textAlign='right';
+    for(let i=0;i<=ny;i++){const v=ymin+(ymax-ymin)*i/ny,py=P.t+ih-(v-ymin)/(ymax-ymin)*ih;
+      ctx.beginPath();ctx.moveTo(P.l,py);ctx.lineTo(W-P.r,py);ctx.stroke();
+      let lbl=cfg.log?Math.pow(10,v).toFixed(Math.pow(10,v)<1?2:1):v.toFixed(v<10?2:0);
+      ctx.fillText(lbl,P.l-8,py+3);}
+    ctx.textAlign='center';const nx=6;
+    for(let i=0;i<=nx;i++){const v=xmin+(xmax-xmin)*i/nx,px=X(v);
+      ctx.fillText(v>=1000?(v/1000).toFixed(0)+'k':v.toFixed(0),px,H-10);}
+    // hlines
+    (cfg.hlines||[]).forEach(h=>{ctx.strokeStyle=h.color||'#8b98ad';ctx.setLineDash(h.dash||[5,4]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(P.l,Y(h.y));ctx.lineTo(W-P.r,Y(h.y));ctx.stroke();ctx.setLineDash([]);
+      if(h.label){ctx.fillStyle=h.color||'#8b98ad';ctx.textAlign='left';ctx.fillText(h.label,P.l+6,Y(h.y)-5);}});
+    // vlines
+    (cfg.vlines||[]).forEach(v=>{ctx.strokeStyle=v.color||'#3a4a63';ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.moveTo(X(v.x),P.t);ctx.lineTo(X(v.x),P.t+ih);ctx.stroke();ctx.setLineDash([]);
+      if(v.label){ctx.fillStyle=v.color||'#8b98ad';ctx.textAlign='left';ctx.fillText(v.label,X(v.x)+5,P.t+12);}});
+    // series
+    cfg.series.forEach((s,si)=>{const col=s.color||PAL[si%PAL.length];
+      if(s.fill){const g=ctx.createLinearGradient(0,P.t,0,P.t+ih);g.addColorStop(0,col+'44');g.addColorStop(1,col+'00');
+        ctx.fillStyle=g;ctx.beginPath();let first=true;
+        s.data.forEach(p=>{if(first){ctx.moveTo(X(p[0]),Y(p[1]));first=false;}else ctx.lineTo(X(p[0]),Y(p[1]));});
+        ctx.lineTo(X(s.data[s.data.length-1][0]),P.t+ih);ctx.lineTo(X(s.data[0][0]),P.t+ih);ctx.closePath();ctx.fill();}
+      ctx.strokeStyle=col;ctx.lineWidth=s.width||1.8;ctx.setLineDash(s.dash||[]);
+      ctx.beginPath();let f=true;
+      s.data.forEach(p=>{if(f){ctx.moveTo(X(p[0]),Y(p[1]));f=false;}else ctx.lineTo(X(p[0]),Y(p[1]));});
+      ctx.stroke();ctx.setLineDash([]);
+      if(s.points){ctx.fillStyle=col;s.data.forEach(p=>{ctx.beginPath();ctx.arc(X(p[0]),Y(p[1]),3.2,0,7);ctx.fill();});}
+    });
+    // hover crosshair
+    if(hl!=null){ctx.strokeStyle='#5aa9ff55';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(hl,P.t);ctx.lineTo(hl,P.t+ih);ctx.stroke();ctx.setLineDash([]);}
+    cv._geom={X,Y,xmin,xmax,ymin,ymax,P,iw,ih,W,H};
+  }
+  cv.addEventListener('mousemove',e=>{
+    const r=cv.getBoundingClientRect(),mx=e.clientX-r.left,g=cv._geom;if(!g)return;
+    if(mx<g.P.l||mx>g.W-g.P.r){tip.style.display='none';draw();return;}
+    const sx=g.xmin+(mx-g.P.l)/g.iw*(g.xmax-g.xmin);
+    let html='<b>step '+fmt(Math.round(sx),0)+'</b>';
+    cfg.series.forEach((s,si)=>{const v=lastBefore(s.data,sx);if(v!=null)html+='<br><span style="color:'+(s.color||PAL[si%PAL.length])+'">●</span> '+(s.name||'y')+': '+fmt(v,3);});
+    tip.innerHTML=html;tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+14)+'px';
+    draw(mx);
+  });
+  cv.addEventListener('mouseleave',()=>{tip.style.display='none';draw();});
+  window.addEventListener('resize',resize);resize();
+}
+
+function render(D){
+  const cur=lastStep(D.train_ce),pct=(cur/D.hero_steps*100);
+  document.getElementById('m-run').textContent=D.run;
+  document.getElementById('m-updated').textContent=new Date(D.updated).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false})+' 北京';
+  document.getElementById('f-updated').textContent='updated: '+D.updated;
+  const predFinal=D.prediction[D.prediction.length-1][1];
+  const palNow=last(D.eval_paloma),palStep=lastStep(D.eval_paloma);
+  const predAtPal=lastBefore(D.prediction,palStep);
+  const k=[
+    {l:'训练进度',v:pct.toFixed(1)+'%',s:fmt(cur,0)+' / '+fmt(D.hero_steps,0)+' 步',hl:1},
+    {l:'最新 Train CE',v:fmt(last(D.train_ce),3),s:'step '+fmt(cur,0)},
+    {l:'最新 Paloma Macro',v:fmt(palNow,3),s:'step '+fmt(palStep,0)+' · 预测 '+fmt(predAtPal,3)},
+    {l:'终值预测（复算）',v:fmt(predFinal,3),s:'团队预注册 '+D.team_prediction_final,hl:1},
+    {l:'MFU',v:fmt(last(D.mfu),1)+'%',s:'吞吐 '+fmt(last(D.throughput)/1e6,2)+'M tok/s'},
+    {l:'Drop Fraction',v:(last(D.drop_fraction)*100).toFixed(1)+'%',s:'路由溢出 '+(last(D.router_overflow)*100).toFixed(2)+'%'},
+  ];
+  document.getElementById('kpis').innerHTML=k.map(x=>'<div class="kpi'+(x.hl?' hl':'')+'"><div class="l">'+x.l+'</div><div class="v">'+x.v+'</div><div class="s">'+x.s+'</div></div>').join('');
+  const diff=predAtPal!=null?(palNow-predAtPal):null;
+  document.getElementById('eval-note').innerHTML='📉 当前 Paloma macro <b style="color:#7ef0c8">'+fmt(palNow,3)+'</b>，幂律预测 '+fmt(predAtPal,3)+'，偏差 <b>'+(diff>=0?'+':'')+fmt(diff,3)+'</b>（'+(diff<0?'优于预测':'高于预测')+'）。终值双预测：团队预注册 <b>2.04</b> vs 本追踪复算 <b>'+fmt(predFinal,3)+'</b>。';
+  const vl=[{x:0.8*D.hero_steps,label:'phase-2 @80%',color:'#ffb454'},{x:0.25*D.hero_steps,label:'grad 峰值区 ~25%',color:'#3a4a63'}];
+  chart('c-train',{series:[
+    {data:D.train_ce,color:'#5aa9ff',name:'train CE',width:1.4},
+    {data:D.prediction,color:'#b78cff',dash:[6,4],name:'幂律预测',width:1.6}],
+    hlines:[{y:D.team_prediction_final,color:'#8b98ad',label:'团队 2.04'}],vlines:vl,log:false,ymax:4});
+  chart('c-eval',{series:[
+    {data:D.prediction,color:'#b78cff',name:'预测曲线',width:1.6},
+    {data:D.eval_paloma,color:'#7ef0c8',points:1,name:'paloma macro',width:2}],
+    hlines:[{y:D.team_prediction_final,color:'#8b98ad',label:'2.04'},{y:predFinal,color:'#b78cff',label:fmt(predFinal,2)}],xmin:0});
+  chart('c-gn',{series:[{data:D.grad_norm,color:'#ffb454',name:'grad norm',width:1.2,fill:1}],vlines:[vl[1]],log:true});
+  chart('c-lr',{series:[{data:D.lr,color:'#51d88a',name:'muon LR',width:1.6,fill:1}],vlines:[vl[0]]});
+  chart('c-tp',{series:[{data:D.throughput.map(p=>[p[0],p[1]/1e6]),color:'#5aa9ff',name:'M tok/s',width:1.4,fill:1}]});
+  chart('c-mfu',{series:[{data:D.mfu,color:'#7ef0c8',name:'MFU %',width:1.4,fill:1}]});
+  chart('c-drop',{series:[{data:D.drop_fraction.map(p=>[p[0],p[1]*100]),color:'#f472b6',name:'drop %',width:1.4,fill:1}]});
+  chart('c-router',{series:[
+    {data:D.router_bias_max,color:'#ffb454',name:'bias max',width:1.4},
+    {data:D.router_overflow.map(p=>[p[0],p[1]*100]),color:'#ff6b6b',name:'overflow ×100',width:1.4}]});
+  // mixture table
+  const mw=D.mixture_weights,agg={};
+  mw.weights.forEach(([k,v])=>{const c=k.slice(0,3);agg[c]=(agg[c]||0)+v;});
+  const top=Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const mx=top[0][1];
+  document.getElementById('mixtab').innerHTML='<tr><th>簇</th><th>Q0</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>合计</th><th style="width:34%"></th></tr>'+
+    top.map(([c,t])=>{const qs=[0,1,2,3,4].map(q=>{const w=mw.weights.find(x=>x[0]===c+'q'+q);return w?w[1]:0;});
+      return '<tr><td><b>'+c+'</b></td>'+qs.map(q=>'<td>'+(q*100).toFixed(2)+'%</td>').join('')+'<td><b>'+(t*100).toFixed(2)+'%</b></td><td><span class="bar" style="width:'+(t/mx*100)+'%"></span></td></tr>';}).join('');
+}
+
+(function boot(){
+  if(INLINE_DATA){render(INLINE_DATA);return;}
+  fetch('hero_data.json').then(r=>r.json()).then(render).catch(e=>{
+    document.getElementById('m-updated').textContent='加载失败: '+e;
+  });
+})();
+</script>
+</body>
+</html>

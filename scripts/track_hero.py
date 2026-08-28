@@ -328,6 +328,20 @@ def cmd_update():
     print("latest complete window:", name)
     cmd_backfill(now_ts=now_ts)   # regenerate all (cheap) so index stays complete
 
+def mixture_snapshot():
+    """Latest data-mixture weight snapshot -> {'stage': int, 'weights': [[cXXqY, w], ...]}."""
+    path = os.path.join(DATA, HERO, "mixture.jsonl")
+    if not os.path.exists(path):
+        return None
+    rows = load_jsonl(path)
+    if not rows:
+        return None
+    r = rows[-1]
+    w = {k.split("/")[-1]: round(v, 7) for k, v in r.items() if k.startswith("mixture/weight/")}
+    return {"stage": r.get("mixture/stage", 0), "step": r.get("_step", 0),
+            "weights": sorted(w.items())}
+
+
 def cmd_dashboard():
     dense = load_jsonl(os.path.join(DATA, HERO, "dense.jsonl"))
     evalr = load_jsonl(os.path.join(DATA, HERO, "eval.jsonl"))
@@ -353,7 +367,11 @@ def cmd_dashboard():
         "lr": ds(dense, "optim/learning_rate"),
         "eval_paloma": ds(evalr, "eval_dropless/paloma/macro_loss"),
         "prediction": [[s, round(predicted_loss(s), 5)] for s in range(0, HERO_STEPS + 1, 5000)],
+        "router_bias_max": ds(router, "train/router/bias_max"),
+        "router_overflow": ds(router, "train/router/capacity_overflow_rate_mean"),
+        "mixture_weights": mixture_snapshot(),
     }
+
     with open(os.path.join(DASH, "hero_data.json"), "w") as f:
         json.dump(payload, f)
     print("dashboard data ->", os.path.join(DASH, "hero_data.json"))

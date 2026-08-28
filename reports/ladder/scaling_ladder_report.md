@@ -100,7 +100,7 @@ Marin 的做法与主流"深度×宽度"阶梯不同——**只沿隐藏维度 d
 
 **通信**：核心是 MoE 的 all-to-all。EP 文档（ravwojdyla）实测单 rack 250,691 tok/s（steps 2–19 中位数，20 步 gate），采用**三波静态 shape 的 fixed_pooled_wave_all_to_all**，配合 LatentMoE 的降维（latent_dim 3072）把 all-to-all 流量**减半**。关键负载指标 **CF（capacity factor）sender 1.10 / receiver 1.15**——这是"不丢太多 token"与"不浪费太多显存"之间的权衡点。无 FP8、无 micro-batch（简化了通信/计算重叠的复杂度）。
 
-**NVLink / PCIe 实测**：hero run 的 `system/gpu.0-3.{nvlinkRxBytes,nvlinkTxBytes,pcieRxBytes,pcieTxBytes,smActive,powerWatts,temp}` 指标在 wandb 中可见，本文尝试经 `systemMetrics` 接口拉取（结果见 `data/hero/*/system_metrics.json`）。**诚实标注**：这些系统级遥测在公开 wandb 中的可见性受限（history 接口返回空、summary 不含、疑似挂在 `_runtime` 轴或受权限约束），通信带宽的定量分析以 EP 文档的实测值为准，wandb 曲线作为补充。
+**NVLink / PCIe 实测（本文实测结论）**：hero run 的 `system/gpu.0-3.*` 遥测经 `systemMetrics` 接口拉取后确认——**这是"训练至今的累计快照"（142 个整型单值），不是时间序列**。其中：**NVLink 与 PCIe 的字节计数在该集群上全部为 0**（GB200 NVL72 的 NVLink 域内流量未在 host 侧插桩，属预期；rack 间 IB 流量也不经 host PCIe 计数器），因此**通信带宽无法从 wandb 遥测直接读出**。可用的真实信号是 **power（999–1089 W/GPU，接近 GB200 满负荷）与温度（51–63 °C）**，以及 `system/gpu.*.smActive`。**诚实标注**：通信带宽的定量分析以 EP 文档实测值（单 rack 250,691 tok/s、三波 all-to-all、CF 1.10/1.15）为准；wandb 侧用吞吐/MFU 曲线（图 l5）作为通信健康的间接代理——吞吐平稳即说明 all-to-all 没有成为瓶颈。
 
 **MoE 负载监控**：`train/router/*`（779 键，每层 16 个指标）+ `moe/{drop,sender_drop,receiver_drop}_fraction`。drop fraction 曲线（图 l4 右）是最直观的负载均衡健康度：全程 ≤10% 且快速收敛，说明 QB 路由（双估计器 TOP_K/HIST + `_qb_beta_hist` 修正）在 384 专家上工作良好。
 

@@ -69,19 +69,20 @@ def pull_run(run, outdir, mode):
     mixw = sorted(k for k in keys if k.startswith("mixture/weight/"))
     specs = []
     names = []
+    BASE = ["_step", "_timestamp"]
     if dense:
-        specs.append({"keys": ["_step"] + dense, "samples": 5000}); names.append("dense")
+        specs.append({"keys": BASE + dense, "samples": 8000}); names.append("dense")
     if evalk:
-        specs.append({"keys": ["_step"] + evalk, "samples": 2000}); names.append("eval")
+        specs.append({"keys": BASE + evalk, "samples": 2000}); names.append("eval")
     if mixw:
-        specs.append({"keys": ["_step", "mixture/stage"] + mixw, "samples": 600}); names.append("mixture")
+        specs.append({"keys": BASE + ["mixture/stage"] + mixw, "samples": 600}); names.append("mixture")
     if mode == "hero":
         sysk = select(keys, SYSTEM_PAT)
         router = select(keys, ROUTER_PAT)
         if sysk:
-            specs.append({"keys": ["_step"] + sysk, "samples": 3000}); names.append("system")
+            specs.append({"keys": BASE + sysk, "samples": 3000}); names.append("system")
         if router:
-            specs.append({"keys": ["_step"] + router, "samples": 2000}); names.append("router")
+            specs.append({"keys": BASE + router, "samples": 2000}); names.append("router")
 
     results = mw.sampled(ENTITY, PROJECT, run, specs)
     summary = {"run": run, "state": meta["state"], "createdAt": meta["createdAt"],

@@ -92,3 +92,7 @@ python scripts/track_marin.py --date 2026-08-23 --refresh-existing
 `GITHUB_TOKEN` 由 GitHub Actions 自动创建，无需把个人访问令牌保存到仓库。并发队列会让多次采集顺序运行；提交前还会基于最新远端分支 rebase，降低运行期间其他提交导致的 push 冲突。
 
 GitHub 的 cron 使用 UTC，繁忙时可能延迟。对于公开仓库，如果连续 60 天没有仓库活动，GitHub 可能自动停用 scheduled workflow；届时可在 Actions 页面重新启用，或提交一次工作流变更后再手动验证。
+
+---
+
+> 🔬 **Marin 535B 深度追踪**：Scaling Ladder 复盘报告 + 每日两次（北京 08:00/20:00）自动追踪日报 + 实时看板 → 见 [`marin-deep-track`](https://github.com/fudan-chen/pretrain/tree/marin-deep-track) 分支；在线看板 <https://fudan-chen.github.io/pretrain/dashboard/> · 完整复盘 <https://fudan-chen.github.io/pretrain/reports/ladder/>

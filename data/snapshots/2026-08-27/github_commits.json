@@ -1,0 +1,131 @@
+{
+  "commit_count": 11,
+  "commits": [
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-08-27T23:59:30Z",
+      "committed_at": "2026-08-27T23:59:30Z",
+      "message": "[inference] Bound vLLM metric forwarding by family (#8629)\n\nForward twelve named vLLM Prometheus families used by Marin's inference\ndashboards and basic serving diagnosis. Select complete parsed families\nbefore\nflattening them, so upstream exposition order cannot decide which\nmetrics\nsurvive and the sample limit never splits a histogram. Local and Iris\nsubmissions\ncan add exact `vllm:` family names with `--vllm-metrics-config`; the\nstandard set\nremains enabled.\n\nThe previous first-1,024 policy dropped 23–61% of samples in observed\nserves\nand left one serve exposing only 10 of 19 dashboard metric names,\ndespite zero\nqueue loss. Apply a 2,048-sample limit after selection. Reject an\noversized\nselected batch in full, report it through collector health, and resume\nforwarding after a valid scrape without interrupting inference.\n\nA representative eight-engine standard selection derived from Marin's\npinned\nGPU and TPU vLLM definitions contains 1,024 samples. No complete raw GPU\nor TPU\nscrape was retained.\n\nFixes #8524\n\n---------\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "34f60652d46beb09f5a7547631001f43fd733d5c",
+      "url": "https://github.com/marin-community/marin/commit/34f60652d46beb09f5a7547631001f43fd733d5c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-27T20:32:30Z",
+      "committed_at": "2026-08-27T20:32:30Z",
+      "message": "[codehealth] Record review telemetry in Finelog instead of W&B (#8735)\n\nMove code-health tables from W&B to append-only Finelog namespaces\nunder `codehealth.autolint`.",
+      "sha": "1ce93369edc85d24e9b38bbac3f7e560e8548815",
+      "url": "https://github.com/marin-community/marin/commit/1ce93369edc85d24e9b38bbac3f7e560e8548815",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-27T20:18:12Z",
+      "committed_at": "2026-08-27T20:18:12Z",
+      "message": "[ci] Give the lint review Finelog credentials (#8736)\n\nThe `lint-review` job runs `pre-commit.py --review` on every non-draft\nmember\npull request, and the review ships one telemetry row per run. The job\nhad no\nFinelog credentials, so roughly 124 successful runs a month were never\nrecorded:\nexactly one row in the 1,417-row history carries a `pr_number`.\n\nThe job now authenticates with the CI service account. No audience\nsecret is\ninvolved: when a cluster configures no `programmatic_audiences`, the\nfinelog\nclient mints its IAP edge token for the Marin desktop OAuth client id,\nwhich is\nchecked in and which IAP registers as a programmatic client. Syncing\n`marin-finelog` on its own keeps the write from cold-resolving the whole\nworkspace mid-review.\n\nThe checkout is the synthetic merge ref, so local git state names the\nmerge\ncommit. The job exports the pull request number and head SHA through\n`$GITHUB_ENV`, without which the row carries a SHA that `review.py`'s\nfindings\nlookup never queries and `bot_findings_count` stays understated for\nevery pull\nrequest. `consult-agent` is a composite action whose inner step defines\nits own\nenvironment, so a step-level `env:` block would not reach the nested\nagent that\nspawns `log_stats.py`.\n\nThe write lands only once the identity behind `IRIS_CI_GCP_SA_KEY` holds\n`roles/iap.httpsResourceAccessor` on the Iris backend service. Today\nthat role\nis granted to `iris-controller@hai-gcp-models` and\n`ravwojdyla@rav-openathena`\nonly. Until the grant exists the review runs exactly as it does today\nand the\nrow is lost with a message in its log, so merging this ahead of the\ngrant is\nsafe.\n\nBoth jobs in this workflow fail on this pull request:\n`claude-code-action`\nexchanges its app token only when the workflow file matches the version\non the\ndefault branch. The guard clears on merge, and the first post-merge pull\nrequest\nis where the wiring can actually be validated.\n\nDepends on #8735, which adds the writer.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "038277d74493ecba884b2ef601a4e3c78551524f",
+      "url": "https://github.com/marin-community/marin/commit/038277d74493ecba884b2ef601a4e3c78551524f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-27T19:48:49Z",
+      "committed_at": "2026-08-27T19:48:49Z",
+      "message": "[ops] Split CoreWeave storage alerts (#8730)\n\nWarn once when CoreWeave storage collection has not written telemetry\nfor 24\nhours. The heartbeat uses the newest `collected_at` across the provider\nand\nemits one alert; the previous three-hour query emitted one instance for\neach of\nthe 30 bucket and quota series.\n\nPage only when the newest collected usage strictly exceeds the live zone\nquota,\nreplacing the 80 percent warning threshold. Quota evaluation is\nindependent of\nthe heartbeat age, so a last-known quota violation and missing\ncollection can\nremain visible at the same time. Existing rule UIDs update the\nprovisioned\nalerts in place.\n\nBoth revised queries executed against the live Finelog schema. Current\ntelemetry\nproduced no heartbeat alert and quota ratios below 1.0 in all three\nreporting\nregions. Incident: https://echo.oa.dev/wiki/258\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "a9a070c2211e920549ea6e168076b2116b1d7d4f",
+      "url": "https://github.com/marin-community/marin/commit/a9a070c2211e920549ea6e168076b2116b1d7d4f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-08-27T18:58:22Z",
+      "committed_at": "2026-08-27T18:58:22Z",
+      "message": "[deps] Upgrade JAX to 0.11.1 (#8716)\n\nPin the Marin, Levanter, Iris, and Fray CPU, GPU, and TPU environments\nto JAX/JAXlib 0.11.1 and libtpu 0.0.46. This supplies the ragged\ncollective flags needed by #8549.\n\nJAX 0.11.1 requires `dot_general` batch dimensions to carry identical\nshardings on both operands (jax-ml/jax@a8976b5069), which breaks grug\nreference attention under explicit-axis meshes: `align_kv_heads` drops\nthe head-axis sharding when it expands grouped-query KV heads, so a\nmodel-sharded q head axis meets an unsharded k head axis. Run the\nreference math under `jax.sharding.auto_axes` with the output pinned to\nq's sharding. The compiler picks the intermediate layouts, as it did on\n0.11.0, and the function keeps one contract: output sharding follows q.\nThis also covers a sharded `head_dim` (the ambiguous-contraction case),\na sharded k/v sequence axis, and context-parallel meshes where q and k\nshare a mesh axis. Callers without a named sharding on q, and callers on\nfully Auto meshes, take the unwrapped math path.\n\nThe four CPU reproductions from #8715 pass, the affected root suite\npassed 1,523 tests, and the Levanter suite passed 1,355 tests, all\nagainst the `auto_axes` implementation. The\n[v6e-4](https://iris.oa.dev/#/job/%2Fmwittmann%2Fjax-0111-output-sharding-tpu-prod-8715),\n[v4-8](https://iris.oa.dev/#/job/%2Fmwittmann%2Fjax-0111-grug-tpu-v4-8715),\nand\n[H100](https://iris.oa.dev/#/job/%2Fmwittmann%2Fjax-0111-output-sharding-gpu-8715)\nruns validated the splash and FA4 backends on this jax pin against an\nearlier per-einsum annotation implementation of the reference path;\nthose kernels are unchanged, and the reworked reference path has been\nrevalidated on CPU only. The experimental FA4 THD H100 test aborts\ninside the upstream CuTe DSL on both JAX 0.11.0 and 0.11.1, so that\nfailure is not introduced by this upgrade. The [standard profiled H100\ncanary](https://github.com/marin-community/marin/actions/runs/33036297922)\nremains blocked by a post-profile CUDA launch failure reproduced on\n0.11.0 and this head; the profiling-disabled reference control completed\n25 steps.\n\nFixes #8715\n\n---------\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "d4202ad43640f0fed4e4f3a7f27308be3b866eb4",
+      "url": "https://github.com/marin-community/marin/commit/d4202ad43640f0fed4e4f3a7f27308be3b866eb4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-27T17:22:43Z",
+      "committed_at": "2026-08-27T17:22:43Z",
+      "message": "[finelog] Register routed telemetry namespaces during forwarding (#8728)\n\nRegister server-owned destinations inferred while the hub routes\nforwarded legacy telemetry before appending their rows. A regional root\nbatch containing a previously unseen service now creates its\n`telemetry_v1.<service>` destination and advances the forwarding cursor.\n\nThe hub uses its canonical schema and managed storage policy for each\ninferred destination, preserving server ownership across mixed Finelog\nrevisions. Per-namespace registration spans catalog evolution and engine\nconstruction, so concurrent first batches from two regions share one\ndurability engine.\n\nThis closes the forwarding gap that pinned the cw-us-east-08a\n`telemetry_v1` cursor when `telemetry_v1.marinskyrl` was absent from the\nhub. The incident record is https://echo.oa.dev/wiki/266.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "82166c26c8c65274cfeab56ed7371ec6b91bdd42",
+      "url": "https://github.com/marin-community/marin/commit/82166c26c8c65274cfeab56ed7371ec6b91bdd42",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-27T15:22:18Z",
+      "committed_at": "2026-08-27T15:22:18Z",
+      "message": "[iac] Grant service-account IAM updates to an operator (#8710)\n\nGrant an existing Marin developer `roles/iam.serviceAccountAdmin`. The\nrole\nsupplies `iam.serviceAccounts.getIamPolicy`, which blocked a `pulumi up`\nrefresh\nof the `marin` stack, and `iam.serviceAccounts.setIamPolicy`, which\nPulumi needs\nto apply authoritative service-account bindings.\n\nThe human identity remains KMS-encrypted and is referenced by its\nexisting\nopaque principal ID.\n\nA grant reviewer should run `review-grant`, merge, then run `pulumi up`\non the\n`marin` stack.\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "245230029e727d79d44b0bdcebf051d16b064666",
+      "url": "https://github.com/marin-community/marin/commit/245230029e727d79d44b0bdcebf051d16b064666",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-27T15:19:05Z",
+      "committed_at": "2026-08-27T15:19:05Z",
+      "message": "[echo] Serve dashboard in one response (#8717)\n\nBundle the production dashboard's JavaScript, CSS, and Latin font\nsubsets into\nits HTML response. On an uncached `/wiki/226` load, the page HTML\ncompleted in\n11 milliseconds while five parallel asset requests started three\nmodel-serving\ninstances. The entry JavaScript reached the container about 24 seconds\nafter\nnavigation; `/api/wiki/226` was not called until refresh and completed\nin 22\nmilliseconds.\n\nThe production build now emits one 292 KB file (138 KB gzip) and rejects\nadditional files. Echo retains one warm request-based instance, scales\nto four\nfor burst searches, and admits one request per instance.\n\nIncident: https://echo.oa.dev/wiki/262\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "4d29067ebcc44c8fea1ad7edac002b7cd11ed656",
+      "url": "https://github.com/marin-community/marin/commit/4d29067ebcc44c8fea1ad7edac002b7cd11ed656",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-08-27T09:59:41Z",
+      "committed_at": "2026-08-27T09:59:41Z",
+      "message": "[dependencies] Advance external runtimes (#8721)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`e59e88bccdc1`](https://github.com/marin-community/evalchemy/commit/e59e88bccdc1b8e8e18a4d52e041aff2dfac548e)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`29179c74a1c5`](https://github.com/marin-community/harbor/commit/29179c74a1c538bb453e26c6c9f67ca018f9ff20)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`b69d22cebfa5`](https://github.com/marin-community/MarinSkyRL/commit/b69d22cebfa5824745df0d4b2d5c57c55bb74b35)\n|\n\n## Upstream commits\n\n### harbor (`72dee18fc150` → `29179c74a1c5`)\n\n-\n[`29179c74a1c5`](https://github.com/marin-community/harbor/commit/29179c74a1c538bb453e26c6c9f67ca018f9ff20):\n[telemetry] Restore the run_id attribute Harbor emits (#97)\n\n### MarinSkyRL (`1280f59d8cfd` → `b69d22cebfa5`)\n\n-\n[`b69d22cebfa5`](https://github.com/marin-community/MarinSkyRL/commit/b69d22cebfa5824745df0d4b2d5c57c55bb74b35):\n[telemetry] Export the telemetry endpoint and run id from the Iris task\n(#431)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "84dea40cc3e2bbb3e70860b8c0e32099d42ff346",
+      "url": "https://github.com/marin-community/marin/commit/84dea40cc3e2bbb3e70860b8c0e32099d42ff346",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-27T02:42:37Z",
+      "committed_at": "2026-08-27T02:42:37Z",
+      "message": "[iris] Scope node-agent dcgm discovery to its own node (#8714)\n\nEvery node agent listed the whole `cw-exporters` namespace on each\ncollection\npass to find the one dcgm-exporter pod on its own node, then filtered\nclient-side. That namespace holds 386 pods on cw-rno2a and 1018 on\ncw-us-east-08a, so a single list returns 3.9 MB and 5.0 MB against 65\nand 206\nagents.\n\nDiscovery now sends the exporter label and `spec.nodeName` as\nserver-side\nselectors, and caches the result per node because the exporter is a\nDaemonSet\npod whose address moves only when it restarts. A node's entry is dropped\nwhenever a pass yields no readings for it, which covers an exporter that\nstopped\nanswering, one that moved, and a recycled pod IP serving another node's\nmetrics\nunder its own hostname. Pods with no podIP are never cached, so an\nexporter that\nis scheduled but not yet running is retried rather than stranding the\nnode until\nthe agent process restarts.\n\nMeasured on one apiserver replica per cluster, before and after\ndeploying to all\nfour CoreWeave clusters:\n\n| cluster | pod-list response bytes | namespaced pods LIST |\n| --- | --- | --- |\n| cw-rno2a (65 agents) | 3.80 -> 0.91 MB/s | 1.45 -> 0.52 req/s |\n| cw-us-east-08a (206 agents) | 19.13 -> 0.45 MB/s | 5.78 -> 1.28 req/s\n|\n\nThe rno2a pair is same-replica verified. The 08a pair selects samples by\ncounter monotonicity across a 122s window, because that cluster's\nreplicas can\nshare `process_start_time_seconds` to within 10ms, so treat its absolute\nrates\nas approximate.\n\nThis is apiserver load rather than Konnectivity tunnel bytes, so it does\nnot by\nitself explain the 27x tunnel spike on 2026-08-26; it removes a large\nmeasured\nload source from the same control plane that services the tunnel's\ndials.\n\nThe exporter-count cap is gone: the only caller scrapes a single node,\nso it\ncould not trip.\n\nThe in-memory Kubernetes fake ignored the namespace override on\n`iter_json` and\nanswered from its own namespace's store. Foreign-namespace pod reads now\ngo\nthrough the store seeded by `seed_namespaced_pod` with the selectors\napplied, and\nrecord them so a test can assert the filtering happens server-side\nrather than in\nthe caller.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "7f314a33976ff2f3c715b072d65b56d968f6c42e",
+      "url": "https://github.com/marin-community/marin/commit/7f314a33976ff2f3c715b072d65b56d968f6c42e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-08-27T00:05:16Z",
+      "committed_at": "2026-08-27T00:05:16Z",
+      "message": "[infra] Move Echo and Evaldash health checks to /health (#8705)\n\nServe the Echo and Evaldash liveness endpoints at `/health`. Cloud Run\n[reserves some paths ending in\n`z`](https://docs.cloud.google.com/run/docs/known-issues)\nbefore requests reach the container, so both documented `/healthz`\nendpoints\nreturn a platform 404.\n\nThe checks keep their existing application behavior: Echo verifies its\ndatabase\nconnection, and Evaldash reports its configured store. Their current\nCloud Run\nstartup probes use TCP and do not depend on either HTTP path.\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "41bf750636d2042af637f9834f5adfa57dbbfd6a",
+      "url": "https://github.com/marin-community/marin/commit/41bf750636d2042af637f9834f5adfa57dbbfd6a",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-08-28T00:00:00Z",
+    "start": "2026-08-27T00:00:00Z"
+  }
+}

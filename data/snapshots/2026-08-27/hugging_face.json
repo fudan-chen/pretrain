@@ -1,0 +1,78 @@
+{
+  "dataset_count": 1,
+  "datasets": [
+    {
+      "created_at": "2026-03-30T17:07:15.000Z",
+      "downloads": 230,
+      "gated": false,
+      "id": "marin-community/token-counts",
+      "kind": "dataset",
+      "last_modified": "2026-08-27T05:37:20.000Z",
+      "likes": 0,
+      "pipeline_tag": null,
+      "private": false,
+      "sha": "695f42569b6e03818192431840c9d4fe7281ded3",
+      "tags": [
+        "task_categories:text-generation",
+        "license:apache-2.0",
+        "size_categories:n<1K",
+        "format:csv",
+        "modality:text",
+        "library:datasets",
+        "library:pandas",
+        "library:polars",
+        "library:mlcroissant",
+        "region:us",
+        "marin",
+        "token-counts",
+        "pretraining"
+      ],
+      "updated_in_target_window": true,
+      "url": "https://huggingface.co/datasets/marin-community/token-counts"
+    }
+  ],
+  "model_count": 0,
+  "models": [],
+  "observation_end": "2026-08-28T14:23:18Z",
+  "source": "marin-community",
+  "spillover_dataset_count": 1,
+  "spillover_datasets": [
+    {
+      "created_at": "2026-07-10T00:40:16.000Z",
+      "downloads": 643,
+      "gated": false,
+      "id": "marin-community/grug-moe-mix-swarm",
+      "kind": "dataset",
+      "last_modified": "2026-08-28T09:01:50.000Z",
+      "likes": 1,
+      "pipeline_tag": null,
+      "private": false,
+      "sha": "b374f9b54c9ad510ba5593ff8e07abe07e24b207",
+      "tags": [
+        "task_categories:text-generation",
+        "license:apache-2.0",
+        "size_categories:1K<n<10K",
+        "format:parquet",
+        "modality:tabular",
+        "modality:text",
+        "library:datasets",
+        "library:pandas",
+        "library:polars",
+        "library:mlcroissant",
+        "region:us",
+        "data-mixing",
+        "pretraining",
+        "scaling-laws",
+        "marin"
+      ],
+      "updated_in_target_window": false,
+      "url": "https://huggingface.co/datasets/marin-community/grug-moe-mix-swarm"
+    }
+  ],
+  "spillover_model_count": 0,
+  "spillover_models": [],
+  "window": {
+    "end": "2026-08-28T00:00:00Z",
+    "start": "2026-08-27T00:00:00Z"
+  }
+}

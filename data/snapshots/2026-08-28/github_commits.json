@@ -1,0 +1,175 @@
+{
+  "commit_count": 15,
+  "commits": [
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-08-28T23:17:06Z",
+      "committed_at": "2026-08-28T23:17:06Z",
+      "message": "[cleanup] Delete unreachable code and centralize profiling defaults (#8761)\n\nLevanter's SSD Pallas backend never existed. `ssd_intra_chunk_pallas`\nunconditionally raised `PallasUnsupportedError`, so the `pallas_tpu`\nentry in\n`IMPLEMENTATIONS`, the warning-dedup cache, the fallback loop over\nimplementations, and the `ExceptionGroup` path built to recover from\nthat raise\ncould never do anything. Backend selection is now a single lookup, and\nthe\nlocal-block branch in `ssd_chunked_forward` that only the Pallas path\nreached is\ngone. `BlockSizes` was documented as reserved for that future kernel and\ncarried\nno value any kernel read; it, `interpret`, and `backend` were declared\non eleven\nMamba-3 entrypoints where every terminal consumer discarded them with\n`del`. All\nthree are removed along with `ssd/config.py`. Nothing outside the `ssd`\nand\n`mamba3` packages referenced them.\n\n`Controller.last_scheduling_context` in iris had no reader. Its\ndocstring\nclaimed the dashboard consumed it, but the dashboard calls\n`get_job_scheduling_diagnostics`, which is untouched. Every scheduling\ntick\nstored a full `SchedulingContext` (workers, pending task rows,\ncapacities) that\nnothing read and that stayed alive until the next tick replaced it. The\nproperty, its backing field, and the `ControllerProtocol` member are\nremoved,\nalong with the attributes three test doubles set only to satisfy the\nprotocol.\n`ScheduleResult.scheduling_context` stays because the scheduling pass\nreads it\nfor a completion log line.\n\nZephyr's `shuffle.py` defined `_fan_in_groups` twice back to back with\nidentical\nbodies, so the first was shadowed. The copy-paste came from #8204.\n\nIn marin's profiling package, `warmup_steps`, `hot_op_limit`, and\n`breakdown_mode` each repeated their default across seven signatures in\n`ingest.py`, `xplane.py`, and `cli.py`, and `cli.py` kept its own\n`_BREAKDOWN_MODES` tuple of valid modes separate from the dispatch in\n`summarize_event_tracks`, so the two could drift. A `BreakdownMode`\nStrEnum and\nthe three defaults now live in `trace_summary.py`, and the CLI derives\nits\n`--breakdown-mode` choices from the enum. CLI help text and defaults are\nunchanged.\n\nSelecting the Mamba-3 kernel tests on their own then exposed a latent\norder-dependency. `test_pallas_mamba3.py` compares XLA and reference\nkernels at\n`atol=rtol=1e-5`, but TPU runs float32 matmuls through lower-precision\npasses by\ndefault, leaving a gap near 5e-4. The file passed on TPU only because\n`test_gdn_kernels.py` sets `jax_default_matmul_precision` globally at\nimport\ntime, so the tolerance held whenever both modules were collected in the\nsame\nsession. It now sets that precision itself, matching\n`test_gdn_kernels.py` and\n`test_gdn_layer.py`.\n\n---------\n\nCo-authored-by: marin-ops-agent[bot] <276375779+marin-ops-agent[bot]@users.noreply.github.com>\nCo-authored-by: nightshift <nightshift@marin.invalid>\nCo-authored-by: nightshift <nightshift@marin.local>",
+      "sha": "b352a9e5d49eede33f08e0ab8df1e786425c2db5",
+      "url": "https://github.com/marin-community/marin/commit/b352a9e5d49eede33f08e0ab8df1e786425c2db5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-08-28T21:46:50Z",
+      "committed_at": "2026-08-28T21:46:50Z",
+      "message": "[datakit] Link pre-staged source reconstruction (#8759)\n\nDocument immutable reconstruction revisions for the three Datakit\nsources that currently consume pre-staged object-store artifacts. The\nFocus Crawl pointer pins the Marin extractor and archived production\nrun; the Nemotron v1 and v2 pointers pin the complete Marin-run\nresolver, 2025-05-18 Software Heritage graph configuration, hash\nmapping, and content download pipeline.\n\nThis keeps the source catalog usable when the staged copies need to be\nrebuilt without changing artifact identity or pipeline behavior.\n\nPart of #6570\nPart of #6997",
+      "sha": "40690d0177cbc8b3bd4abaed3706c9669094b0ee",
+      "url": "https://github.com/marin-community/marin/commit/40690d0177cbc8b3bd4abaed3706c9669094b0ee",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-28T19:57:27Z",
+      "committed_at": "2026-08-28T19:57:27Z",
+      "message": "[iris] Keep one execution backend per controller (#8755)\n\nGive each Iris controller one registered execution backend, identified\nas\nworker-daemon or Kubernetes. Controller startup rejects a second\nregistration;\nfederation composes work across clusters.\n\nBuild the backend's scheduling workspace from one controller database\nsnapshot\nand call the same schedule, reconcile, and autoscale phases for both\nimplementations. The worker backend receives worker state and owns\nliveness and\nautoscaling. Kubernetes receives the dispatch drain and delegates\nplacement and\ncapacity to Kueue. Dashboard capability strings are derived from the\nbackend\nkind and live autoscaler presence.\n\nRemove the local backend collection, capability-gated control flow,\nmeta-scheduler, backend routing constraints, and multi-backend config.\nRetain\nthe repeated `ListBackends` wire response for existing clients and\nfederation\nheartbeats, with one local backend entry.",
+      "sha": "1bea50c3c95c014806af20e920b3fdf266019003",
+      "url": "https://github.com/marin-community/marin/commit/1bea50c3c95c014806af20e920b3fdf266019003",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-28T19:47:10Z",
+      "committed_at": "2026-08-28T19:47:10Z",
+      "message": "[ci] Require complete canary triage output (#8758)\n\nScheduled canaries now give the triage agent the file and temporary-file\ntools required to publish its result. TPU run 33198349960 completed 52\nagent turns with 19 permission denials, commented on the existing\nmegablox failure issue, and exited without `slack_message.md`; Slack\nposted only the generic fallback while the triage step appeared\nsuccessful.\n\nEvery canary triage invocation now retains the hidden agent trace for 30\ndays and rejects a missing or blank summary after non-rate-limited runs.\nLane-specific inspection tools append to the shared reporting allowlist,\nso the CoreWeave configuration cannot replace the permissions needed for\nissue and Slack output. Quota-limited runs retain the existing fallback\npath.\n\nThe training crash remains tracked in\n[#8731](https://github.com/marin-community/marin/issues/8731). The\ntriage-output incident and evidence are recorded in [Echo\n#278](https://echo.oa.dev/wiki/278).\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "80e649a9e12d90c3d9a4364662fc50252202fd81",
+      "url": "https://github.com/marin-community/marin/commit/80e649a9e12d90c3d9a4364662fc50252202fd81",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-08-28T18:50:01Z",
+      "committed_at": "2026-08-28T18:50:01Z",
+      "message": "[agents] Add maintainability pass to PR review (#8746)\n\nAdd a bounded maintainability pass to `review-pr`. It selects at most\nfour high-impact changes, such as public interfaces, state transitions,\nor abstraction boundaries, and assigns one reviewer to each. A reviewer\nsees one selected file or cohesive diff hunk and returns at most one\ncandidate finding. Generated files, formatting, mechanical renames, and\nrepetitive call-site edits receive no reviewer slot.\n\nReviewers reason through hypothetical small changes to adjacent behavior\nwithout modifying code or publishing the scenario. This exercise finds\ncoupling, hidden assumptions, and unnecessary layers that reduce\nflexibility. The coordinating reviewer uses the PR description and\nbroader code context to reject speculative candidates. Published\ncomments describe the structural obstacle. The rubric favors locally\nself-contained implementations that can change without modifying\nunrelated variants, including small duplication that preserves\nindependence. Reviewer roles and finding categories are independent of\nthe agent provider and model.\n\nExtend the shared writing-style check with short active sentences,\nconcrete words, stable terms, and explainable jargon. Agents applying\nthis check omit or research terms whose provenance or exact meaning they\ncannot explain. For PR bodies, issues, documentation, and reports,\nanother agent performs a cold read using only the draft and intended\naudience. The author applies the smallest local fix, links long\nbackground, or narrows the claim to avoid information overload.",
+      "sha": "53d8bff5482f6703ca9c9f35edb3ce387b0dab4b",
+      "url": "https://github.com/marin-community/marin/commit/53d8bff5482f6703ca9c9f35edb3ce387b0dab4b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-28T18:31:15Z",
+      "committed_at": "2026-08-28T18:31:15Z",
+      "message": "[codehealth] Automate review enforcement and feedback collection (#8740)\n\nReplace the Claude pull-request jobs with two independent Loom sessions:\none correctness review and one lint-catalog review. The trusted\ndefault-branch workflow accepts only trusted same-repository pull\nrequests, checks out only the shared launch action from `main`, and\npasses the immutable head SHA to each session. The `agentic-lint` label\nremains the required proof that an agent completed the local commit\nworkflow.\n\nRun review-feedback aggregation directly on a daily GitHub runner. The\njob uses the existing CI Google and SSH credentials for Finelog and a\nrepository OpenAI key mirrored from Secret Manager. Classification uses\nGPT-5.6 Terra at medium effort in a read-only, schema-constrained Codex\nprocess, with inline diff hunks or bounded pull-request patch context.\nGitHub fetch, classification, and Finelog flush failures stop the run.\nBot output and agent comments carrying the required `🤖` marker are\nexcluded from the human-review denominator.\n\nLoom exposes workload federation and `runs.create` as API-only\noperations. A shared composite action calls their canonical REST\nendpoints for the pull-request and fork-ferry workflows.\n\nA dry run on #8735 fetched six human comments; the previous path counted\nfourteen because it included eight agent replies. The six-comment\nclassification completed in 16 seconds and identified one generously\ncatchable comment.\n\nScheduled report publication remains in the refinement PR. The\nrefinement results need a durable artifact that can hold benchmark\nevidence as well as the rolling metrics.\n\nPart of #8738\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "c1f8ed8d7e405fba0bf6b3f8637c3a6d55eb5b8c",
+      "url": "https://github.com/marin-community/marin/commit/c1f8ed8d7e405fba0bf6b3f8637c3a6d55eb5b8c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-28T16:24:50Z",
+      "committed_at": "2026-08-28T16:24:50Z",
+      "message": "[iris] Add generic server-side resource reads (#8675)\n\nExpose internal Get, List, and BatchGet resource verbs for Job, Task,\nAttempt, Worker, Endpoint, User, User-budget, Backend, and Peer reads\nwhile keeping all first-party clients on ControllerService. Controller\ncomposition registers protobuf handlers beside their noun\nimplementations. The only new noun behavior is exact numbered Attempt\nlookup and ordered retry history over existing Attempt rows. Generic\ndispatch imports no noun schemas, and every binding declares\ndashboard-read access.\n\nBoth wire surfaces invoke the same controller operations. Verb-specific\nregistration methods keep decoding and response shaping at the RPC\nboundary without a second noun service. Generic responses normalize\nsingle resources, lists with pagination metadata, and ordered batch\nsnapshots. List codecs may also attach typed noun-owned aggregate\nmetadata; Backend reads retain the unroutable-job count and sample.\nControllers and local proxies always mount the service, which permits\ncanary probes without changing CLI, SDK, worker, dashboard, or\nfederation traffic. The generic contract remains internal and may change\nbefore client cutover.\n\nThe local-cluster parity probe passed for completed Job, Task, exact\nAttempt, Attempt history, Worker, Backend, and batch Job-state reads.\nThe diff-driven safe suite passed 4,504 tests.\n\nPart of #7560\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "74050e6139d1f3597657ebc4d45611db8c828aa3",
+      "url": "https://github.com/marin-community/marin/commit/74050e6139d1f3597657ebc4d45611db8c828aa3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "DoraemonXia",
+      "author_name": "Yunpeng Xia",
+      "authored_at": "2026-08-28T16:22:57Z",
+      "committed_at": "2026-08-28T16:22:57Z",
+      "message": "[zephyr] Retry lost memory-store operations after actor restart (#8752)\n\nReissue a memory-store call when polling an operation after its actor\nrestarts returns NOT_FOUND. Other Connect errors still propagate.\n\nFixes #8615\n\n<!--\nSee .agents/skills/writing-style/pull-requests.md for the prose rules.\n\nLead with what changes, then why. Keep the measured results,\nconstraints, and\ncaveats a future reader needs; length follows useful content rather than\na fixed\nlimit. Do not add Summary/Changes/Testing headings, an implementation\ninventory,\ncheckboxes, attribution, or validation narration. If an issue exists,\nend with\n\"Fixes #NNNN\" or \"Part of #NNNN\".\n\nExample:\n\nNormalize DAPO loss over all response tokens instead of normalizing each\nexample separately. Per-example normalization over-weights short\nresponses,\nhurting math tasks where correct answers need longer derivations.\n\nFixes #1234\n-->",
+      "sha": "308bdcfeded4dd64e51284906bdcb3e866c24725",
+      "url": "https://github.com/marin-community/marin/commit/308bdcfeded4dd64e51284906bdcb3e866c24725",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-08-28T16:19:17Z",
+      "committed_at": "2026-08-28T16:19:17Z",
+      "message": "[grafana] Show vLLM collector health in inference dashboard (#8727)\n\nAdd collector health to the existing bounded vLLM overview and render it\nbeside replica freshness. A selected window reports `incomplete` when\nany collector resource has an unavailable source poll, a positive\nreset-aware collection-stage failure delta, or dropped samples. Nonzero\nfailures and dropped-sample totals retain their stage or reason.\n\nCollector rows stay out of serving freshness, so a health-only window\nstill reports freshness `no_data`. `healthy` means poll evidence\nreported no known collection loss; no poll evidence reports `unknown`.\nThe endpoint and ordered ten-column result contract are unchanged.\n\nA bounded production Finelog query confirmed the three health families\nshare the existing job, run, and execution scope. Generated final SQL\npassed Finelog's planner and returned the ordered ten-column result. The\nDuckDB overview and dashboard provisioning suites passed 58 tests. The\nnew panel's rendered production smoke remains post-merge; no deployment\nwas performed.\n\nFixes #8726\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "3b1bd62d8d766b2556e61c6a5569cffc541d6a63",
+      "url": "https://github.com/marin-community/marin/commit/3b1bd62d8d766b2556e61c6a5569cffc541d6a63",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-08-28T15:48:06Z",
+      "committed_at": "2026-08-28T15:48:06Z",
+      "message": "[iac] Move IAP access to service bindings (#8700)\n\n- Add the Iris IAP bindings to Pulumi and audit every other service so\nPulumi owns all IAP access.\n- Replace the project-wide `roles/iap.httpsResourceAccessor` grant with\nIris and Cloud Run service\ngrants. Existing access is retained, although access could shimmer\nduring rollout.\n\n## Rollout plan\nThe retired project binding is protected in the current stack state.\nAfter `review-grant`\nconfirmation and merge, run these commands from the repository root:\n\n```\ngit checkout main\ngit pull origin main\nuv sync --all-packages --extra deploy\nexport PULUMI_PYTHON_CMD=\"$PWD/.venv/bin/python\"\npulumi login gs://marin-iac-state\npulumi -C infra/pulumi stack select marin\npulumi -C infra/pulumi state unprotect 'urn:pulumi:marin::marin-iac::marin:gcp:GcpIam$gcp:projects/iAMBinding:IAMBinding::project-roles-iap-httpsresourceaccessor'\nuv run --package marin-iac --extra deploy python infra/pulumi/import_resources.py \\\n  generate --stack marin --output /tmp/marin-iac-marin-import.json\n```\n\nInspect `/tmp/marin-iac-marin-import.json` locally. Keep the two\n`gcp:iap/webBackendServiceIamBinding:WebBackendServiceIamBinding`\nimports and their required\ncomponent parents; delete other create entries. The manifest contains\ndecrypted IAM principals,\nso do not post or commit it. Apply the reviewed manifest:\n\n```\nuv run --package marin-iac --extra deploy python infra/pulumi/import_resources.py \\\n  apply --stack marin --file /tmp/marin-iac-marin-import.json\n```\n\nThe apply command validates the manifest, previews the import, imports\nthe selected bindings,\nand prints the resulting stack preview. Confirm that preview contains\nonly two backend binding\nupdates, three Cloud Run updates, and deletion of the project binding\nbefore applying it:\n\n```\npulumi -C infra/pulumi up\n```\n\nUnprotecting the retired state entry does not change live access. The\nfinal authoritative update\nremoves the project binding after the service bindings are in place.\n\nFixes #8699\n\n---------\n\nCo-authored-by: Will Moss <187472+wmoss@users.noreply.github.com>",
+      "sha": "a401d3a7fe302850b481baf79095e8a688095426",
+      "url": "https://github.com/marin-community/marin/commit/a401d3a7fe302850b481baf79095e8a688095426",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "claude[bot]",
+      "author_name": "claude[bot]",
+      "authored_at": "2026-08-28T15:41:41Z",
+      "committed_at": "2026-08-28T15:41:41Z",
+      "message": "[iris] Require TPU worker index from GCP metadata (#8745)\n\nRequire GCP `agent-worker-number` metadata once the hardware probe\ndetects a\nTPU VM. Blank responses and metadata read errors now abort the probe,\npreventing\na host from registering under the same `{slice}-worker-0` ID as the\nactual\nindex-0 host.\n\nA v4-2048 job stayed pending on two slices where GCP reported 256\nhealthy VMs\nbut Iris saw 255 workers in the TPU-name group. On one host the metadata\nendpoint\ninitially returned an empty worker number; restarting after it returned\n43\nrestored 256 distinct identities and started the job.\n\nFixes #8743\n\n---------\n\nCo-authored-by: claude[bot] <41898282+claude[bot]@users.noreply.github.com>\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "3a5fda3768f4cc32dd60a390b5cd9c4c706a67ad",
+      "url": "https://github.com/marin-community/marin/commit/3a5fda3768f4cc32dd60a390b5cd9c4c706a67ad",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-08-28T14:44:54Z",
+      "committed_at": "2026-08-28T14:44:54Z",
+      "message": "Support Hero GrugMoE serving in Marin (#8720)\n\nAllow evaluation model configurations to set `VLLM_BATCH_INVARIANT` and\n`VLLM_USE_FLASHINFER_SAMPLER` for CUDA vLLM workers. Hero GrugMoE's\nqualified DP8/EP8 path uses batch-invariant execution, and the built-in\nsampler avoids FlashInfer's startup-time JIT dependency in the release\nimage. Reject these settings for Levanter and TPU so persisted run\nrecords cannot claim settings that the serving process ignored.\n\nPin Marin to the immutable [Hero-capable vLLM\nrelease](https://github.com/marin-community/vllm/releases/tag/marin-vllm-gpu-20260827-f0d7cc7f5874)\nproduced from\n[marin-community/vllm#51](https://github.com/marin-community/vllm/pull/51).\nExisting serving options provide TP1, local DP8, expert parallelism,\ndistributed loading, and eager execution on one H100x8 node. Model files\nstay local to individual experiments; this change adds no ladder\ncheckpoint or rung-specific catalog entry.\n\nFixes #8644\n\n---------\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "abb4d8f836af758f8d404320493178f176854bad",
+      "url": "https://github.com/marin-community/marin/commit/abb4d8f836af758f8d404320493178f176854bad",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-08-28T11:33:18Z",
+      "committed_at": "2026-08-28T11:33:18Z",
+      "message": "[dependencies] Advance external runtimes (#8750)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`e59e88bccdc1`](https://github.com/marin-community/evalchemy/commit/e59e88bccdc1b8e8e18a4d52e041aff2dfac548e)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`29179c74a1c5`](https://github.com/marin-community/harbor/commit/29179c74a1c538bb453e26c6c9f67ca018f9ff20)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`b45a6ed2d06f`](https://github.com/marin-community/MarinSkyRL/commit/b45a6ed2d06feeaedf81898c163aae08b61ac287)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`b69d22cebfa5` → `b45a6ed2d06f`)\n\n-\n[`b45a6ed2d06f`](https://github.com/marin-community/MarinSkyRL/commit/b45a6ed2d06feeaedf81898c163aae08b61ac287):\n[ops] Add cluster checkout hygiene to the RL supervisor skill (#463)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "3f2976e5311c26f540bbc6e61d68a20200cd86f5",
+      "url": "https://github.com/marin-community/marin/commit/3f2976e5311c26f540bbc6e61d68a20200cd86f5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-08-28T00:31:04Z",
+      "committed_at": "2026-08-28T00:31:04Z",
+      "message": "[grug] Rework the ragged all-to-all expert-parallel MoE backend (#8549)\n\nReworks the ragged all-to-all expert-parallel MoE backend into a\nreplacement for the pooled-wave hero transport. In an A/B at the hero\nshape — both arms restored from the live hero's step-6000 checkpoint on\nreal data, one NVL72 rack, transport the only variable — ragged\ndelivers:\n\n- **matching-to-slightly-ahead throughput**: **22.87 vs 22.71 MFU**,\nwith the two arms run back to back on the same rack so placement\ndifferences cannot account for the gap (standard deviation across the\nscored steps: 0.11 for ragged, 0.59 for pooled-wave; three earlier runs\nof the ragged configuration ranged 22.34–22.58)\n- **~150× lower drop rate**: **0.018%** vs 2.67% of expert assignments\nunder the trained router, with the loss at the scored step\ncorrespondingly lower (1.4727 vs 1.4777)\n- **~12 GiB lower runtime device peak**: **137.9 vs 149.9 GiB** at\nidentical steady-state footprint\n\nThis PR does not change the default backend: the `moe_hero_ep` entry\npoints keep `fixed_pooled_wave_all_to_all`, and the ragged backend is\nopt-in via `moe_implementation=\"ragged_all_to_all\"`.\n\nKey changes:\n\n- **Expert-granular transport data path** — one `ragged_all_to_all`\nupdate per (peer, local expert): senders read each expert group's\naccepted prefix in place and rows arrive grouped by expert, replacing\n~1.1 s/step of repeat/sort/compact permutes. With chunking, **+1.5 MFU**\nover the prior ragged path.\n- **Sequential expert chunks** — local experts run in two chunks with\nper-chunk capacity, halving the transport buffers XLA cannot\nrematerialize. Not a tuning choice: the unchunked graph needs 192–194\nGiB against 184 GiB HBM and OOMs at the first hero step.\n- **QuACK SM100 grouped GEMMs + cuDNN grouped weight gradients** for the\nexpert MLP — the core of the earlier **16.1% → 21.9%** stack. Those two\nfigures were measured before the current protocol and are not directly\ncomparable to the numbers above. SM100 + SiLU only; everything else\nkeeps XLA's `ragged_dot`.\n- **Device-initiated transport** — the ragged backend engages XLA's\ndevice-initiated (NCCL LSA) ragged-all-to-all kernel through `XLA_FLAGS`\ndefaults it sets itself. The kernel partitions copy work across CTAs by\nbytes, so splitting a peer transfer into several updates buys no load\nbalance and only adds granularity cost (21.12 MFU when we measured it at\n64 splits, against 22.34–22.58 unsplit). The backend therefore exposes\nno splitting option, and the two flags are not overridable: the\nhost-launched kernel would need both flags cleared together plus the\nupdate splitting this backend does not produce, so a partial override\nwould silently run a configuration nothing here measures.\n- **Fused combine gather + weighted sum** and a backend-specific\nscheduling posture (latency-hiding scheduler off, collective overlap 1)\n— part of the stack above. The scheduler is off for memory, not\nscheduling: its longer live ranges fail NCCL's first-step allocations at\nthe current HBM budget, and a follow-up that offloads layer activations\nto pinned host re-enables it at a measured gain (#8317).\n- **`--master-params` option** — fp32 weights on device instead of a\npinned-host master: **~+0.4 MFU**.\n- **Validation harness** — the 4-GPU `ragged_ep_check` gates forward and\ngradients against an exact fp32 dense reference, both at a capacity high\nenough that nothing is clipped and in the drop regime the hero actually\ntrains in. For the latter it computes which assignments survive in NumPy\n— accepted rows are the prefix of each expert group under a greedy\nfirst-sender-wins gate, so the surviving set is a pure function of the\nrouting and the capacity — and requires the transport to equal dense\nover exactly the rows it kept. It also records which kernels the run\nselected, since that depends on the device and the installed packages.\nNothing runs it on a schedule, and it sits under `experiments/` rather\nthan `tests/cluster/`, because the repository has no marker, fixture, or\nworkflow for a test that needs particular accelerators (#8704). That\nsame gap silences the two unit tests that exercise this backend end to\nend: both skip under CI's single CPU device, and `addopts` carries no\n`-rs`, so the skips do not appear in the output. Separately, a d768\nablation pair (10.8k steps, identical settings) has ragged ahead of\npooled-wave on train loss (**1.939 vs 1.956**), eval bpb (**0.975 vs\n1.033**), and steady-state drop rate (**~0.03% vs ~2.7%** at that\nscale).\n\nContext: pooled-wave is the hero default but drops a low-single-digit\npercentage of expert assignments at steady state. The goal here is\nat-least-parity throughput with materially fewer drops, without touching\nthe model or precision. That trade matters most for long-context\ntraining, where a batch holds fewer, longer examples: per-shard token\npools average over fewer documents, routing skew grows, and capacity\nclipping bites harder. Memory is a second operational motivation. The\nhero's intermittent OOMs traced to the step peak overshooting the\ncuda_async release threshold (#8490), and main now holds the production\npooled-wave hero under that threshold by shrinking the train-step arena\n(#8507, slop factor 85) with the master kept on pinned host. Ragged\nreaches the same safety with ~12 GiB to spare: in that same paired run,\nwhere both arms carry the heavier fp32-on-device master, pooled-wave\nstill peaks 11.7 GiB over the threshold (149.9 vs 138.2 GiB) while\nragged sits just under it (137.9 GiB) — headroom that loosens the arena\nand master-placement constraints the pooled posture needs.\n\nCaveat — **quoted throughput depends on an XLA patch, shipped\nseparately.** The device kernel itself runs on stock XLA (jax ≥ 0.11.1\ndefines the flags; older jaxlibs abort at import on unknown `XLA_FLAGS`\nentries), but its stock CTA assignment starves under trained-router skew\nand measures ~19.4% MFU at this shape. The quoted numbers use a\none-commit balanced-CTA-assignment patch,\n[mcwitt/xla@d6d3132a90](https://github.com/mcwitt/xla/commit/d6d3132a90dada14d570b66da38eccb7f6d774a3)\n(2.35× on the standalone transport benchmark; being upstreamed). This PR\ndoes not ship a wheel; the pinned build lands in a follow-up. The 4-GPU\nvalidation has been run green on GB200 against the host-launched kernel,\nwhich exercises the expert-MLP kernels and the offset arithmetic;\nre-running it against the device kernel needs that build.\n\nPart of #8317. Per-arm ledgers and trace anatomy live on\n`research/mcwitt/8317-ragged-tune` under\n`autoresearch/loop-260821-leg2/` (one-shot tuning) and on\n`research/mcwitt/8317-dk-native` under\n`autoresearch/loop-260824-dkperf/` (device-kernel root-cause and the\nbalanced-CTA result).",
+      "sha": "dc584e765d0c5cfe69700edfec880d6f174d4916",
+      "url": "https://github.com/marin-community/marin/commit/dc584e765d0c5cfe69700edfec880d6f174d4916",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-08-28T00:22:24Z",
+      "committed_at": "2026-08-28T00:22:24Z",
+      "message": "[infra] Fix stale docs, Makefile test target, and CI action pins (#8729)\n\n`make test` invoked pytest directly with per-line no-op exports, a\nMake-mangled\n`$HF_TOKEN` expansion, and a dead `RAY_ADDRESS` override; it now\ndelegates to\n`infra/ci/run_tests.py`, the same diff-driven runner CI uses.\n\nPin the marin-style `consult-agent` and `notify-slack` actions to a\ncommit SHA\ninstead of the mutable `@main` ref (both run with repository secrets),\nnormalize the four `actions/checkout@v6` stragglers to the fleet-wide\nv5, and\ndrop the TPU-CI userspace Node.js fallback: the tpu-ci image installs\nNode via\nnodesource, and recent levanter-tpu job logs show the fallback never\nfires.\n\n`infra/check_docs_source_links.py` grows an advisory (non-gating) pass\nthat\nresolves relative markdown links outside `docs/`, skipping `.agents`\nsnapshot\ndirectories and test fixtures. Fix the seven links it found: the Iris\nreconcile doc now points at the `reconcile/` package and its renamed\nentry\npoints, and the Zephyr straggler guidance is condensed to the commands.\nRefresh the pre-consolidation cluster list in `infra/README.md`, correct\nthe\n`job_profile_summary.py` path in `lib/iris/OPS.md`, and commit the\n`gs://marin-iac-state/` backend in `infra/finelog/Pulumi.yaml` to match\nthe\nother ten Pulumi projects and the login target its README already\ndocuments.",
+      "sha": "d7d6342bc81fe660c0ae4c1c5337bac3c3ac6f1b",
+      "url": "https://github.com/marin-community/marin/commit/d7d6342bc81fe660c0ae4c1c5337bac3c3ac6f1b",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-08-29T00:00:00Z",
+    "start": "2026-08-28T00:00:00Z"
+  }
+}

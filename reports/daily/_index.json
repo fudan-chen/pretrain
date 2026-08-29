@@ -470,5 +470,31 @@
    "tokens_T": 1.505
   },
   "events": []
+ },
+ {
+  "name": "2026-08-29-pm",
+  "window": [
+   1787961600.0,
+   1788004800.0
+  ],
+  "stats": {
+   "step_first": 32630,
+   "step_last": 34830,
+   "ce_first": 1.26,
+   "ce_last": 1.2668,
+   "grad_max": 0.408,
+   "throughput_mean": 2.49,
+   "mfu_mean": 21.2,
+   "drop_max": 0.0338,
+   "mem_peak": 134.6,
+   "eval_step": 32999,
+   "eval_paloma": 2.2781,
+   "eval_pred": 2.2108,
+   "eval_gap": 0.0673,
+   "eval_gap_step": 32999,
+   "progress_pct": 8.93,
+   "tokens_T": 1.607
+  },
+  "events": []
  }
 ]

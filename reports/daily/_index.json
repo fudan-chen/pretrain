@@ -449,5 +449,26 @@
    "tokens_T": 1.403
   },
   "events": []
+ },
+ {
+  "name": "2026-08-29-am",
+  "window": [
+   1787918400.0,
+   1787961600.0
+  ],
+  "stats": {
+   "step_first": 30420,
+   "step_last": 32620,
+   "ce_first": 1.2739,
+   "ce_last": 1.2607,
+   "grad_max": 0.319,
+   "throughput_mean": 2.49,
+   "mfu_mean": 21.2,
+   "drop_max": 0.0335,
+   "mem_peak": 134.6,
+   "progress_pct": 8.36,
+   "tokens_T": 1.505
+  },
+  "events": []
  }
 ]

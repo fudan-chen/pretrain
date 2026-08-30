@@ -1,12 +1,16 @@
-name: Hero Track v2 Preview
+name: Hero Track v2
 
-# v2 first runs manually and writes only v2/evidence paths. Keep the legacy
-# scheduled branch untouched until two preview cycles pass the acceptance gate.
 on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 0,12 * * *"
   workflow_dispatch: {}
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: hero-track-v2-${{ github.ref }}
@@ -56,3 +60,28 @@ jobs:
           git fetch origin "$GITHUB_REF_NAME"
           git rebase FETCH_HEAD
           git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: track
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the refreshed main branch
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload v2 site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - name: Deploy v2 site
+        id: deployment
+        uses: actions/deploy-pages@v4

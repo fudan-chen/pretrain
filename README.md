@@ -10,9 +10,9 @@ v2 的重点不是增加更多图，而是让每条结论都回答：
 什么证据可能推翻它？
 ```
 
-## 当前 v2 结论
+## 已验证的 worked example
 
-- 当前状态数据截止：`2026-08-29T15:56:34.967791Z`；它不是今天的实时状态。
+- 下列数值固定记录 step 32,999 的可复现实例，不代表网站的最新状态；实时结果以 [`site/`](site/) 和 [在线站点](https://fudan-chen.github.io/pretrain/) 为准。
 - 官方逐 5% 方法复现值：5% `2.39209261`、10% `2.32614272`、100% `2.03878460`。
 - step 32,999 的 Paloma 原始实测为 `2.2781243324279785`。
 - matched-progress 点预测为 `2.34651016`。
@@ -27,7 +27,7 @@ v2 第一阶段把 **Scaling Ladder、同进度 Paloma 比较与证据纪律**�
 - 学方法：[`docs/learning/02-scaling-law-is-not-learning-curve.md`](docs/learning/02-scaling-law-is-not-learning-curve.md)
 - 看全目录：[`docs/README.md`](docs/README.md)
 
-生成后的 v2 站点入口是 `site/index.html`。它有开始、状态、学习、方法、日报和版本对比六个主入口，并把八章课程、参考文档、19 份日报和 Claim evidence 分别生成可直接访问的详情页。
+生成后的 v2 站点入口是 `site/index.html`。它有开始、状态、学习、方法、日报和版本对比六个主入口，并把八章课程、参考文档、日报和 Claim evidence 分别生成可直接访问的详情页。
 
 ## 一条命令重建
 
@@ -96,10 +96,9 @@ evidence + baseline
 
 ## 新旧内容并列保留
 
-本轮没有修改、删除三个原远端分支：
+生产切换完成前后，旧分支先作为历史快照保留：
 
-- [`main@9c61dc2`](https://github.com/fudan-chen/pretrain/tree/9c61dc2)：公开证据主线快照。
-- [`marin-deep-track@65bb272`](https://github.com/fudan-chen/pretrain/tree/65bb272)：第一版深度追踪快照。
+- [`marin-deep-track`](https://github.com/fudan-chen/pretrain/tree/marin-deep-track)：第一版深度追踪与旧 Pages 快照。
 - [`codex/cloud-marin-tracker@af5c5f9`](https://github.com/fudan-chen/pretrain/tree/af5c5f9)：最初云端尝试快照。
 
 新分支同时保留以下旧目录，用于逐项比较：
@@ -129,4 +128,4 @@ v2 写入独立目录：
 
 ## 发布状态
 
-v2 workflow 当前仅支持手动 preview，不启用 schedule。先连续验证两个周期，再讨论切换 Pages 主入口或合入 `main`；旧分支本阶段继续保留。
+v2 已通过两个连续的 GitHub Actions 完整周期。合入 `main` 后，workflow 在北京时间 08:00 / 20:00 自动刷新，并从 `site/` 发布 GitHub Pages；也支持手动触发。旧分支只用于历史对照，不再作为新版数据源。

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>07 · 反证实验室：主动让系统失败 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" >状态</a>
+        <a href="../../learn/" aria-current="page">学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="07-反证实验室-主动让系统失败">07 · 反证实验室：主动让系统失败</h1>
+<h2 id="本章问题">本章问题</h2>
+<p>如果一个分析系统只在“当前这份数据”上给出正确答案，我们仍不知道它遇到 recipe 改变、方向翻转或缺字段时会不会继续讲旧故事。</p>
+<p>v2 Phase 1 把三个关键反证场景做成只读命令和故障注入测试。开始前应先理解 <a href="../02-scaling-law-is-not-learning-curve/"><code>02 · Scaling law 不是 learning curve</code></a> 和 <a href="../05-uncertainty-and-limits/"><code>05 · 敏感性不是置信区间</code></a>。</p>
+<h2 id="当前实验覆盖">当前实验覆盖</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">实验</th><th scope="col">改变什么</th><th scope="col">合格结果</th><th scope="col">不会改变什么</th></tr></thead><tbody><tr><td>当前 applicability</td><td>不注入</td><td>五项 requirement 全部 <code>match</code></td><td>仓库 evidence</td></tr><tr><td>context mismatch</td><td>临时把 4096 改为 8192</td><td>gate=<code>mismatch</code>，比较被抑制</td><td><code>meta.json</code></td></tr><tr><td>residual 方向</td><td>临时注入正、负、零 residual</td><td>推断文案随方向变化</td><td>原始 eval 与 baseline</td></tr></tbody></table></div>
+<p>这些命令只把副本放在内存中审计，退出后不会写文件。</p>
+<h2 id="实验一-检查当前-baseline-适用性">实验一：检查当前 baseline 适用性</h2>
+<pre><code class="language-bash">python scripts/audit_v2.py</code></pre>
+<p>输出中的 <code>applicability.checks</code> 必须逐项显示 selector、expected、observed 和 result。只有全部为 <code>match</code>，status 才是 <code>supported</code>，系统才允许生成 residual。</p>
+<p>当前门禁检查 run ID、4096 context、注册步数、tracker group 和 Harrier datamix tag。任一字段缺失时是 <code>unverified</code>，而不是乐观地当作 match；任一值不一致时是 <code>mismatch</code>。</p>
+<h2 id="实验二-模拟-context-length-改变">实验二：模拟 context length 改变</h2>
+<pre><code class="language-bash">python scripts/audit_v2.py --context-length 8192</code></pre>
+<p>预期：<code>context_length</code> 检查变为 <code>mismatch</code>。这个命令只审计 predicate，不修改仓库 evidence。自动管道中的同类 mismatch 会令 <code>matched_progress=null</code>，而不是沿用 4k baseline。</p>
+<p>对应测试：</p>
+<pre><code class="language-bash">python -m unittest tests.test_hero_analysis.HeroAnalysisTests.test_baseline_applicability_is_executable -v</code></pre>
+<p>这条测试还覆盖“字段缺失 → unverified”和“不兼容 baseline → <code>matched_progress=null</code>”。门禁设计记录在 <code>docs/decisions/ADR-003-baseline-applicability-gate.md</code>；这里保留为纯文本路径，避免自包含站点链接逃出 <code>site/</code> 发布根。</p>
+<h2 id="实验三-模拟-residual-方向翻转">实验三：模拟 residual 方向翻转</h2>
+<pre><code class="language-bash">python scripts/audit_v2.py --simulated-residual 0.1
+python scripts/audit_v2.py --simulated-residual -0.1
+python scripts/audit_v2.py --simulated-residual 0</code></pre>
+<p>三次输出的 <code>simulated_interpretation</code> 必须分别写“实测高于”“实测低于”“参考相同”。这样可以防止数值更新后，页面仍发布固定的乐观文案。</p>
+<h2 id="敏感性符号检查">敏感性符号检查</h2>
+<p><code>residual_sensitivity_range</code> 的定义是：</p>
+<pre><code class="language-text">low  = actual - prediction_sensitivity_high
+high = actual - prediction_sensitivity_low</code></pre>
+<p>若整个范围都小于零，只能说 residual 方向对当前 leave-one-rung-out 选择稳健；它仍不是统计置信区间。若范围跨零，应明确写“方向对 rung 选择敏感”。</p>
+<h2 id="反证与失败的区别">反证与失败的区别</h2>
+<ul><li>测试失败：实现没有满足已声明契约。</li><li>Claim 被反证：新 evidence 与原 Claim 冲突。</li><li>Evidence 不足：缺字段、数据陈旧或 regime 未验证，不能把它偷换成 match。</li></ul>
+<p>一个可靠系统不追求“永远给结论”，而是能在不能比较时稳定地输出 unavailable。</p>
+<h2 id="尚未覆盖的反证">尚未覆盖的反证</h2>
+<p>当前命令还不能完成以下实验：</p>
+<ul><li>对不同 asymptote 和 d2048 外推策略生成完整敏感性矩阵；</li><li>用小 rung 回测被省略 rung 的覆盖表现；</li><li>证明 server-sampled history 没有漏掉短时异常；</li><li>验证 Paloma 16 域、完整 48 层 Router、datamix delta 或系统通信因果。</li></ul>
+<p>因此，本章证明的是“Phase 1 的关键门禁和文案不会在已测试场景下静默沿用”，不是“整个训练解释已经无法被推翻”。</p>
+<h2 id="自测">自测</h2>
+<ol><li><code>unverified</code> 为什么不能降级成 warning 后继续生成 residual？</li><li>residual 敏感性范围全部为负，最多能支持什么表述？</li><li>为什么重新运行 rung collector 不属于本章的只读故障注入？</li></ol>
+<p>答案：缺字段意味着适用性尚未建立；只能说方向对当前 LOO 选择稳健而不能说统计显著；collector 会访问外部源并刷新 evidence 文件。</p></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T06:45:11.944277+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

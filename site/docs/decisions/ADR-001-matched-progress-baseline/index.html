@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>ADR-001：采用 matched-progress baseline · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../../assets/styles.css">
+  <script defer src="../../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../../" >开始</a>
+        <a href="../../../live/" >状态</a>
+        <a href="../../../learn/" aria-current="page">学习</a>
+        <a href="../../../methodology/" >方法</a>
+        <a href="../../../daily/" >日报</a>
+        <a href="../../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../../">开始</a><a href="../../../live/">状态</a>
+          <a href="../../../learn/">学习</a><a href="../../../methodology/">方法</a>
+          <a href="../../../daily/">日报</a><a href="../../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="adr-001-采用-matched-progress-baseline">ADR-001：采用 matched-progress baseline</h1>
+<ul><li>状态：Accepted</li><li>日期：2026-08-30</li><li>方法版本：<code>marin-matched-progress-v1</code></li></ul>
+<h2 id="背景">背景</h2>
+<p>v1 把 100% 终点 cross-rung fit 的系数应用到 <code>C_full × current_progress</code>，把横截面 scaling law 当成纵向 learning curve，导致 step 32,999 的 residual 方向翻转。</p>
+<h2 id="决策">决策</h2>
+<ol><li>每 5% 训练进度跨 d768/d1024/d1536/d2048 单独拟合固定渐近项幂律。</li><li>d2048 85%–100% 使用官方 60–80% 线性外推 +0.005。</li><li>非 5% Hero eval 只在相邻 Hero 点预测之间线性插值。</li><li><code>&lt;5%</code> 返回 unavailable；<code>&gt;100%</code> 返回越界。</li><li>报告 leave-one-rung-out sensitivity，但明确不是 confidence interval。</li></ol>
+<h2 id="后果">后果</h2>
+<ul><li>v1 的“全程预测曲线”不能迁移到 v2。</li><li>Dashboard 只能把 Paloma 与同口径 baseline 画在同一图。</li><li>Train CE 单独展示。</li><li>任何 recipe regime 改变都必须检查 baseline applicability。</li></ul>
+<h2 id="固定验收">固定验收</h2>
+<pre><code class="language-text">5% = 2.3920926134624465
+10% = 2.3261427192062980
+100% = 2.0387845986743045
+step 32999 residual &lt; 0</code></pre></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T06:45:11.944277+00:00</time>。</p>
+    <p><a href="../../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="旧分支与 v2 的透明对照。">
+  <meta name="color-scheme" content="dark light">
+  <title>版本对比 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+  <script defer src="../assets/site.js"></script>
+</head>
+<body data-page="legacy">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../" >开始</a>
+        <a href="../live/" >状态</a>
+        <a href="../learn/" >学习</a>
+        <a href="../methodology/" >方法</a>
+        <a href="../daily/" >日报</a>
+        <a href="../legacy/" aria-current="page">对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../">开始</a><a href="../live/">状态</a>
+          <a href="../learn/">学习</a><a href="../methodology/">方法</a>
+          <a href="../daily/">日报</a><a href="../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="page-intro">
+  <p class="eyebrow">LEGACY COMPARISON · NOTHING DELETED</p>
+  <h1>保留错误路径，<br>因为“为什么错”本身值得学。</h1>
+  <p>原分支、旧看板、旧日报和旧长文暂时全部保留。它们用于对比方法与展示方式，不再代表 v2 当前结论。</p>
+</section>
+
+<section class="section-shell" aria-labelledby="branches-title">
+  <div class="section-heading"><p>01 / BRANCHES</p><h2 id="branches-title">三条历史分支都没有被改动</h2></div>
+  <div class="branch-grid">
+    <article><code>main@9c61dc2</code><h3>证据主线</h3><p>保留 snapshots、manifest、分页、失败语义和 18 个测试。</p><a href="https://github.com/fudan-chen/pretrain/tree/9c61dc2">打开固定快照</a></article>
+    <article><code>marin-deep-track@65bb272</code><h3>第一版深度追踪</h3><p>保留 Hero 数据、Canvas 看板、旧日报和长报告，供 v1/v2 对照。</p><a href="https://github.com/fudan-chen/pretrain/tree/65bb272">打开固定快照</a></article>
+    <article><code>codex/cloud-marin-tracker@af5c5f9</code><h3>最初云端尝试</h3><p>继续保留，不在本轮删除或覆盖。</p><a href="https://github.com/fudan-chen/pretrain/tree/af5c5f9">打开固定快照</a></article>
+  </div>
+</section>
+
+<section class="section-shell" aria-labelledby="compare-title">
+  <div class="section-heading"><p>02 / V1 → V2</p><h2 id="compare-title">关键变化不是“更好看”，而是“更难说错”</h2></div>
+  <div class="table-scroll" tabindex="0" aria-label="v1 与 v2 对比表，可横向滚动">
+    <table><thead><tr><th scope="col">问题</th><th scope="col">v1</th><th scope="col">v2</th></tr></thead><tbody>
+      <tr><td>进度预测</td><td>终点 fit 被当作时间曲线</td><td>每 5% 跨 rung 拟合，再对点预测插值</td></tr>
+      <tr><td>step 32,999</td><td>+0.0673，高于预测</td><td>-0.05758，低于点预测</td></tr>
+      <tr><td>指标比较</td><td>Train CE 与 Paloma prediction 同图</td><td>不同 metric contract 分图</td></tr>
+      <tr><td>页面文案</td><td>硬编码当前阶段、硬件与 LR</td><td>只渲染 status/claim JSON</td></tr>
+      <tr><td>不确定性</td><td>“接近”被当作验证</td><td>LOO sensitivity，明确不是 CI</td></tr>
+      <tr><td>图表</td><td>Canvas + 鼠标 tooltip</td><td>可访问静态 SVG + 数据表</td></tr>
+    </tbody></table>
+  </div>
+</section>
+
+<section class="section-shell warning-block" aria-labelledby="legacy-warning">
+  <h2 id="legacy-warning">旧版中暂不应继续传播的表述</h2>
+  <ul><li>“当前已越过约 25% grad-norm 峰值区”</li><li>“LR 是 WSD / cosine decay”</li><li>“TPU v5p”或“active 792 cards”</li><li>“phase 2 一定转向更高质量课程”</li><li>“吞吐稳定因此 all-to-all 不是瓶颈”</li></ul>
+  <p>这些内容仍可在旧分支中看到，目的就是让学习者能检查“强结论是如何脱离证据的”。</p>
+</section>
+</main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T06:45:11.944277+00:00</time>。</p>
+    <p><a href="../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,500 @@
+[
+ {
+  "name": "2026-08-20-pm",
+  "window": [
+   1787192041.888872,
+   1787227200.0
+  ],
+  "stats": {
+   "step_first": 0,
+   "step_last": 720,
+   "ce_first": 11.8015,
+   "ce_last": 4.8262,
+   "grad_max": 1.531,
+   "throughput_mean": 2.47,
+   "mfu_mean": 21.0,
+   "drop_max": 0.1043,
+   "mem_peak": 143.7,
+   "eval_step": 0,
+   "eval_paloma": 11.7862,
+   "eval_pred": 3.3019,
+   "progress_pct": 0.18,
+   "tokens_T": 0.033
+  },
+  "events": [
+   {
+    "type": "loss_spike",
+    "step": 210,
+    "value": 9.108,
+    "note": "CE 9.108 vs 窗口基线 5.755 (>1.5x)"
+   }
+  ]
+ },
+ {
+  "name": "2026-08-21-am",
+  "window": [
+   1787227200.0,
+   1787270400.0
+  ],
+  "stats": {
+   "step_first": 730,
+   "step_last": 1660,
+   "ce_first": 4.7593,
+   "ce_last": 2.0715,
+   "grad_max": 1.201,
+   "throughput_mean": 2.46,
+   "mfu_mean": 21.0,
+   "drop_max": 0.0385,
+   "mem_peak": 143.7,
+   "progress_pct": 0.43,
+   "tokens_T": 0.077
+  },
+  "events": [
+   {
+    "type": "loss_spike",
+    "step": 730,
+    "value": 4.759,
+    "note": "CE 4.759 vs 窗口基线 2.273 (>1.5x)"
+   },
+   {
+    "type": "throughput_drop",
+    "step": 1560,
+    "value": 0.69,
+    "note": "吞吐降至 0.7M tok/s (中位 2.5M)，疑似重启/慢节点"
+   }
+  ]
+ },
+ {
+  "name": "2026-08-21-pm",
+  "window": [
+   1787270400.0,
+   1787313600.0
+  ],
+  "stats": {
+   "step_first": 1670,
+   "step_last": 3050,
+   "ce_first": 2.0597,
+   "ce_last": 1.6232,
+   "grad_max": 0.645,
+   "throughput_mean": 2.46,
+   "mfu_mean": 21.0,
+   "drop_max": 0.0538,
+   "mem_peak": 134.6,
+   "eval_step": 2999,
+   "eval_paloma": 2.7256,
+   "eval_pred": 2.3808,
+   "eval_gap": 0.3448,
+   "eval_gap_step": 2999,
+   "progress_pct": 0.78,
+   "tokens_T": 0.141
+  },
+  "events": [
+   {
+    "type": "throughput_drop",
+    "step": 1890,
+    "value": 0.16,
+    "note": "吞吐降至 0.2M tok/s (中位 2.5M)，疑似重启/慢节点"
+   }
+  ]
+ },
+ {
+  "name": "2026-08-22-am",
+  "window": [
+   1787313600.0,
+   1787356800.0
+  ],
+  "stats": {
+   "step_first": 3060,
+   "step_last": 4250,
+   "ce_first": 1.6349,
+   "ce_last": 1.5157,
+   "grad_max": 0.318,
+   "throughput_mean": 2.48,
+   "mfu_mean": 21.1,
+   "drop_max": 0.0551,
+   "mem_peak": 134.6,
+   "progress_pct": 1.09,
+   "tokens_T": 0.196
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-22-pm",
+  "window": [
+   1787356800.0,
+   1787400000.0
+  ],
+  "stats": {
+   "step_first": 4260,
+   "step_last": 6120,
+   "ce_first": 1.513,
+   "ce_last": 1.4205,
+   "grad_max": 0.298,
+   "throughput_mean": 2.47,
+   "mfu_mean": 21.0,
+   "drop_max": 0.0457,
+   "mem_peak": 134.6,
+   "eval_step": 5999,
+   "eval_paloma": 2.4787,
+   "eval_pred": 2.3279,
+   "eval_gap": 0.1508,
+   "eval_gap_step": 5999,
+   "progress_pct": 1.57,
+   "tokens_T": 0.282
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-23-am",
+  "window": [
+   1787400000.0,
+   1787443200.0
+  ],
+  "stats": {
+   "step_first": 6130,
+   "step_last": 7630,
+   "ce_first": 1.4063,
+   "ce_last": 1.3836,
+   "grad_max": 0.269,
+   "throughput_mean": 2.47,
+   "mfu_mean": 21.0,
+   "drop_max": 0.0387,
+   "mem_peak": 134.6,
+   "progress_pct": 1.96,
+   "tokens_T": 0.352
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-23-pm",
+  "window": [
+   1787443200.0,
+   1787486400.0
+  ],
+  "stats": {
+   "step_first": 7640,
+   "step_last": 9380,
+   "ce_first": 1.3925,
+   "ce_last": 1.3609,
+   "grad_max": 0.269,
+   "throughput_mean": 2.47,
+   "mfu_mean": 21.0,
+   "drop_max": 0.0367,
+   "mem_peak": 134.6,
+   "eval_step": 8999,
+   "eval_paloma": 2.3948,
+   "eval_pred": 2.2984,
+   "eval_gap": 0.0965,
+   "eval_gap_step": 8999,
+   "progress_pct": 2.4,
+   "tokens_T": 0.433
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-24-am",
+  "window": [
+   1787486400.0,
+   1787529600.0
+  ],
+  "stats": {
+   "step_first": 9390,
+   "step_last": 11310,
+   "ce_first": 1.3572,
+   "ce_last": 1.336,
+   "grad_max": 0.24,
+   "throughput_mean": 2.48,
+   "mfu_mean": 21.1,
+   "drop_max": 0.034,
+   "mem_peak": 134.6,
+   "progress_pct": 2.9,
+   "tokens_T": 0.522
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-24-pm",
+  "window": [
+   1787529600.0,
+   1787572800.0
+  ],
+  "stats": {
+   "step_first": 11320,
+   "step_last": 13000,
+   "ce_first": 1.3511,
+   "ce_last": 1.321,
+   "grad_max": 0.27,
+   "throughput_mean": 2.47,
+   "mfu_mean": 21.0,
+   "drop_max": 0.0327,
+   "mem_peak": 134.6,
+   "eval_step": 11999,
+   "eval_paloma": 2.3612,
+   "eval_pred": 2.2781,
+   "eval_gap": 0.0831,
+   "eval_gap_step": 11999,
+   "progress_pct": 3.33,
+   "tokens_T": 0.6
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-25-am",
+  "window": [
+   1787572800.0,
+   1787616000.0
+  ],
+  "stats": {
+   "step_first": 13010,
+   "step_last": 15120,
+   "ce_first": 1.3274,
+   "ce_last": 1.3246,
+   "grad_max": 0.253,
+   "throughput_mean": 2.48,
+   "mfu_mean": 21.1,
+   "drop_max": 0.0316,
+   "mem_peak": 134.6,
+   "eval_step": 14999,
+   "eval_paloma": 2.3396,
+   "eval_pred": 2.2627,
+   "eval_gap": 0.0769,
+   "eval_gap_step": 14999,
+   "progress_pct": 3.87,
+   "tokens_T": 0.697
+  },
+  "events": [
+   {
+    "type": "throughput_drop",
+    "step": 15040,
+    "value": 0.74,
+    "note": "吞吐降至 0.7M tok/s (中位 2.5M)，疑似重启/慢节点"
+   }
+  ]
+ },
+ {
+  "name": "2026-08-25-pm",
+  "window": [
+   1787616000.0,
+   1787659200.0
+  ],
+  "stats": {
+   "step_first": 15130,
+   "step_last": 17320,
+   "ce_first": 1.3122,
+   "ce_last": 1.3069,
+   "grad_max": 0.261,
+   "throughput_mean": 2.48,
+   "mfu_mean": 21.1,
+   "drop_max": 0.0319,
+   "mem_peak": 134.6,
+   "progress_pct": 4.44,
+   "tokens_T": 0.799
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-26-am",
+  "window": [
+   1787659200.0,
+   1787702400.0
+  ],
+  "stats": {
+   "step_first": 17330,
+   "step_last": 19490,
+   "ce_first": 1.2997,
+   "ce_last": 1.3053,
+   "grad_max": 0.262,
+   "throughput_mean": 2.46,
+   "mfu_mean": 21.0,
+   "drop_max": 0.0319,
+   "mem_peak": 134.6,
+   "eval_step": 17999,
+   "eval_paloma": 2.3223,
+   "eval_pred": 2.2504,
+   "eval_gap": 0.0719,
+   "eval_gap_step": 17999,
+   "progress_pct": 4.99,
+   "tokens_T": 0.899
+  },
+  "events": [
+   {
+    "type": "throughput_drop",
+    "step": 18000,
+    "value": 1.07,
+    "note": "吞吐降至 1.1M tok/s (中位 2.5M)，疑似重启/慢节点"
+   }
+  ]
+ },
+ {
+  "name": "2026-08-26-pm",
+  "window": [
+   1787702400.0,
+   1787745600.0
+  ],
+  "stats": {
+   "step_first": 19500,
+   "step_last": 21700,
+   "ce_first": 1.2882,
+   "ce_last": 1.3026,
+   "grad_max": 0.28,
+   "throughput_mean": 2.48,
+   "mfu_mean": 21.1,
+   "drop_max": 0.0322,
+   "mem_peak": 134.6,
+   "eval_step": 20999,
+   "eval_paloma": 2.3051,
+   "eval_pred": 2.2401,
+   "eval_gap": 0.065,
+   "eval_gap_step": 20999,
+   "progress_pct": 5.56,
+   "tokens_T": 1.001
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-27-am",
+  "window": [
+   1787745600.0,
+   1787788800.0
+  ],
+  "stats": {
+   "step_first": 21710,
+   "step_last": 23920,
+   "ce_first": 1.3051,
+   "ce_last": 1.2839,
+   "grad_max": 0.278,
+   "throughput_mean": 2.48,
+   "mfu_mean": 21.1,
+   "drop_max": 0.0326,
+   "mem_peak": 134.6,
+   "progress_pct": 6.13,
+   "tokens_T": 1.103
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-27-pm",
+  "window": [
+   1787788800.0,
+   1787832000.0
+  ],
+  "stats": {
+   "step_first": 23930,
+   "step_last": 26120,
+   "ce_first": 1.2824,
+   "ce_last": 1.2831,
+   "grad_max": 0.299,
+   "throughput_mean": 2.48,
+   "mfu_mean": 21.1,
+   "drop_max": 0.033,
+   "mem_peak": 134.6,
+   "eval_step": 23999,
+   "eval_paloma": 2.3016,
+   "eval_pred": 2.2314,
+   "eval_gap": 0.0702,
+   "eval_gap_step": 23999,
+   "progress_pct": 6.69,
+   "tokens_T": 1.205
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-28-am",
+  "window": [
+   1787832000.0,
+   1787875200.0
+  ],
+  "stats": {
+   "step_first": 26130,
+   "step_last": 28200,
+   "ce_first": 1.2721,
+   "ce_last": 1.2797,
+   "grad_max": 0.311,
+   "throughput_mean": 2.49,
+   "mfu_mean": 21.2,
+   "drop_max": 0.0332,
+   "mem_peak": 134.6,
+   "eval_step": 26999,
+   "eval_paloma": 2.2943,
+   "eval_pred": 2.2237,
+   "eval_gap": 0.0706,
+   "eval_gap_step": 26999,
+   "progress_pct": 7.23,
+   "tokens_T": 1.301
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-28-pm",
+  "window": [
+   1787875200.0,
+   1787918400.0
+  ],
+  "stats": {
+   "step_first": 28210,
+   "step_last": 30410,
+   "ce_first": 1.2758,
+   "ce_last": 1.2757,
+   "grad_max": 0.313,
+   "throughput_mean": 2.49,
+   "mfu_mean": 21.2,
+   "drop_max": 0.0338,
+   "mem_peak": 134.6,
+   "eval_step": 29999,
+   "eval_paloma": 2.2856,
+   "eval_pred": 2.2169,
+   "eval_gap": 0.0687,
+   "eval_gap_step": 29999,
+   "progress_pct": 7.79,
+   "tokens_T": 1.403
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-29-am",
+  "window": [
+   1787918400.0,
+   1787961600.0
+  ],
+  "stats": {
+   "step_first": 30420,
+   "step_last": 32620,
+   "ce_first": 1.2739,
+   "ce_last": 1.2607,
+   "grad_max": 0.319,
+   "throughput_mean": 2.49,
+   "mfu_mean": 21.2,
+   "drop_max": 0.0335,
+   "mem_peak": 134.6,
+   "progress_pct": 8.36,
+   "tokens_T": 1.505
+  },
+  "events": []
+ },
+ {
+  "name": "2026-08-29-pm",
+  "window": [
+   1787961600.0,
+   1788004800.0
+  ],
+  "stats": {
+   "step_first": 32630,
+   "step_last": 34830,
+   "ce_first": 1.26,
+   "ce_last": 1.2668,
+   "grad_max": 0.408,
+   "throughput_mean": 2.49,
+   "mfu_mean": 21.2,
+   "drop_max": 0.0338,
+   "mem_peak": 134.6,
+   "eval_step": 32999,
+   "eval_paloma": 2.2781,
+   "eval_pred": 2.2108,
+   "eval_gap": 0.0673,
+   "eval_gap_step": 32999,
+   "progress_pct": 8.93,
+   "tokens_T": 1.607
+  },
+  "events": []
+ }
+]

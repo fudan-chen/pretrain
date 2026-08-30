@@ -1,0 +1,791 @@
+{
+  "schema_version": "1.0",
+  "method_id": "marin-matched-progress-v1",
+  "generated_from_data_as_of": "2026-08-30T06:45:11.944277+00:00",
+  "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+  "baseline_applicability": "supported",
+  "reports": [
+    {
+      "name": "2026-08-20-pm",
+      "window_utc": [
+        "2026-08-20T02:14:01.888872+00:00",
+        "2026-08-20T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-20 10:14",
+        "2026-08-20 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-20T11:57:12.453431+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 0,
+          "step_last": 720,
+          "value_first": 11.801494598388672,
+          "value_last": 4.826160430908203,
+          "observed_at_first": "2026-08-20T02:14:01.888872+00:00",
+          "observed_at_last": "2026-08-20T11:57:12.453431+00:00",
+          "count": 73
+        },
+        "grad_norm": 1.5312464237213135,
+        "throughput": 2467424.3691458087,
+        "mfu": 20.992209991040017,
+        "drop_fraction": 0.10431976345452396,
+        "progress_pct": 0.18449664446727876
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-21-am",
+      "window_utc": [
+        "2026-08-20T12:00:00+00:00",
+        "2026-08-21T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-20 20:00",
+        "2026-08-21 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-20T23:57:51.307637+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 730,
+          "step_last": 1660,
+          "value_first": 4.759256839752197,
+          "value_last": 2.071509599685669,
+          "observed_at_first": "2026-08-20T12:00:33.800155+00:00",
+          "observed_at_last": "2026-08-20T23:57:51.307637+00:00",
+          "count": 94
+        },
+        "grad_norm": 1.2012490034103394,
+        "throughput": 2464588.661491469,
+        "mfu": 20.968084521867596,
+        "drop_fraction": 0.038477072887348404,
+        "progress_pct": 0.4253672636328927
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-21-pm",
+      "window_utc": [
+        "2026-08-21T00:00:00+00:00",
+        "2026-08-21T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-21 08:00",
+        "2026-08-21 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-21T09:29:39.595503+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 1670,
+          "step_last": 3050,
+          "value_first": 2.059718370437622,
+          "value_last": 1.6231812238693237,
+          "observed_at_first": "2026-08-21T00:01:05.798691+00:00",
+          "observed_at_last": "2026-08-21T09:29:39.595503+00:00",
+          "count": 139
+        },
+        "grad_norm": 0.6450486779212952,
+        "throughput": 2462652.4573503057,
+        "mfu": 20.951611796533,
+        "drop_fraction": 0.05384617575416059,
+        "progress_pct": 0.7815482855905559
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-22-am",
+      "window_utc": [
+        "2026-08-21T12:00:00+00:00",
+        "2026-08-22T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-21 20:00",
+        "2026-08-22 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-21T23:57:00.138818+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 3060,
+          "step_last": 4250,
+          "value_first": 1.6348910331726074,
+          "value_last": 1.5157010555267334,
+          "observed_at_first": "2026-08-21T15:38:09.091799+00:00",
+          "observed_at_last": "2026-08-21T23:57:00.138818+00:00",
+          "count": 120
+        },
+        "grad_norm": 0.3180880844593048,
+        "throughput": 2478240.714658184,
+        "mfu": 21.084232668278155,
+        "drop_fraction": 0.05509751848876476,
+        "progress_pct": 1.0890426930360204
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-22-pm",
+      "window_utc": [
+        "2026-08-22T00:00:00+00:00",
+        "2026-08-22T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-22 08:00",
+        "2026-08-22 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-22T11:59:16.099478+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 4260,
+          "step_last": 6120,
+          "value_first": 1.5129822492599487,
+          "value_last": 1.420520544052124,
+          "observed_at_first": "2026-08-22T00:00:08.764927+00:00",
+          "observed_at_last": "2026-08-22T11:59:16.099478+00:00",
+          "count": 187
+        },
+        "grad_norm": 0.29758816957473755,
+        "throughput": 2468557.1384387244,
+        "mfu": 21.001847299954377,
+        "drop_fraction": 0.045667161092613685,
+        "progress_pct": 1.5682214779718693
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-23-am",
+      "window_utc": [
+        "2026-08-22T12:00:00+00:00",
+        "2026-08-23T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-22 20:00",
+        "2026-08-23 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-22T22:42:01.534094+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 6130,
+          "step_last": 7630,
+          "value_first": 1.4062703847885132,
+          "value_last": 1.3835774660110474,
+          "observed_at_first": "2026-08-22T12:02:34.274955+00:00",
+          "observed_at_last": "2026-08-22T22:42:01.534094+00:00",
+          "count": 151
+        },
+        "grad_norm": 0.26899200677871704,
+        "throughput": 2470836.50417679,
+        "mfu": 21.02123955562721,
+        "drop_fraction": 0.03870258914927641,
+        "progress_pct": 1.955151940674079
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-23-pm",
+      "window_utc": [
+        "2026-08-23T00:00:00+00:00",
+        "2026-08-23T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-23 08:00",
+        "2026-08-23 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-23T11:57:51.134511+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 7640,
+          "step_last": 9380,
+          "value_first": 1.3925068378448486,
+          "value_last": 1.3608671426773071,
+          "observed_at_first": "2026-08-23T00:36:29.120600+00:00",
+          "observed_at_last": "2026-08-23T11:57:51.134511+00:00",
+          "count": 175
+        },
+        "grad_norm": 0.2690145969390869,
+        "throughput": 2465772.0528267473,
+        "mfu": 20.978152510058997,
+        "drop_fraction": 0.03666905793502475,
+        "progress_pct": 2.4035812848653815
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-24-am",
+      "window_utc": [
+        "2026-08-23T12:00:00+00:00",
+        "2026-08-24T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-23 20:00",
+        "2026-08-24 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-23T23:58:28.579604+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 9390,
+          "step_last": 11310,
+          "value_first": 1.3572362661361694,
+          "value_last": 1.3359614610671997,
+          "observed_at_first": "2026-08-23T12:00:59.016947+00:00",
+          "observed_at_last": "2026-08-23T23:58:28.579604+00:00",
+          "count": 193
+        },
+        "grad_norm": 0.2401491105556488,
+        "throughput": 2476772.998530395,
+        "mfu": 21.07174571810166,
+        "drop_fraction": 0.03404333950443701,
+        "progress_pct": 2.8981347901735037
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-24-pm",
+      "window_utc": [
+        "2026-08-24T00:00:00+00:00",
+        "2026-08-24T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-24 08:00",
+        "2026-08-24 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-24T11:58:14.412266+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 11320,
+          "step_last": 13000,
+          "value_first": 1.351062536239624,
+          "value_last": 1.3209737539291382,
+          "observed_at_first": "2026-08-24T00:01:45.192759+00:00",
+          "observed_at_last": "2026-08-24T11:58:14.412266+00:00",
+          "count": 169
+        },
+        "grad_norm": 0.27028530836105347,
+        "throughput": 2472417.289730542,
+        "mfu": 21.034688471310353,
+        "drop_fraction": 0.03266749299611106,
+        "progress_pct": 3.331189413992533
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-25-am",
+      "window_utc": [
+        "2026-08-24T12:00:00+00:00",
+        "2026-08-25T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-24 20:00",
+        "2026-08-25 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-24T23:57:03.938640+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 13010,
+          "step_last": 15120,
+          "value_first": 1.3274141550064087,
+          "value_last": 1.3246357440948486,
+          "observed_at_first": "2026-08-24T12:01:24.206832+00:00",
+          "observed_at_last": "2026-08-24T23:57:03.938640+00:00",
+          "count": 212
+        },
+        "grad_norm": 0.2530217170715332,
+        "throughput": 2476818.1999712633,
+        "mfu": 21.072130280299582,
+        "drop_fraction": 0.031630975222497276,
+        "progress_pct": 3.8744295338128536
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-25-pm",
+      "window_utc": [
+        "2026-08-25T00:00:00+00:00",
+        "2026-08-25T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-25 08:00",
+        "2026-08-25 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-25T11:57:38.330316+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 15130,
+          "step_last": 17320,
+          "value_first": 1.3121905326843262,
+          "value_last": 1.3069154024124146,
+          "observed_at_first": "2026-08-25T00:00:18.552696+00:00",
+          "observed_at_last": "2026-08-25T11:57:38.330316+00:00",
+          "count": 220
+        },
+        "grad_norm": 0.2609269917011261,
+        "throughput": 2483572.594386002,
+        "mfu": 21.12959492549379,
+        "drop_fraction": 0.031890452641880875,
+        "progress_pct": 4.438169280796205
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-26-am",
+      "window_utc": [
+        "2026-08-25T12:00:00+00:00",
+        "2026-08-26T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-25 20:00",
+        "2026-08-26 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-25T23:58:56.968349+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 17330,
+          "step_last": 19490,
+          "value_first": 1.299739956855774,
+          "value_last": 1.305348515510559,
+          "observed_at_first": "2026-08-25T12:00:49.013911+00:00",
+          "observed_at_last": "2026-08-25T23:58:56.968349+00:00",
+          "count": 217
+        },
+        "grad_norm": 0.2621549665927887,
+        "throughput": 2462663.4286244293,
+        "mfu": 20.9517051373029,
+        "drop_fraction": 0.031938288643053085,
+        "progress_pct": 4.994221667593421
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-26-pm",
+      "window_utc": [
+        "2026-08-26T00:00:00+00:00",
+        "2026-08-26T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-26 08:00",
+        "2026-08-26 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-26T11:56:41.977634+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 19500,
+          "step_last": 21700,
+          "value_first": 1.2882461547851562,
+          "value_last": 1.3026399612426758,
+          "observed_at_first": "2026-08-26T00:02:06.675893+00:00",
+          "observed_at_last": "2026-08-26T11:56:41.977634+00:00",
+          "count": 221
+        },
+        "grad_norm": 0.2795501947402954,
+        "throughput": 2484886.9548074454,
+        "mfu": 21.140777164883122,
+        "drop_fraction": 0.03221813679644556,
+        "progress_pct": 5.560523867972151
+      },
+      "matched_progress": {
+        "available": true,
+        "method": "linear interpolation between adjacent per-5% point predictions",
+        "method_id": "marin-matched-progress-v1",
+        "step": 20999,
+        "fraction": 0.053808958849560926,
+        "progress_pct": 5.380895884956092,
+        "left_fraction": 0.05,
+        "right_fraction": 0.1,
+        "interpolation_weight": 0.07617917699121846,
+        "prediction": 2.387068604795356,
+        "sensitivity_low": 2.380594213007096,
+        "sensitivity_high": 2.4077135871718047,
+        "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
+        "actual": 2.3051211833953857,
+        "residual": -0.08194742139997047,
+        "observed_at": "2026-08-26T08:09:00.812234+00:00"
+      }
+    },
+    {
+      "name": "2026-08-27-am",
+      "window_utc": [
+        "2026-08-26T12:00:00+00:00",
+        "2026-08-27T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-26 20:00",
+        "2026-08-27 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-26T23:59:13.142879+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 21710,
+          "step_last": 23920,
+          "value_first": 1.3051390647888184,
+          "value_last": 1.2839387655258179,
+          "observed_at_first": "2026-08-26T12:00:03.678066+00:00",
+          "observed_at_last": "2026-08-26T23:59:13.142879+00:00",
+          "count": 222
+        },
+        "grad_norm": 0.27840283513069153,
+        "throughput": 2482624.833719023,
+        "mfu": 21.12153162224071,
+        "drop_fraction": 0.032564275418267105,
+        "progress_pct": 6.129388521746261
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-27-pm",
+      "window_utc": [
+        "2026-08-27T00:00:00+00:00",
+        "2026-08-27T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-27 08:00",
+        "2026-08-27 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-27T11:58:40.648376+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 23930,
+          "step_last": 26120,
+          "value_first": 1.2823588848114014,
+          "value_last": 1.2830884456634521,
+          "observed_at_first": "2026-08-27T00:02:33.865443+00:00",
+          "observed_at_last": "2026-08-27T11:58:40.648376+00:00",
+          "count": 220
+        },
+        "grad_norm": 0.2993229031562805,
+        "throughput": 2483833.0540633467,
+        "mfu": 21.131810849235727,
+        "drop_fraction": 0.03300770473751155,
+        "progress_pct": 6.693128268729613
+      },
+      "matched_progress": {
+        "available": true,
+        "method": "linear interpolation between adjacent per-5% point predictions",
+        "method_id": "marin-matched-progress-v1",
+        "step": 23999,
+        "fraction": 0.061496319035697536,
+        "progress_pct": 6.1496319035697535,
+        "left_fraction": 0.05,
+        "right_fraction": 0.1,
+        "interpolation_weight": 0.22992638071395066,
+        "prediction": 2.3769289929676636,
+        "sensitivity_low": 2.370595429888389,
+        "sensitivity_high": 2.3960903069719937,
+        "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
+        "actual": 2.301569938659668,
+        "residual": -0.07535905430799561,
+        "observed_at": "2026-08-27T00:26:56.656023+00:00"
+      }
+    },
+    {
+      "name": "2026-08-28-am",
+      "window_utc": [
+        "2026-08-27T12:00:00+00:00",
+        "2026-08-28T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-27 20:00",
+        "2026-08-28 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-27T23:58:03.109114+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 26130,
+          "step_last": 28200,
+          "value_first": 1.2721292972564697,
+          "value_last": 1.2796690464019775,
+          "observed_at_first": "2026-08-27T12:01:55.601393+00:00",
+          "observed_at_last": "2026-08-27T23:58:03.109114+00:00",
+          "count": 208
+        },
+        "grad_norm": 0.3105524778366089,
+        "throughput": 2487246.9245320223,
+        "mfu": 21.16085517847912,
+        "drop_fraction": 0.033164052800698715,
+        "progress_pct": 7.226118574968418
+      },
+      "matched_progress": {
+        "available": true,
+        "method": "linear interpolation between adjacent per-5% point predictions",
+        "method_id": "marin-matched-progress-v1",
+        "step": 26999,
+        "fraction": 0.06918367922183415,
+        "progress_pct": 6.918367922183415,
+        "left_fraction": 0.05,
+        "right_fraction": 0.1,
+        "interpolation_weight": 0.38367358443668287,
+        "prediction": 2.3667893811399705,
+        "sensitivity_low": 2.360596646769682,
+        "sensitivity_high": 2.3844670267721826,
+        "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
+        "actual": 2.294292449951172,
+        "residual": -0.07249693118879863,
+        "observed_at": "2026-08-27T16:47:07.988352+00:00"
+      }
+    },
+    {
+      "name": "2026-08-28-pm",
+      "window_utc": [
+        "2026-08-28T00:00:00+00:00",
+        "2026-08-28T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-28 08:00",
+        "2026-08-28 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-28T11:58:21.637370+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 28210,
+          "step_last": 30410,
+          "value_first": 1.275840401649475,
+          "value_last": 1.2757151126861572,
+          "observed_at_first": "2026-08-28T00:01:13.883494+00:00",
+          "observed_at_last": "2026-08-28T11:58:21.637370+00:00",
+          "count": 221
+        },
+        "grad_norm": 0.3127141296863556,
+        "throughput": 2490225.054599288,
+        "mfu": 21.186192340798836,
+        "drop_fraction": 0.033819954616553856,
+        "progress_pct": 7.792420775347149
+      },
+      "matched_progress": {
+        "available": true,
+        "method": "linear interpolation between adjacent per-5% point predictions",
+        "method_id": "marin-matched-progress-v1",
+        "step": 29999,
+        "fraction": 0.07687103940797077,
+        "progress_pct": 7.687103940797077,
+        "left_fraction": 0.05,
+        "right_fraction": 0.1,
+        "interpolation_weight": 0.5374207881594153,
+        "prediction": 2.356649769312278,
+        "sensitivity_low": 2.350597863650975,
+        "sensitivity_high": 2.3728437465723715,
+        "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
+        "actual": 2.2855653762817383,
+        "residual": -0.0710843930305396,
+        "observed_at": "2026-08-28T09:44:31.446628+00:00"
+      }
+    },
+    {
+      "name": "2026-08-29-am",
+      "window_utc": [
+        "2026-08-28T12:00:00+00:00",
+        "2026-08-29T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-28 20:00",
+        "2026-08-29 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-28T23:58:08.045568+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 30420,
+          "step_last": 32620,
+          "value_first": 1.2738890647888184,
+          "value_last": 1.2606898546218872,
+          "observed_at_first": "2026-08-28T12:01:35.803448+00:00",
+          "observed_at_last": "2026-08-28T23:58:08.045568+00:00",
+          "count": 221
+        },
+        "grad_norm": 0.31855928897857666,
+        "throughput": 2493789.5827203984,
+        "mfu": 21.216518426482764,
+        "drop_fraction": 0.033532982071240745,
+        "progress_pct": 8.358722975725879
+      },
+      "matched_progress": null
+    },
+    {
+      "name": "2026-08-29-pm",
+      "window_utc": [
+        "2026-08-29T00:00:00+00:00",
+        "2026-08-29T12:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-29 08:00",
+        "2026-08-29 20:00"
+      ],
+      "window_evidence_as_of": "2026-08-29T11:59:15.834541+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 32630,
+          "step_last": 34830,
+          "value_first": 1.2599692344665527,
+          "value_last": 1.2668198347091675,
+          "observed_at_first": "2026-08-29T00:01:19.568294+00:00",
+          "observed_at_last": "2026-08-29T11:59:15.834541+00:00",
+          "count": 221
+        },
+        "grad_norm": 0.40751194953918457,
+        "throughput": 2493520.307931366,
+        "mfu": 21.214227506044697,
+        "drop_fraction": 0.03380621760857828,
+        "progress_pct": 8.92502517610461
+      },
+      "matched_progress": {
+        "available": true,
+        "method": "linear interpolation between adjacent per-5% point predictions",
+        "method_id": "marin-matched-progress-v1",
+        "step": 32999,
+        "fraction": 0.08455839959410738,
+        "progress_pct": 8.455839959410739,
+        "left_fraction": 0.05,
+        "right_fraction": 0.1,
+        "interpolation_weight": 0.6911679918821475,
+        "prediction": 2.3465101574845852,
+        "sensitivity_low": 2.3405990805322676,
+        "sensitivity_high": 2.361220466372561,
+        "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
+        "actual": 2.2781243324279785,
+        "residual": -0.06838582505660673,
+        "observed_at": "2026-08-29T02:03:08.249123+00:00"
+      }
+    },
+    {
+      "name": "2026-08-30-am",
+      "window_utc": [
+        "2026-08-29T12:00:00+00:00",
+        "2026-08-30T00:00:00+00:00"
+      ],
+      "window_beijing": [
+        "2026-08-29 20:00",
+        "2026-08-30 08:00"
+      ],
+      "window_evidence_as_of": "2026-08-29T23:56:57.055757+00:00",
+      "dataset_as_of": "2026-08-30T06:45:11.944277+00:00",
+      "method_id": "marin-matched-progress-v1",
+      "report_revision": "hero-window-v2",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
+      "baseline_applicability": "supported",
+      "stats": {
+        "train_ce": {
+          "step_first": 34840,
+          "step_last": 37030,
+          "value_first": 1.2670273780822754,
+          "value_last": 1.2637932300567627,
+          "observed_at_first": "2026-08-29T12:02:34.017799+00:00",
+          "observed_at_last": "2026-08-29T23:56:57.055757+00:00",
+          "count": 220
+        },
+        "grad_norm": 0.369752436876297,
+        "throughput": 2495560.1029696874,
+        "mfu": 21.23158155600812,
+        "drop_fraction": 0.033917992008906425,
+        "progress_pct": 9.488764923087961
+      },
+      "matched_progress": {
+        "available": true,
+        "method": "linear interpolation between adjacent per-5% point predictions",
+        "method_id": "marin-matched-progress-v1",
+        "step": 35999,
+        "fraction": 0.09224575978024399,
+        "progress_pct": 9.224575978024399,
+        "left_fraction": 0.05,
+        "right_fraction": 0.1,
+        "interpolation_weight": 0.8449151956048797,
+        "prediction": 2.3363705456568926,
+        "sensitivity_low": 2.3306002974135605,
+        "sensitivity_high": 2.34959718617275,
+        "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
+        "actual": 2.2787857055664062,
+        "residual": -0.05758484009048637,
+        "observed_at": "2026-08-29T18:20:49.369997+00:00"
+      }
+    }
+  ]
+}

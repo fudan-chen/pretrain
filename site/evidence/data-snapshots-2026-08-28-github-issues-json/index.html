@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Claim 所引用证据的来源、checksum 与可读预览。">
+  <meta name="color-scheme" content="dark light">
+  <title>hero_issue_snapshot · Evidence · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="live">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" aria-current="page">状态</a>
+        <a href="../../learn/" >学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../live/">← 返回 Claim 账本</a></p><article class="markdown-doc evidence-doc"><p class="eyebrow evidence-eyebrow">EVIDENCE ARTIFACT</p><h1>hero_issue_snapshot</h1><dl class="evidence-meta"><div><dt>仓库路径</dt><dd><code>data/snapshots/2026-08-28/github_issues.json</code></dd></div><div><dt>来源</dt><dd>GitHub issue snapshot; upstream https://github.com/marin-community/marin/issues/8435</dd></div><div><dt>采样</dt><dd>daily immutable snapshot; select issue number 8435</dd></div><div><dt>SHA-256</dt><dd><code>da993f16e88b2f6dfd5d5797aabccf4bc63944766e289843f7039a9724647d8e</code></dd></div></dl><p><strong>预览不是第二份事实源。</strong>它只帮助定位记录；校验与复算使用上面的完整文件 checksum。</p><p><a href="../../artifacts/data/snapshots/2026-08-28/github_issues.json">打开或下载完整原始文件 →</a></p><h2>可读预览</h2><pre><code>{
+  &quot;record_selector&quot;: {
+    &quot;number&quot;: 8435
+  },
+  &quot;number&quot;: 8435,
+  &quot;title&quot;: &quot;[Hero Run] 535B-A23B on 18T tokens&quot;,
+  &quot;url&quot;: &quot;https://github.com/marin-community/marin/issues/8435&quot;,
+  &quot;state&quot;: &quot;open&quot;,
+  &quot;updated_at&quot;: &quot;2026-08-28T23:14:08Z&quot;,
+  &quot;relevant_excerpts&quot;: [
+    {
+      &quot;path&quot;: &quot;body&quot;,
+      &quot;excerpt&quot;: &quot;ningfully worse, then we know we need to go back to the drawing board on some aspect of the model or data. This step can catch a lot of bugs!\n2. We can look at how training dynamics change as we scale, in particular the gradient norms and token dropping. In our last run, the scaling ladder caught gradient norm growth to over 4 as we scaled out token horizon, which caused us to find a fix with logit z loss. Later ablations showed that without this fix, runs under certain conditions like high batch size would completely blow up mid-run.\n3. We can project our evals across the entire trajectory of the run. This means that across the entire ~100&quot;
+    },
+    {
+      &quot;path&quot;: &quot;comments[0].body&quot;,
+      &quot;excerpt&quot;: &quot; live global `[min, max]` range** (a `pmin`/`pmax` this step sets the grid; a summed-histogram cumulative count gives the per-expert quantile). The router bias `−beta` is applied on the **next step** as a zero-mean stop-gradient offset — balances expert selection without touching gradients. The histogram estimator is a smoother global quantile than a per-device top-k.\n- **Sigmoid combine weights**: combine weights are `sigmoid(unbiased selected logits)`, rescaled so the K weights sum to a fixed 2.5 (not softmax).\n- **LatentMoE + learnable latent RMS-norm**: tokens are compressed `hidden→latent (3072)`, passed through a **learnable RMSNorm (&quot;
+    },
+    {
+      &quot;path&quot;: &quot;comments[4].body&quot;,
+      &quot;excerpt&quot;: &quot;fore given a lower asympotote of 1.4 instead of 1.5. The May fit also inaccurately has an asympotote at 1.6 instead of 1.5. Main architecture change is we dropped from 4/256 level of sparsity to 4/192 level of sparsity (25% fewer total parameters, to fit on GB200 at this scale. Several other small features added. Overall, the scaling law looks reasonable and nothing looks off in the training dynamics or data.\n\nGrad norms look stable over the run, peaking at 25% into the run. These runs ran at oversized batch sizes, which may be slightly suppressing the gradient. Expecting the grad norm to climb higher on the hero run, but still peak at&quot;
+    },
+    {
+      &quot;path&quot;: &quot;comments[6].body&quot;,
+      &quot;excerpt&quot;: &quot;From model perspective, main risk points during the run:\n\n1. First 3%. Can we get through LR warmup and reach steady dynamics? If we see gradient run away/large issues here, we likely need to revisit initialization, or potentially initial batch size. Or increase capacity factor if the issue involves high dropping.\n2. 30% mark. Gradient may peak, and we will see if gradient keeps climbing, or if its starts to cooldown. Indication that it keeps climbing indefinitely could indicate we need stronger logit z loss, lower token dropping, or revisit some of the norm &quot;
+    },
+    {
+      &quot;path&quot;: &quot;comments[13].body&quot;,
+      &quot;excerpt&quot;: &quot;&gt; First 3%. Can we get through LR warmup and reach steady dynamics? If we see gradient run away/large issues here, we likely need to revisit initialization, or potentially initial batch size. Or increase capacity factor if the issue involves high dropping.\n\nLooks like this one is clear&quot;
+    }
+  ],
+  &quot;preview_note&quot;: &quot;Excerpts locate the milestone narrative; the raw artifact and checksum above remain authoritative.&quot;
+}</code></pre></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T06:45:11.944277+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

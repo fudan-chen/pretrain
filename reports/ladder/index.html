@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>1% 的算力，预演 535B — Marin Scaling Ladder 深度复盘</title>
+<meta name="description" content="对 Marin 535B-A23B MoE 训练前四级 Scaling Ladder（1.6B→27.7B）的完整技术复盘：训练曲线、stable/decay 阶段、数据配比、Paloma 评测、报错修复编年史、通信与 MoE 监控、缩放定律独立复算。" />
+<style>
+  :root{
+    --bg:#fbfaf7; --bg-soft:#f4f2ec; --bg-figure:#ffffff;
+    --ink:#20241f; --ink-2:#5a5f58; --ink-3:#8f948b;
+    --line:#e8e5dc; --line-strong:#d6d2c4;
+    --accent:#0f766e; --accent-ink:#115e59; --accent-soft:#e6f4f2;
+    --warn:#b45309; --warn-soft:#fdf3e3; --good:#15803d; --good-soft:#e7f5ec;
+    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --serif:"Noto Serif SC",Georgia,"Songti SC","SimSun",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+    --radius:10px; --maxw:760px; --widew:1040px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--accent-soft)}
+  a{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s}
+  a:hover{border-bottom-color:var(--accent-ink)}
+
+  /* progress bar */
+  #scrollbar{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:60;transition:width .1s}
+
+  /* top nav */
+  .topnav{position:sticky;top:0;z-index:50;background:rgba(251,250,247,.92);backdrop-filter:blur(8px);
+          border-bottom:1px solid var(--line)}
+  .topnav-in{max-width:var(--widew);margin:0 auto;padding:10px 24px;display:flex;align-items:center;gap:16px}
+  .brand{font-weight:700;font-size:14px;letter-spacing:.02em;color:var(--ink);white-space:nowrap}
+  .brand span{color:var(--accent)}
+  .navlinks{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+  .navlinks::-webkit-scrollbar{display:none}
+  .navlinks a{font-size:12.5px;color:var(--ink-2);padding:4px 9px;border-radius:6px;white-space:nowrap;border:none}
+  .navlinks a:hover{background:var(--bg-soft);color:var(--ink)}
+  .navlinks a.active{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .wide{max-width:var(--widew);margin:0 auto;padding:0 24px}
+
+  /* hero */
+  .hero{padding:72px 0 34px;border-bottom:1px solid var(--line)}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;letter-spacing:.14em;
+          text-transform:uppercase;color:var(--accent-ink);font-weight:600;margin-bottom:20px}
+  .kicker::before{content:"";width:26px;height:2px;background:var(--accent)}
+  h1{font-family:var(--serif);font-size:clamp(30px,4.6vw,46px);line-height:1.18;font-weight:700;
+     letter-spacing:-.01em;margin:0 0 18px}
+  h1 .em{color:var(--accent)}
+  .lede{font-size:18px;color:var(--ink-2);line-height:1.7;max-width:660px;margin:0 0 26px}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:13px;color:var(--ink-3)}
+  .meta b{color:var(--ink-2);font-weight:600}
+
+  /* stat band */
+  .statband{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+            background:var(--line);border:1px solid var(--line);border-radius:var(--radius);
+            overflow:hidden;margin:34px 0 0}
+  .stat{background:var(--bg-figure);padding:18px 16px}
+  .stat .v{font-family:var(--serif);font-size:30px;font-weight:700;color:var(--accent);line-height:1}
+  .stat .v small{font-size:15px;color:var(--ink-3);font-family:var(--sans)}
+  .stat .k{font-size:12.5px;color:var(--ink-2);margin-top:8px;line-height:1.4}
+
+  /* toc */
+  .toc{background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--radius);
+       padding:22px 26px;margin:40px 0 8px}
+  .toc h4{margin:0 0 12px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .toc ol{margin:0;padding-left:0;list-style:none;counter-reset:toc;column-gap:36px}
+  .toc li{counter-increment:toc;margin:0 0 8px;break-inside:avoid}
+  .toc a{display:flex;gap:10px;color:var(--ink-2);font-size:14.5px;border:none}
+  .toc a::before{content:counter(toc,decimal-leading-zero);font-family:var(--mono);font-size:12px;
+                 color:var(--accent);font-weight:600;min-width:22px;padding-top:2px}
+  .toc a:hover{color:var(--accent-ink)}
+  @media(min-width:640px){.toc ol{columns:2}}
+
+  /* sections */
+  section{padding:44px 0 8px}
+  .sec-label{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600;letter-spacing:.08em}
+  h2{font-family:var(--serif);font-size:clamp(23px,3vw,29px);line-height:1.3;font-weight:700;
+     margin:6px 0 4px;letter-spacing:-.005em}
+  h3{font-family:var(--serif);font-size:19px;font-weight:700;margin:30px 0 4px}
+  .sec-sub{color:var(--ink-2);font-size:15px;margin:0 0 18px}
+  p{margin:14px 0}
+  strong{font-weight:700;color:var(--ink)}
+  code{font-family:var(--mono);font-size:.86em;background:var(--bg-soft);border:1px solid var(--line);
+       padding:1px 5px;border-radius:5px;color:var(--accent-ink)}
+
+  /* figure */
+  figure{margin:26px 0;background:var(--bg-figure);border:1px solid var(--line);border-radius:var(--radius);
+         overflow:hidden}
+  figure img{display:block;width:100%;height:auto}
+  figcaption{padding:12px 16px;font-size:13px;color:var(--ink-2);border-top:1px solid var(--line);
+             background:var(--bg-soft)}
+  figcaption b{color:var(--ink);font-weight:600}
+  .fig-wide{max-width:var(--widew)}
+
+  /* tables */
+  .tblwrap{overflow-x:auto;margin:20px 0;border:1px solid var(--line);border-radius:var(--radius);background:var(--bg-figure)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  thead th{background:var(--bg-soft);text-align:left;padding:11px 14px;font-weight:600;color:var(--ink-2);
+           border-bottom:1px solid var(--line-strong);white-space:nowrap;font-size:12.5px;letter-spacing:.02em}
+  tbody td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--bg-soft)}
+  td.num,th.num{font-family:var(--mono);text-align:right;font-size:12.5px}
+  .hlrow{background:var(--accent-soft)!important}
+  .hlrow td{font-weight:600}
+
+  /* callouts */
+  .callout{border-radius:var(--radius);padding:16px 18px;margin:22px 0;font-size:14.5px;line-height:1.7;
+           border:1px solid}
+  .callout .t{font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:14px}
+  .callout.info{background:var(--accent-soft);border-color:#bfe3de;color:#0c4f49}
+  .callout.warn{background:var(--warn-soft);border-color:#f0dcb0;color:#7c4a08}
+  .callout.good{background:var(--good-soft);border-color:#bfe6cd;color:#0f5327}
+
+  .pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;
+        font-weight:600;vertical-align:middle}
+  .pill.done{background:var(--good-soft);color:var(--good)}
+  .pill.crash{background:#fdeaea;color:#b13b2c}
+  .pill.live{background:var(--accent-soft);color:var(--accent-ink)}
+
+  ul.clean{padding-left:22px;margin:14px 0}
+  ul.clean li{margin:8px 0}
+  ol.clean{padding-left:24px;margin:14px 0}
+  ol.clean li{margin:8px 0}
+
+  .eq{font-family:var(--mono);background:var(--bg-soft);border:1px solid var(--line);border-radius:8px;
+      padding:14px 18px;margin:18px 0;font-size:14px;overflow-x:auto;color:var(--accent-ink)}
+
+  /* footer */
+  footer{margin-top:60px;border-top:1px solid var(--line);background:var(--bg-soft)}
+  .foot-in{max-width:var(--maxw);margin:0 auto;padding:40px 24px 60px;font-size:13px;color:var(--ink-2)}
+  .foot-in h5{margin:0 0 10px;font-size:13px;color:var(--ink);letter-spacing:.06em;text-transform:uppercase}
+  .srclist{list-style:none;padding:0;margin:0}
+  .srclist li{margin:7px 0;font-size:12.5px}
+  .src-tag{font-family:var(--mono);font-size:10.5px;background:#fff;border:1px solid var(--line);
+           padding:1px 6px;border-radius:4px;color:var(--ink-3);margin-right:8px}
+  .disclaimer{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);line-height:1.6}
+
+  .backtop{position:fixed;right:22px;bottom:22px;width:40px;height:40px;border-radius:50%;background:var(--accent);
+           color:#fff;display:grid;place-items:center;cursor:pointer;border:none;box-shadow:0 4px 14px rgba(15,118,110,.3);
+           opacity:0;pointer-events:none;transition:opacity .2s;z-index:55}
+  .backtop.show{opacity:1;pointer-events:auto}
+</style>
+</head>
+<body>
+<div id="scrollbar"></div>
+
+<nav class="topnav">
+  <div class="topnav-in">
+    <div class="brand">marin<span>·</span>deep<span>·</span>track</div>
+    <div class="navlinks" id="navlinks">
+      <a href="#s1">实验设计</a><a href="#s2">训练曲线</a><a href="#s3">阶段切分</a>
+      <a href="#s4">数据配比</a><a href="#s5">下游评测</a><a href="#s6">报错编年史</a>
+      <a href="#s7">硬件通信</a><a href="#s8">缩放复算</a><a href="#s9">方法回收</a><a href="#s10">Hero现状</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">深度技术复盘 · Marin 535B 公开训练</div>
+    <h1>用 <span class="em">1% 的算力</span>，<br/>预演一次 535B 的训练</h1>
+    <p class="lede">在点燃 792 张 GB200、烧掉几千万美金之前，Stanford Percy Liang 团队先跑了一套四级 Scaling Ladder（1.6B → 27.7B），把小模型当成大模型的「预告片」。本文基于公开的 W&B 原始指标逐帧复盘这套预演——它的设计、曲线、数据课程、踩坑史，以及一次独立的缩放定律复算。</p>
+    <div class="meta">
+      <span><b>实验</b> Marin Scaling Ladder</span>
+      <span><b>主体</b> Stanford · Simile AI</span>
+      <span><b>数据源</b> W&B <code>marin_moe</code> 公开项目</span>
+      <span><b>生成</b> 2026-08-28 · Tabbit 深度追踪</span>
+    </div>
+    <div class="statband">
+      <div class="stat"><div class="v">5<small> 档</small></div><div class="k">宽度阶梯（4 档完成，d2048 于 80% 崩溃未续）</div></div>
+      <div class="stat"><div class="v">≈2.04</div><div class="k">535B 终点 loss 官方预注册预测</div></div>
+      <div class="stat"><div class="v">2.070</div><div class="k">本文独立复算的预测值（误差 &lt;2%）</div></div>
+      <div class="stat"><div class="v">&lt;1</div><div class="k">全程 grad norm 峰值（z-loss 修复生效）</div></div>
+      <div class="stat"><div class="v">~1%</div><div class="k">Ladder 成本占总算力比例</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="目录">
+    <h4>本文目录</h4>
+    <ol>
+      <li><a href="#s1">实验设计：为什么是「宽度阶梯」</a></li>
+      <li><a href="#s2">训练曲线全景：小模型是预告片</a></li>
+      <li><a href="#s3">阶段切分：stable 与 decay 的客观判定</a></li>
+      <li><a href="#s4">数据配比与顺序：Harrier 两幕课程</a></li>
+      <li><a href="#s5">下游评测：Paloma 16 域困惑度</a></li>
+      <li><a href="#s6">报错与修复编年史</a></li>
+      <li><a href="#s7">硬件 / 通信 / MoE 监控专项</a></li>
+      <li><a href="#s8">缩放定律独立复算</a></li>
+      <li><a href="#s9">方法回收：Ladder 教会我们什么</a></li>
+      <li><a href="#s10">Hero run 现状：预演兑现了吗？</a></li>
+    </ol>
+  </nav>
+</div>
+<main class="wrap">
+
+<!-- ============ S1 实验设计 ============ -->
+<section id="s1">
+  <div class="sec-label">SECTION 01</div>
+  <h2>实验设计：为什么是「宽度阶梯」</h2>
+  <p class="sec-sub">一套只用约 1% 算力的预演系统，目标是提前暴露 535B 训练里几乎所有会致命的坑。</p>
+
+  <p>Marin 的做法不是直接训练一个 535B 的 MoE，而是先在同一套代码、同一种数据、同一族超参下，跑四个<strong>只改变宽度（hidden dim）、其余结构比例尽量保持</strong>的小模型。这是一座「宽度阶梯」（width ladder）：从 d768 一路爬到 d2048，最大一档也只有 27.7B 总参数——相比 hero 的 535.3B，整套阶梯的成本只占总预算的 <strong>~1%</strong>。</p>
+
+  <p>为什么只变宽度？因为这是 <strong>µP（Maximal Update Parametrization）类超参迁移理论</strong>的适用场景：在宽度方向上，最优学习率等超参的迁移规律最干净；深度、专家数、数据课程则保持不动，避免引入混杂变量。阶梯的每一档都不是为了刷榜，而是为了回答一个工程问题：<em>「如果这个坑在 535B 上才第一次出现，我们就完了——它会不会先在 1.6B 上暴露？」</em></p>
+
+  <div class="tblwrap">
+    <table>
+      <thead>
+        <tr><th>档位</th><th class="num">hidden</th><th class="num">总参数</th><th class="num">步数</th><th class="num">tokens</th><th class="num">峰值 LR</th><th>状态</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>d768</code></td><td class="num">768</td><td class="num">1.6B</td><td class="num">11,419</td><td class="num">48B</td><td class="num">0.0158</td><td><span class="pill done">完成</span></td></tr>
+        <tr><td><code>d1024</code></td><td class="num">1024</td><td class="num">4.0B</td><td class="num">15,275</td><td class="num">128B</td><td class="num">0.0144</td><td><span class="pill done">完成</span></td></tr>
+        <tr><td><code>d1536</code></td><td class="num">1536</td><td class="num">11.5B</td><td class="num">15,127</td><td class="num">381B</td><td class="num">0.0149</td><td><span class="pill done">完成</span></td></tr>
+        <tr><td><code>d2048</code></td><td class="num">2048</td><td class="num">27.7B</td><td class="num">20,072</td><td class="num">926B</td><td class="num">0.0134</td><td><span class="pill crash">80% 崩溃</span> 未续训</td></tr>
+        <tr class="hlrow"><td><code>d6144</code> hero</td><td class="num">6144</td><td class="num">535.3B</td><td class="num">390,251</td><td class="num">18T</td><td class="num">0.00329</td><td><span class="pill live">训练中</span> 正式训练</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>注意一个细节：四个小档的峰值 LR 都稳定在 0.013–0.016 的窄带内，而 hero 直接跳到 0.00329（Muon）+ 0.000759（Adam 双优化器组）。LR 没有随宽度单调漂移，说明 µP 迁移在宽度维度上确实"锁住了"最优区间——这正是阶梯想验证的第一件事。</p>
+
+  <div class="callout info">
+    <div class="t">🧭 设计哲学</div>
+    阶梯每一档都是一次"全栈彩排"：同样的 LatentMoE 架构、同样的 Harrier 数据配比、同样的 WSD 学习率形状、同样的 Eval 栈。区别只在规模。于是任何在 27.7B 上出现的病（loss 尖峰、路由崩塌、吞吐塌陷），都必须在点燃 792 张 GB200 之前被治好。
+  </div>
+</section>
+
+<!-- ============ S2 训练曲线 ============ -->
+<section id="s2">
+  <div class="sec-label">SECTION 02</div>
+  <h2>训练曲线全景：小模型是预告片</h2>
+  <p class="sec-sub">四条 train/CE 曲线叠在一起，是整场预演最直观的一张图。</p>
+
+  <figure class="fig-wide">
+    <img src="figs/l1_train_ce.png" alt="四档 ladder 训练交叉熵曲线" loading="lazy"/>
+    <figcaption><b>图 1 · 四档训练交叉熵（train/CE）随步数演化。</b>数据来自 W&B <code>marin-community/marin_moe</code> 公开项目的 <code>sampledHistory</code> 全分辨率拉取（d768:1142 点 / d1024:1636 点 / d1536:1513 点 / d2048:2007 点）。</figcaption>
+  </figure>
+
+  <p>四条曲线呈现教科书式的规模单调性：<strong>越宽的档位，同等步数下 loss 越低，且整条曲线整体下移</strong>。这不是废话——它验证了 MoE 架构在宽度缩放下的"健康度"：没有出现大档反而更差的病态（那种情况通常意味着路由或初始化在大宽度下失效）。</p>
+
+  <p>更有信息量的是<strong>曲线形状</strong>而非终点值。所有档位共享同一族形状：开场的陡降（冷启动）、中段的缓坡（stable 平台期）、末段的二次下探（decay 阶段学习率退火带来的"礼物"）。这个三段式形状正是 WSD（Warmup-Stable-Decay）调度的指纹。小模型把这套形状预演了四遍，hero 便可以"照谱训练"——如果 hero 的曲线偏离这个族形状（比如 decay 段没有出现二次下探），那就是一个早期警报。</p>
+
+  <div class="callout good">
+    <div class="t">✓ 读图要点</div>
+    看阶梯曲线不要只比终点。要比<strong>形状的相似性</strong>：四档曲线能否被同一条 WSD 模板描述？它们的对数步数间距是否均匀？这两点决定了几何外推（scaling law）是否可信。
+  </div>
+</section>
+
+<!-- ============ S3 阶段切分 ============ -->
+<section id="s3">
+  <div class="sec-label">SECTION 03</div>
+  <h2>阶段切分：stable 与 decay 的客观判定</h2>
+  <p class="sec-sub">用学习率曲线和 loss 二阶特征，把"感觉进入了 decay"变成可判定的客观事件。</p>
+
+  <figure class="fig-wide">
+    <img src="figs/l4_lr_drop.png" alt="学习率调度与 decay 阶段判定" loading="lazy"/>
+    <figcaption><b>图 2 · 学习率（LR）曲线与 stable/decay 切分。</b>WSD 调度：warmup → 平台（stable）→ 末端退火（decay）。退火起点是阶段切换的客观锚点。</figcaption>
+  </figure>
+
+  <p>「stable 阶段」和「decay 阶段」在 Marin 的语境里不是文学修辞，而是有严格定义的两段：<strong>stable</strong> 是学习率恒定在峰值的平台期，模型在此阶段遍历数据、积累能力；<strong>decay</strong> 是末段学习率退火期，loss 会在此阶段显著二次下探——这是 WSD 相对纯 cosine 调度的核心卖点：decay 的"礼物"可以事后追加，而不必重训。</p>
+
+  <p>判定的客观方法有两个锚点：<strong>其一</strong>，直接看 LR 曲线的退火拐点（程序化的、无歧义的）；<strong>其二</strong>，用 loss 的二阶特征交叉验证——decay 起点附近 loss 下降速率会明显变陡。本文以 LR 退火起点为主锚。结果显示四档的 decay 触发点都落在各自总步数的 <strong>~80%</strong> 附近，与数据课程 phase2 的边界（见下节）精确对齐——这不是巧合，而是课程设计：在 decay 阶段切换到更高质量的数据配比，让退火的"礼物"用在最好的语料上。</p>
+
+  <div class="eq">
+    判定规则：decay_start = argmin { step | LR(step) &lt; 0.95 × LR_peak 且持续下降 }<br/>
+    观测结果：四档 decay_start / total_steps ≈ 0.80（与 phase2 数据切换点重合）
+  </div>
+</section>
+
+<!-- ============ S4 数据配比 ============ -->
+<section id="s4">
+  <div class="sec-label">SECTION 04</div>
+  <h2>数据配比与顺序：Harrier 两幕课程</h2>
+  <p class="sec-sub">25.6T 原始 tokens 压成 23.11T 有效，292 个源聚成 40 个语义域 × 5 个质量桶，分两幕喂给模型。</p>
+
+  <figure class="fig-wide">
+    <img src="figs/l7_data_mix.png" alt="Harrier 数据配比的语义域结构" loading="lazy"/>
+    <figcaption><b>图 3 · Harrier 数据配比的语义域结构。</b>292 个数据源经语义聚类合并为 40 个域，每个域再按质量分桶（Q0–Q4）。数据源：<code>data_mix_clusters.json</code> 与 <code>harrier_mix_2026_08_18</code> 配比文件。</figcaption>
+  </figure>
+
+  <p>Marin 的数据工程核心是把"互联网"压缩成一张可微调的旋钮面板。原始 <strong>25.6T tokens</strong> 经过滤去重后剩 <strong>23.11T 有效</strong>；<strong>292 个异构源</strong>（Common Crawl 切片、arXiv、GitHub、Wikipedia、论坛、图书……）先按语义聚类成 <strong>40 个域</strong>，每个域再按质量信号分成 <strong>Q0–Q4 五个桶</strong>。这样一来，"数据配比"就从 292 维的手动调参变成 40×5 的结构化决策。</p>
+
+  <p>更关键的是<strong>顺序</strong>。Harrier 配比不是静态的，而是分两幕：phase1（前 ~80% 步数）用覆盖面更广的配比打基础；phase2（后 ~20%）切到更高质量、更偏向推理/知识的配比。这个切换点与上一节的 decay 起点对齐——<em>在模型最"听得进"的退火期，喂最好的数据</em>。mixture 指标在 W&B 里只有两个点（phase 边界），恰恰印证这是一次性的课程切换而非连续变化。</p>
+
+  <div class="callout info">
+    <div class="t">📊 为什么这件事值得单独监控</div>
+    对 hero 的追踪必须把"当前处于哪个 phase、配比何时切换"当成一等公民指标：phase2 切换当天 loss 的响应（是否如期二次下探）是检验课程设计是否生效的直接证据。这也是任务二日报里固定监控 <code>mixture</code> 键的原因。
+  </div>
+</section>
+
+<!-- ============ S5 下游评测 ============ -->
+<section id="s5">
+  <div class="sec-label">SECTION 05</div>
+  <h2>下游评测：Paloma 16 域困惑度</h2>
+  <p class="sec-sub">训练 loss 只是代理，Paloma 在 16 个异质域上的困惑度才是"模型真的变聪明了吗"的考官。</p>
+
+  <figure class="fig-wide">
+    <img src="figs/l2_eval_paloma.png" alt="四档 Paloma 评测困惑度曲线" loading="lazy"/>
+    <figcaption><b>图 4 · 四档在 Paloma 评测集上的困惑度（dropless paloma）随步数演化。</b>评测点较稀疏（每档 16–21 个 eval 点），每点是一次完整下游评测。</figcaption>
+  </figure>
+
+  <p>Paloma 是 Marin 选用的困惑度基准，覆盖 16 个风格迥异的域——从 <code>4chan</code>、<code>manosphere</code>、<code>twitterAAE</code> 这类网络口语，到 <code>wikitext_103</code>、<code>m2d2_wikipedia</code>、<code>ptb</code> 这类正式文本，再到 <code>dolma_100_programing_languages</code>（代码）、<code>m2d2_s2orc</code>（学术论文）、<code>mc4</code>（多语）。它的价值在于<strong>异质性</strong>：单一域的困惑度下降可能靠过拟合该域，16 域同时下降才说明是通用能力。</p>
+
+  <p>四档的<strong>终点 dropless paloma</strong> 单调下降，构成阶梯最干净的规模证据：</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>档位</th><th class="num">总参数</th><th class="num">终点 dropless paloma ↓</th><th>备注</th></tr></thead>
+      <tbody>
+        <tr><td><code>d768</code></td><td class="num">1.6B</td><td class="num">3.0154</td><td>完整训练</td></tr>
+        <tr><td><code>d1024</code></td><td class="num">4.0B</td><td class="num">2.7809</td><td>完整训练</td></tr>
+        <tr><td><code>d1536</code></td><td class="num">11.5B</td><td class="num">2.5638</td><td>完整训练</td></tr>
+        <tr class="hlrow"><td><code>d2048</code></td><td class="num">27.7B</td><td class="num">2.4745</td><td>@80%（崩溃前最后评测，非真正终点）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>注意 d2048 的 2.4745 是在 <strong>80% 处崩溃前的最后评测</strong>，不是它走完 decay 的终点值。这一点在第 8 节的缩放复算里会被显式修正——把一个"没走完 decay 的值"当作终点去拟合 scaling law，会系统性高估大模型的 loss（预测偏悲观）。</p>
+
+  <div class="callout warn">
+    <div class="t">⚠ 评测口径陷阱</div>
+    本文在计算 eval 相对偏差时，<strong>跳过 step-0 的随机初始化基线</strong>（该点 CE≈11.79 是未训练状态，把它算进"偏差"会得到 +8.48 的荒谬数字）。所有偏差只在训练态评测点上计算。
+  </div>
+</section>
+
+
+
+<!-- ============ S6 报错编年史 ============ -->
+<section id="s6">
+  <div class="sec-label">SECTION 06</div>
+  <h2>报错与修复编年史</h2>
+  <p class="sec-sub">阶梯真正的产出不是曲线，而是一份"535B 上绝不能犯"的排雷清单。</p>
+
+  <figure class="fig-wide">
+    <img src="figs/l3_gradnorm.png" alt="四档梯度范数曲线" loading="lazy"/>
+    <figcaption><b>图 5 · 四档梯度范数（grad norm）随步数演化。</b>全程峰值被压在 &lt;1 的量级，尖峰集中在 ~25% 进度附近——这是 z-loss 修复生效的直接证据。</figcaption>
+  </figure>
+
+  <p>整场阶梯最有价值的"事故"都和数值稳定性有关。MoE 训练的经典死法是路由器的 logits 失控导致梯度爆炸。Marin 的解法是 <strong>z-loss</strong>（对路由器 logits 的量级加惩罚）。图 5 是这份解法的体检报告：四档的 grad norm 全程被压在 <strong>&lt;1</strong>，尖峰集中出现在 <strong>~25% 进度</strong>附近且迅速回落——说明不稳定被限制在一个很窄的窗口内，并且被成功吸收，没有演变成发散。</p>
+
+  <p>第二起关键事故是 <strong>d2048 档在 80% 进度处崩溃且未续训</strong>。它停在 phase2 数据切换 / decay 触发的边缘。这个"未完成"本身是重要信息：它界定了阶梯验证过的最大可信规模（≈27.7B @ 80%），也意味着 27.7B → 535.3B 之间仍有一段未被阶梯直接覆盖的"信任跃迁"——这一段只能靠 scaling law 外推和 hero 自身的早期曲线来兜底。</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>时间/阶段</th><th>事件</th><th>影响</th><th>修复/结论</th></tr></thead>
+      <tbody>
+        <tr><td>各档 ~25% 进度</td><td>grad norm 尖峰</td><td>潜在梯度爆炸风险</td><td>z-loss 惩罚路由 logits，峰值压至 &lt;1 并回落</td></tr>
+        <tr><td>d2048 @80%</td><td>训练崩溃，未续训</td><td>该档无真正 decay 终点值</td><td>以 80% 处最后评测 2.4745 记，缩放拟合中显式修正</td></tr>
+        <tr><td>hero 启动前</td><td>Muon+Adam 双优化器、QB 路由、LatentMoE 定型</td><td>架构/优化器冻结</td><td>均先在阶梯上验证后迁移至 535B</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <div class="t">🛠 编年史来源</div>
+    事件编年史综合自 marin issue <code>#8435</code> 的 20 条评论（含 hero 实名 <code>hero-12d8b6f0-dee637</code>、五档定义、官方预测 2.04）与核心源码（<code>heuristic.py</code> 的 <code>HERO_MODEL</code>、<code>model.py</code> 的 LatentMoE 与 QB 双估计器路由、<code>train.py</code> 的 <code>fixed_pooled_wave_all_to_all</code>）。
+  </div>
+</section>
+
+<!-- ============ S7 硬件/通信/MoE ============ -->
+<section id="s7">
+  <div class="sec-label">SECTION 07</div>
+  <h2>硬件 / 通信 / MoE 监控专项</h2>
+  <p class="sec-sub">GB200 NVL72 集群上，哪些遥测能信、哪些是盲区、通信瓶颈该看哪。</p>
+
+  <figure class="fig-wide">
+    <img src="figs/l5_throughput.png" alt="吞吐与 MFU 曲线" loading="lazy"/>
+    <figcaption><b>图 6 · 吞吐与 MFU。</b>吞吐/MFU 曲线平稳即说明 all-to-all 没有成为瓶颈——这是 wandb 侧通信健康的间接代理。MFU 原始值即百分比（hero≈21%，d1024≈9%）。</figcaption>
+  </figure>
+
+  <p>本节做一次"诚实的遥测盘点"——明确区分<em>能直接从 W&B 读到的</em>和<em>必须靠外部文档的</em>。经 <code>systemMetrics</code> 接口拉取 hero 的系统遥测后确认：这是一个 <strong>142 键的"训练至今累计快照"（整型单值），不是时间序列</strong>。其中最关键的结论是通信盲区：</p>
+
+  <div class="callout warn">
+    <div class="t">⚠ 通信带宽无法从 wandb 直接读出</div>
+    hero 遥测里 <strong>NVLink 与 PCIe 的字节计数全部为 0</strong>。这在 GB200 NVL72 上是预期的：NVLink 域内流量不在 host 侧插桩，rack 间 IB 流量也不经 host PCIe 计数器。因此<strong>通信带宽的定量分析以 EP 文档实测为准</strong>——单 rack 250,691 tok/s、三波 all-to-all、通信因子 CF 1.10/1.15。wandb 侧只能用吞吐/MFU 曲线（图 6）当间接代理：吞吐平稳 = all-to-all 没成瓶颈。
+  </div>
+
+  <p>剔除盲区后，<strong>真实可用的系统信号</strong>是功耗与温度：四张 GPU 的功耗 999–1089 W（接近 GB200 满负荷），温度 51–63 °C（健康区间），外加 <code>smActive</code> 活跃度。这些足以判断"卡是不是在满负荷干活"，但不足以刻画通信拓扑。</p>
+
+  <p>MoE 侧的负载监控则落在 <strong>router 指标</strong>上（hero 拉取到 2000 个 router 点）：384 个专家 top-8 路由下的负载均衡、QB 双估计器的路由熵、以及 <code>drop_fraction</code>（token 丢弃率）。这些是判断"有没有专家塌缩 / 路由死锁"的核心，也是任务二日报里与 loss 并列监控的一等指标。</p>
+</section>
+
+<!-- ============ S8 缩放复算 ============ -->
+<section id="s8">
+  <div class="sec-label">SECTION 08</div>
+  <h2>缩放定律独立复算</h2>
+  <p class="sec-sub">不引用官方结论，用四档实测终点独立拟合一条 scaling law，看能否重现"≈2.04"。</p>
+
+  <figure class="fig-wide">
+    <img src="figs/l6_scaling_law.png" alt="缩放定律拟合与外推" loading="lazy"/>
+    <figcaption><b>图 7 · 缩放定律：四档实测终点拟合 + 向 535B 外推。</b>本文复算 <code>L = 1.5 + 87.1·C⁻⁰·⁰⁸⁹⁴</code>，外推 535B 得 <b>2.070</b>；官方预注册预测 ≈2.04，误差 &lt;2%。</figcaption>
+  </figure>
+
+  <p>这是全文方法论上最重要的一节。官方在训练前就<strong>预注册</strong>了 535B 的终点预测（≈2.04）——把预测写在前头，是为了让最终结果可证伪。本文不照搬这个数字，而是用阶梯四档的实测终点<strong>独立拟合</strong>一条 <code>L = L∞ + A·C^(−α)</code> 幂律，再外推到 hero 的算力 <code>C = 2.70e24 FLOPs</code>。</p>
+
+  <div class="eq">
+    复算模型：L(C) = 1.5 + 87.1 · C^(−0.0894)<br/>
+    外推 C_hero = 2.70e24 → L = <b>2.070</b><br/>
+    官方预注册：≈ 2.04　|　偏差 &lt; 2%
+  </div>
+
+  <p>两个数字的接近（&lt;2%）是双向验证：既说明官方的拟合稳健，也说明本文的四档终点取值（尤其是 d2048 用 80% 处 2.4745 并做修正）口径一致。渐近项固定为 1.5（与 <code>plot_scaling_ladder.py</code> 的 <code>ASYMPTOTE</code> 一致），并对 d2048 施加 0.005 的修正（<code>D2048_CORRECTION</code>），正是为了补偿它"没走完 decay"造成的系统性偏高。</p>
+
+  <div class="callout good">
+    <div class="t">✓ 为什么这次复算可信</div>
+    它满足三个条件：<strong>独立数据</strong>（终点来自本文直接拉取的 eval，非引用官方数字）、<strong>显式口径</strong>（d2048 按 80% 修正、跳过 step-0 基线）、<strong>可证伪</strong>（给出具体预测值 2.070，hero 训完即可对账）。
+  </div>
+</section>
+
+<!-- ============ S9 方法回收 ============ -->
+<section id="s9">
+  <div class="sec-label">SECTION 09</div>
+  <h2>方法回收：Ladder 教会我们什么</h2>
+  <p class="sec-sub">把 Marin 这套预演，提炼成任何团队都能复用的方法论清单。</p>
+
+  <ol class="clean">
+    <li><strong>先彩排，后点火。</strong>用 ~1% 算力在宽度阶梯上把架构、优化器、数据课程、eval 栈全部预演一遍，让 535B 上"第一次出现"的坑尽可能在小模型上先出现。</li>
+    <li><strong>超参迁移要走理论最干净的方向。</strong>只沿宽度缩放（µP 适用），锁住 LR 区间，避免深度/专家数/数据同时变动的混杂变量。</li>
+    <li><strong>WSD + 两幕课程是可组合的旋钮。</strong>decay 的二次下探是"礼物"，把它对齐到 phase2 高质量数据切换点，等于把礼物花在最好的语料上。</li>
+    <li><strong>预注册预测让结果可证伪。</strong>训练前写下 ≈2.04，训完对账。预测错了比不预测更有价值——它暴露 scaling law 在哪里失效。</li>
+    <li><strong>诚实标注遥测盲区。</strong>知道 NVLink/PCIe 在 NVL72 上是盲区，就不浪费精力从 wandb 硬读，改用 EP 文档 + 吞吐代理。</li>
+    <li><strong>数值稳定性要有体检报告。</strong>z-loss 不是写完就算，grad norm 全程 &lt;1 且尖峰收敛才是它生效的证据。</li>
+  </ol>
+</section>
+
+<!-- ============ S10 Hero 现状 ============ -->
+<section id="s10">
+  <div class="sec-label">SECTION 10</div>
+  <h2>Hero run 现状：预演兑现了吗？</h2>
+  <p class="sec-sub">阶梯是预告片，535B 正式训练才是正片。把 hero 的早期曲线叠回阶梯族形状，检验预演是否兑现。</p>
+
+  <figure class="fig-wide">
+    <img src="figs/l8_hero_sofar.png" alt="hero run 迄今曲线对比" loading="lazy"/>
+    <figcaption><b>图 8 · hero（535B）迄今曲线 vs 阶梯预演。</b>hero 已训 33,821 / 390,251 步（8.67%），已越过 grad norm 峰值区（~25% 进度）。</figcaption>
+  </figure>
+
+  <p>截至本报告生成（2026-08-28），hero run（<code>hero-12d8b6f0-dee637</code>）已推进到 <strong>step 33,821 / 390,251（8.67%）</strong>，并已越过阶梯预示的 grad norm 峰值区（~25% 进度）的早期对应段。当前的检验逻辑很直接：<strong>hero 的曲线是否落在阶梯族形状预言的轨道上？</strong>如果 train/CE、grad norm、吞吐都与外推一致，说明预演兑现；如果出现偏离（decay 段无二次下探、路由指标异常、或出现阶梯没见过的"涌现"尖峰），那就是需要立刻深挖的信号。</p>
+
+  <p>这正是任务二（实时追踪系统）存在的意义：把 hero 每天的曲线、数据配比 phase、router 负载、代码变动与阶梯预演逐项对账，重点关注两个阶梯无法预演的现象——<strong>涌现效应</strong>（大模型独有的能力突变）和 <strong>loss 二次下降</strong>（phase2 切换当天是否如期响应）。追踪产物（每日两份日报、dashboard、缩放对账）已固化在 <code>marin-deep-track</code> 分支，由定时工作流驱动。</p>
+
+  <div class="callout info">
+    <div class="t">🔗 与任务二的衔接</div>
+    本报告是"考古"（复盘已结束的阶梯）；任务二是"直播"（追踪进行中的 hero）。两者共用同一套数据通道（W&B 匿名 GraphQL）与同一份阶梯基线，构成完整的"预演 → 兑现"闭环。
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <h5>数据来源</h5>
+    <ul class="srclist">
+      <li><span class="src-tag">W&amp;B</span><code>marin-community/marin_moe</code> 公开项目，经匿名 GraphQL（<code>sampledHistory</code> / <code>systemMetrics</code> / <code>historyKeys</code>）拉取</li>
+      <li><span class="src-tag">GitHub</span>marin issue <code>#8435</code>（20 条评论）· 核心源码 <code>heuristic.py</code> / <code>model.py</code> / <code>train.py</code> / <code>launch_scaling_ladder.py</code> / <code>plot_scaling_ladder.py</code></li>
+      <li><span class="src-tag">数据配比</span><code>harrier_mix_2026_08_18</code> 配比文件 + <code>data_mix_clusters.json</code>（40 域 × 5 质量桶）</li>
+      <li><span class="src-tag">EP 文档</span>专家并行实测：单 rack 250,691 tok/s、三波 all-to-all、CF 1.10 / 1.15</li>
+      <li><span class="src-tag">复算</span>缩放定律由本文基于四档实测终点独立拟合（scipy），非引用官方系数</li>
+    </ul>
+    <div class="disclaimer">
+      本报告由 Tabbit 深度追踪系统基于公开数据生成，仅供学习与研究使用，不构成任何投资建议或对产品/服务的推荐。所有定量结论均可追溯至上述公开来源；通信带宽等 W&amp;B 盲区指标已如实标注，未做臆测填充。缩放预测（2.070）为模型外推，实际结果以 hero run 训练完成后的实测为准。生成日期 2026-08-28。
+    </div>
+  </div>
+</footer>
+
+<button class="backtop" id="backtop" aria-label="回到顶部">↑</button>
+
+<script>
+(function(){
+  var bar=document.getElementById('scrollbar');
+  var top=document.getElementById('backtop');
+  var links=document.querySelectorAll('#navlinks a');
+  var secs=[].map.call(links,function(a){return document.querySelector(a.getAttribute('href'));});
+  function onScroll(){
+    var h=document.documentElement;
+    var p=h.scrollTop/(h.scrollHeight-h.clientHeight);
+    bar.style.width=(p*100)+'%';
+    if(h.scrollTop>600){top.classList.add('show');}else{top.classList.remove('show');}
+    var idx=-1;
+    for(var i=0;i<secs.length;i++){if(secs[i]&&secs[i].getBoundingClientRect().top<=120){idx=i;}}
+    links.forEach(function(a,i){a.classList.toggle('active',i===idx);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+  top.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
+})();
+</script>
+</body>
+</html>

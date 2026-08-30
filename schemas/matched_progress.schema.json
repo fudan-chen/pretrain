@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fudan-chen.github.io/pretrain/schemas/matched_progress.schema.json",
+  "title": "Marin matched-progress baseline",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "method_id",
+    "description",
+    "source",
+    "applicability",
+    "constants",
+    "d2048_extrapolation",
+    "fractions",
+    "terminal_prediction"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "method_id": {"const": "marin-matched-progress-v1"},
+    "description": {"type": "string", "minLength": 1},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "upstream_commit",
+        "upstream_script",
+        "input_path",
+        "input_sha256"
+      ],
+      "properties": {
+        "upstream_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "upstream_script": {"type": "string", "format": "uri"},
+        "input_path": {"type": "string", "minLength": 1},
+        "input_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "input_manifest_path": {"type": "string", "minLength": 1},
+        "input_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "dependentRequired": {
+        "input_manifest_path": ["input_manifest_sha256"],
+        "input_manifest_sha256": ["input_manifest_path"]
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recipe_regime_id", "policy", "requirements"],
+      "properties": {
+        "recipe_regime_id": {"type": "string", "minLength": 1},
+        "policy": {"type": "string", "minLength": 1},
+        "requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "selector", "operator", "expected"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "selector": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "operator": {"enum": ["equals", "contains"]},
+              "expected": true
+            }
+          }
+        }
+      }
+    },
+    "constants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asymptote",
+        "d2048_correction",
+        "hero_steps",
+        "compute_excludes_lm_head"
+      ],
+      "properties": {
+        "asymptote": {"type": "number"},
+        "d2048_correction": {"type": "number"},
+        "hero_steps": {"type": "integer", "minimum": 1},
+        "compute_excludes_lm_head": {"const": true}
+      }
+    },
+    "d2048_extrapolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fit_window", "slope", "intercept", "last_observed_fraction"],
+      "properties": {
+        "fit_window": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {"type": "number", "minimum": 0, "maximum": 1}
+        },
+        "slope": {"type": "number"},
+        "intercept": {"type": "number"},
+        "last_observed_fraction": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "fractions": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": {"$ref": "#/$defs/fractionFit"}
+    },
+    "terminal_prediction": {"type": "number"}
+  },
+  "$defs": {
+    "fractionFit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fraction", "progress_pct", "rungs", "fit", "hero"],
+      "properties": {
+        "fraction": {"type": "number", "minimum": 0.05, "maximum": 1},
+        "progress_pct": {"type": "number", "minimum": 5, "maximum": 100},
+        "rungs": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rung", "compute_flops_no_lm_head", "loss", "status"],
+            "properties": {
+              "rung": {"enum": ["d768", "d1024", "d1536", "d2048"]},
+              "compute_flops_no_lm_head": {"type": "number", "exclusiveMinimum": 0},
+              "loss": {"type": "number", "exclusiveMinimum": 0},
+              "status": {"enum": ["observed", "extrapolated_d2048"]}
+            }
+          }
+        },
+        "fit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["coefficient_A", "exponent_alpha"],
+          "properties": {
+            "coefficient_A": {"type": "number", "exclusiveMinimum": 0},
+            "exponent_alpha": {"type": "number", "exclusiveMinimum": 0}
+          }
+        },
+        "hero": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["compute_flops_no_lm_head", "prediction", "sensitivity"],
+          "properties": {
+            "compute_flops_no_lm_head": {"type": "number", "exclusiveMinimum": 0},
+            "prediction": {"type": "number", "exclusiveMinimum": 0},
+            "sensitivity": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "low", "high", "fits"],
+              "properties": {
+                "kind": {"const": "leave-one-rung-out range; not a confidence interval"},
+                "low": {"type": "number"},
+                "high": {"type": "number"},
+                "fits": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["omitted_rung", "prediction"],
+                    "properties": {
+                      "omitted_rung": {"enum": ["d768", "d1024", "d1536", "d2048"]},
+                      "prediction": {"type": "number"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

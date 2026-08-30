@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="先看状态，再学方法。">
+  <meta name="color-scheme" content="dark light">
+  <title>Marin 训练学习系统</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+  <script defer src="./assets/site.js"></script>
+</head>
+<body data-page="home">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="./">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="./" aria-current="page">开始</a>
+        <a href="./live/" >状态</a>
+        <a href="./learn/" >学习</a>
+        <a href="./methodology/" >方法</a>
+        <a href="./daily/" >日报</a>
+        <a href="./legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="./">开始</a><a href="./live/">状态</a>
+          <a href="./learn/">学习</a><a href="./methodology/">方法</a>
+          <a href="./daily/">日报</a><a href="./legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="hero-shell">
+  <div class="eyebrow">START HERE · METHOD marin-matched-progress-v1</div>
+  <h1>先回答四个问题，<br><span>再决定该相信什么。</span></h1>
+  <p class="lede">这不是一块用绿色圆点制造“实时感”的看板。它把公开观测、确定性计算和解释性判断拆开，让每个数字都能回到输入与方法。</p>
+  <div class="path-pills" aria-label="三条阅读路径">
+    <a href="./live/">3 分钟：看当前证据</a>
+    <a href="./learn/">20 分钟：理解 Scaling Ladder</a>
+    <a href="./methodology/">复现者：公式、数据与命令</a>
+  </div>
+</section>
+
+<section class="section-shell first-answers" aria-labelledby="answers-title">
+  <div class="section-heading"><p>01 / CURRENT EVIDENCE</p><h2 id="answers-title">第一屏只回答这四件事</h2></div>
+  <div class="answer-grid">
+    <article class="answer-card answer-primary">
+      <p class="question">训练是否仍在更新？</p>
+      <p class="answer"><span id="freshness-word" data-freshness="2026-08-30T06:45:11.944277+00:00" data-threshold="18">需按数据时间判断</span></p>
+      <p>最后的 W&amp;B 元数据状态是 <code>running</code>；指标截止 <time>2026-08-30T06:45:11.944277+00:00</time>，heartbeat 为 <time>2026-08-30T06:48:29Z</time>。</p>
+    </article>
+    <article class="answer-card">
+      <p class="question">处于什么 recipe / phase？</p>
+      <p class="answer">9.81% · stage 0</p>
+      <p>step 38,280 / 390,251，LR schedule=<code>linear</code>；配置声明 704 个 GB200 device slots，不等同于实时利用率。</p>
+    </article>
+    <article class="answer-card">
+      <p class="question">相对同进度参考怎样？</p>
+      <p class="answer good-ink">-0.05758</p>
+      <p>适用性门禁为 <code>supported</code>。step 35,999 的 Paloma 实测 2.27879，低于 matched-progress 点预测 0.05758。尚未评估统计显著性。</p>
+    </article>
+    <article class="answer-card">
+      <p class="question">最近可验证的变化是什么？</p>
+      <p class="answer">新 Paloma eval</p>
+      <p>当前最新可比较点为 step 35,999。Train CE 不用于替代 held-out Paloma，也不与其比较绝对值。</p>
+    </article>
+  </div>
+</section>
+
+<section class="section-shell split-story" aria-labelledby="system-title">
+  <div>
+    <div class="section-heading"><p>02 / TRUST MODEL</p><h2 id="system-title">页面先问“怎么知道”，再说“意味着什么”</h2></div>
+    <p>新版本的数据流只有一个方向：原始证据 → 归一化事实 → 派生分析 → 有类型的 Claim → 静态页面。页面不能手写当前进度、硬件、LR 或“已越过某里程碑”。</p>
+  </div>
+  <ol class="evidence-ladder">
+    <li><strong>OBSERVED</strong><span>直接观测：metric key、step、时间、文件 checksum</span></li>
+    <li><strong>DERIVED</strong><span>可复算：公式、参数、方法版本、输入 artifact</span></li>
+    <li><strong>INFERRED</strong><span>可反驳：置信度、替代解释、可能推翻它的证据</span></li>
+  </ol>
+</section>
+
+<section class="section-shell" aria-labelledby="claims-title">
+  <div class="section-heading"><p>03 / CLAIM LEDGER</p><h2 id="claims-title">当前结论账本</h2><p>颜色只是辅助，每张卡都用文字写明证据等级与支持状态。</p></div>
+  <div class="claim-grid"><article class="claim-card claim-derived" id="hero.run.progress"><div class="claim-meta"><span class="claim-badge">DERIVED</span><span>supported</span></div><p>Hero 当前证据截止 step 38,280，约为计划训练的 9.81%。</p><details><summary>证据、数值与限制</summary><p>值：9.80907 percent · 限制：这是数据截止进度，不等于当前墙钟时刻的实时进度。</p><p>证据：<a href="./evidence/data-hero-hero-12d8b6f0-dee637-dense-jsonl/">data/hero/hero-12d8b6f0-dee637/dense.jsonl</a> <small>metric=_step · step=38280</small></p><p>方法：<code>step-divided-by-registered-total-v1</code></p><p>as of 2026-08-30T06:45:11.944277+00:00</p></details></article><article class="claim-card claim-observed" id="hero.recipe.runtime"><div class="claim-meta"><span class="claim-badge">OBSERVED</span><span>supported</span></div><p>Run config 记录 LR schedule=linear，设备=GB200，replicas=176，每 replica 设备数=4。</p><details><summary>证据、数值与限制</summary><p>限制：这是 run config 声明，不等于某一时刻的实际利用率。</p><p>证据：<a href="./evidence/data-hero-hero-12d8b6f0-dee637-meta-json/">data/hero/hero-12d8b6f0-dee637/meta.json</a></p><p>as of 2026-08-30T06:48:29Z</p></details></article><article class="claim-card claim-derived" id="hero.recipe.configured-device-slots"><div class="claim-meta"><span class="claim-badge">DERIVED</span><span>supported</span></div><p>Run config 对应 704 个 configured GB200 device slots。</p><details><summary>证据、数值与限制</summary><p>值：704 configured device slots · 限制：Run config declares 176 replicas × 4 GB200 devices. This is 704 configured device slots, not evidence of instantaneous utilization.</p><p>证据：<a href="./evidence/data-hero-hero-12d8b6f0-dee637-meta-json/">data/hero/hero-12d8b6f0-dee637/meta.json</a></p><p>方法：<code>replicas-times-devices-per-replica-v1</code></p><p>as of 2026-08-30T06:48:29Z</p></details></article><article class="claim-card claim-derived" id="hero.baseline.applicability"><div class="claim-meta"><span class="claim-badge">DERIVED</span><span>supported</span></div><p>Matched-progress baseline 适用性检查结果为 supported；只有 supported 时才生成 residual。</p><details><summary>证据、数值与限制</summary><p>值：supported applicability status · 限制：Missing required config is unverified, not an assumed match.；A mismatch suppresses the matched-progress comparison.</p><p>证据：<a href="./evidence/data-hero-hero-12d8b6f0-dee637-meta-json/">data/hero/hero-12d8b6f0-dee637/meta.json</a>；<a href="./evidence/data-baselines-matched-progress-v1-json/">data/baselines/matched_progress_v1.json</a></p><p>方法：<code>baseline-applicability-gate-v1</code></p><p>as of 2026-08-30T06:48:29Z</p></details></article><article class="claim-card claim-observed" id="hero.paloma.observed.step-35999"><div class="claim-meta"><span class="claim-badge">OBSERVED</span><span>supported</span></div><p>step 35,999 的 dropless Paloma macro loss 为 2.27879。</p><details><summary>证据、数值与限制</summary><p>值：2.27879 loss · 限制：这是 held-out eval，不是 train cross-entropy。</p><p>证据：<a href="./evidence/data-hero-hero-12d8b6f0-dee637-eval-jsonl/">data/hero/hero-12d8b6f0-dee637/eval.jsonl</a> <small>metric=eval_dropless/paloma/macro_loss · step=35999</small></p><p>as of 2026-08-29T18:20:49.369997+00:00</p></details></article><article class="claim-card claim-derived" id="hero.paloma.matched-progress.step-35999"><div class="claim-meta"><span class="claim-badge">DERIVED</span><span>supported</span></div><p>step 35,999 的 Paloma 实测比 matched-progress 点预测低 0.05758。</p><details><summary>证据、数值与限制</summary><p>值：-0.0575848 loss residual (actual - prediction) · 限制：The sensitivity envelope is not a confidence interval; statistical significance is not established.</p><p>证据：<a href="./evidence/data-hero-hero-12d8b6f0-dee637-eval-jsonl/">data/hero/hero-12d8b6f0-dee637/eval.jsonl</a> <small>metric=eval_dropless/paloma/macro_loss · step=35999</small>；<a href="./evidence/data-baselines-matched-progress-v1-json/">data/baselines/matched_progress_v1.json</a></p><p>方法：<code>marin-matched-progress-v1</code></p><p>as of 2026-08-29T18:20:49.369997+00:00</p></details></article><article class="claim-card claim-inferred" id="hero.paloma.on-track-interpretation"><div class="claim-meta"><span class="claim-badge">INFERRED</span><span>insufficient_evidence</span></div><p>当前点估计显示 Hero 实测低于 matched-progress 参考；但尚不能声称显著领先或保证终点达标。</p><details><summary>证据、数值与限制</summary><p>置信度：low · 限制：没有统计置信区间；不得渲染为“显著领先”。</p><p>证据：<a href="./live/#hero.paloma.matched-progress.step-35999">hero.paloma.matched-progress.step-35999</a></p><p>as of 2026-08-29T18:20:49.369997+00:00</p></details></article><article class="claim-card claim-derived" id="hero.grad-norm.25pct-reference"><div class="claim-meta"><span class="claim-badge">DERIVED</span><span>supported</span></div><p>当前尚未到达 ladder 叙述中的约 25% grad-norm 参考区。</p><details><summary>证据、数值与限制</summary><p>限制：25% 是官方 issue 中的经验性观察，不是异常检测阈值或因果规律。</p><p>证据：<a href="./evidence/data-hero-hero-12d8b6f0-dee637-dense-jsonl/">data/hero/hero-12d8b6f0-dee637/dense.jsonl</a> <small>metric=_step · step=38280</small>；<a href="./evidence/data-snapshots-2026-08-28-github-issues-json/">data/snapshots/2026-08-28/github_issues.json</a> <small>selector={&quot;number&quot;: 8435}</small></p><p>方法：<code>progress-milestone-comparison-v1</code></p><p>as of 2026-08-30T06:45:11.944277+00:00</p></details></article></div>
+</section>
+</main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T06:45:11.944277+00:00</time>。</p>
+    <p><a href="./data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

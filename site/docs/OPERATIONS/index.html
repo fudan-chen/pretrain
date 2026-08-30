@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>运维手册 · marin-deep-track · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" >状态</a>
+        <a href="../../learn/" aria-current="page">学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="运维手册-marin-deep-track">运维手册 · marin-deep-track</h1>
+<blockquote><p>本文件记录这套追踪系统的<strong>细小但容易踩坑的注意事项</strong>。改代码/改 workflow/人工排查前请先读对应小节。 最后更新：2026-08-28（随系统演进持续补充）。</p></blockquote>
+<hr>
+<h2 id="0-架构速览-双分支模型">0. 架构速览（双分支模型）</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">分支</th><th scope="col">内容</th><th scope="col">为什么</th></tr></thead><tbody><tr><td><code>main</code></td><td>仅 <code>.github/workflows/hero-track.yml</code>（+ 用户原有的 track-marin 系统）</td><td>GitHub <strong>schedule 只从默认分支读取</strong> workflow 定义</td></tr><tr><td><code>marin-deep-track</code></td><td>全部脚本 / 数据 / 日报 / dashboard / 复盘报告</td><td>数据与代码的工作分支，workflow 运行时 checkout 此分支</td></tr></tbody></table></div>
+<p><strong>推论</strong>：修改 <code>hero-track.yml</code> 后必须<strong>同时合入 main</strong> 才会被定时器按新逻辑执行；只推 marin-deep-track 不影响 schedule 行为。</p>
+<hr>
+<h2 id="1-定时机制注意事项">1. 定时机制注意事项</h2>
+<ul><li>cron <code>0 0,12 * * *</code>（UTC）= 北京时间 <strong>08:00 / 20:00</strong>。GitHub cron 无北京时间概念，换算已固化，勿直接写 <code>0 8,20</code>。</li><li><strong>GitHub schedule 不保证准时</strong>：高负载时段延迟 10–60 分钟属常态（2026-08-28 北京 20:00 档即未准点出现）。需要准点数据时用 <code>workflow_dispatch</code> 手动补触发：Actions → hero-track → Run workflow → 分支选 <strong>main</strong>。</li><li>手动触发 dispatch 的 <code>ref</code> 必须填 <code>main</code>（workflow 定义所在分支）；实际 checkout 的仍是 marin-deep-track。</li><li><strong>GitHub 规则</strong>：仓库 60 天无任何活动会自动禁用 schedule workflow。本仓库另有 <code>track-marin.yml</code> 每日 02:17 UTC 运行（main 上用户原有的证据采集系统），整体风险低；但若那个系统停了，记得每 60 天内手动触发一次。</li><li>两套系统完全独立：<code>track-marin.yml</code>（每日证据采集）与 <code>hero-track.yml</code>（hero run 指标追踪）互不读写对方文件，<strong>不要合并、不要互相改</strong>。</li></ul>
+<h2 id="2-数据口径-最容易出错的一组">2. 数据口径（最容易出错的一组）</h2>
+<ul><li><strong>MFU 原始值就是百分比</strong>：W&amp;B 里 21.0 即 21%，<strong>不要再 ×100</strong>（×100 会得到 2096 这种荒谬值，历史上踩过）。</li><li><strong>eval 每 ~3000 步一次</strong>（eval.jsonl 只有约每 3000 步一个点）。窗口内无新 eval 时，日报显示「本窗口无新 eval 点」+ 当前进度预测参考值，这不是故障。</li><li><strong>step-0 的 eval（CE≈11.79）是随机初始化基线</strong>，判断预测偏差时必须跳过（脚本已处理：只用 step&gt;0 的 eval）。若改脚本，保留此口径。</li><li><strong>冷启动前 200 步不参与异常检测</strong>（loss/吞吐的瞬态会误报），改检测阈值时勿去掉这个过滤。</li><li><strong>train CE（分布内训练损失）与 dropless paloma macro（评测集）是两个口径</strong>，绝对值不可直接比较（当前约 1.28 vs 2.29 是正常的）。对比预测一律用 eval 口径。</li><li>日报的 <code>eval_gap</code> = 训练态 eval − 该步数幂律预测；<strong>负值 = 优于预测</strong>，正值 = 高于预测。</li><li>tokens 估算 = step × <code>HERO_TOKENS_PER_STEP</code>；速率/ETA 由窗口差分估计，日间波动 ±20% 正常。</li></ul>
+<h2 id="3-数据流注意事项">3. 数据流注意事项</h2>
+<ul><li><strong>mixture.jsonl 只在权重变化时新增行</strong>（W&amp;B 按变化记录）。当前仅 step 0 的 stage-0 快照（200 个权重 = 40 簇 × 5 质量桶）。<strong>80% 进度（step ≈ 312,200）phase-2 切换时会自动出现新行</strong>，dashboard 的配比快照与 <code>mixture/stage</code> 会自动更新——<strong>无需改任何代码</strong>，但届时应人工核对一次 stage 值是否如期变为 1。</li><li>router.jsonl 为 2000 点降采样；dashboard 只取聚合键（<code>bias_max</code>、<code>capacity_overflow_rate_mean</code>）。<strong>分层明细（layer_0..47）在原始 jsonl</strong>，排查负载不均衡时直接查它。</li><li>system_metrics.json 是 W&amp;B <strong>累计快照</strong>（非时序）：NVLink/PCIe = 0 表示<strong>未插桩</strong>（不是没有），通信带宽结论以官方 EP 文档实测为准；power/temp 为真实读数。</li><li><code>pull_hero_system.py</code> 现已加入 workflow（带 <code>||</code> 容错），每次定时运行顺带刷新 system_metrics.json；失败不阻塞主流程。</li><li><strong>backfill 是幂等全量重写</strong>：每次运行重生成所有「完整 12h 窗口」的日报。W&amp;B 补写迟到指标时，历史日报会自动微调——这是特性不是 bug；<code>_index.json</code> 始终与日报一致。</li><li>W&amp;B 匿名 GraphQL 无 API key，存在限流可能。单次拉取失败<strong>不影响下一窗口</strong>（每次都是全量拉取）；连续失败再查 marin_wandb.py 的 GraphQL schema 是否变更。</li><li>eval.jsonl 实际包含 <strong>16 域 paloma 明细</strong>，dashboard 目前只用 macro 值。<strong>可扩展点</strong>：域级曲线能更早暴露偏科/涌现差异。</li><li>窗口命名按<strong>北京时间窗口端点</strong>：UTC 00:00 结束 → <code>-am</code>（北京 08:00），UTC 12:00 结束 → <code>-pm</code>（北京 20:00）。若改窗口逻辑，保持这个命名约定（历史上因对齐错误导致全 <code>-pm</code> 的 bug）。</li></ul>
+<h2 id="4-里程碑盯梢清单-人工-自动结合">4. 里程碑盯梢清单（人工 + 自动结合）</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">里程碑</th><th scope="col">位置</th><th scope="col">信号</th><th scope="col">动作</th></tr></thead><tbody><tr><td>grad-norm 峰值区</td><td>~25%，step ≈ 97,562</td><td>对比 ladder 四档同进度的 grad 签名</td><td>人工写分析（日报有阈值检测，但「是否符合 ladder 签名」需人看）</td></tr><tr><td><strong>loss 二次下降</strong></td><td>无预定位置</td><td>CE/eval 曲线第二段下弯</td><td>⚠️ <strong>未规则化，纯人工盯</strong>：看日报 eval_gap 趋势 + dashboard 曲线形态</td></tr><tr><td><strong>涌现效应</strong></td><td>无预定位置</td><td>某些域 eval 突降</td><td>⚠️ dashboard 仅 macro；需查 eval.jsonl 的 16 域明细（见 §3 可扩展点）</td></tr><tr><td>phase-2 配比切换</td><td>80%，step ≈ 312,200</td><td>mixture/stage 0→1，权重行新增</td><td>自动捕获；届时人工核对 stage 值 + 更新复盘报告</td></tr><tr><td>run 结束/中止</td><td>—</td><td>meta.state 变化、heartbeatAt 停更、吞吐归零事件</td><td>workflow 会输出 &quot;no changes&quot;；人工确认后写终章复盘</td></tr></tbody></table></div>
+<h2 id="5-dashboard-与报告访问">5. Dashboard 与报告访问</h2>
+<ul><li><strong>在线（推荐，实时）</strong>：</li><li>Dashboard：https://fudan-chen.github.io/pretrain/dashboard/</li><li>复盘报告：https://fudan-chen.github.io/pretrain/reports/ladder/</li><li>Pages source = marin-deep-track 分支根目录，推送后 1–10 分钟自动部署。</li><li><strong>备选</strong>：<code>https://htmlpreview.github.io/?https://github.com/fudan-chen/pretrain/blob/marin-deep-track/dashboard/index.html</code></li><li>⚠️ <strong>repo 版 <code>dashboard/index.html</code> 用 <code>fetch(&#x27;hero_data.json&#x27;)</code> 取数，本地 <code>file://</code> 双击打开会被浏览器 CORS 拦截</strong> → 用 Pages 链接，或本地 <code>python -m http.server</code> 后访问。</li><li>⚠️ artifact 版（<code>/mnt/cos/artifacts/*.html</code>，数据内联自包含）是<strong>生成时刻的快照，不自动更新</strong>；看实时数据永远以 Pages 版为准。</li><li>MD 版复盘报告（<code>reports/ladder/scaling_ladder_report.md</code>）是<strong>摘要</strong>；完整 10 章节版是 <code>reports/ladder/index.html</code>（及同名 artifact）。</li></ul>
+<h2 id="6-安全">6. 安全</h2>
+<ul><li>本任务使用过 PAT 直接推送，该 token 曾出现在对话与沙箱脚本中。<strong>任务阶段性结束后建议轮换/吊销</strong>，重新生成仅 <code>repo</code> 权限的新 token。</li><li>workflow 内只用 <code>GITHUB_TOKEN</code>（<code>permissions: contents: write</code>），<strong>不要把 PAT 提交进仓库</strong>；当前仓库全文检索应无 <code>ghp_</code> 串（改动前自查）。</li><li><code>.gitignore</code> 已挡 <code>__pycache__/</code>、<code>*.pyc</code>；workflow 用 <code>git add -A</code>，新增文件类型前确认无敏感物。</li></ul>
+<h2 id="7-故障处理速查">7. 故障处理速查</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">症状</th><th scope="col">可能原因</th><th scope="col">处理</th></tr></thead><tbody><tr><td>Actions run 失败</td><td>W&amp;B 限流/网络抖动</td><td>看日志；多为瞬时，下一窗口自愈；连续失败查 GraphQL schema</td></tr><tr><td>push 报 non-fast-forward</td><td>人工同时推了 marin-deep-track</td><td>重跑 workflow（每次 fresh checkout，force=False 不会覆盖他人提交）</td></tr><tr><td>Pages 404</td><td>构建中或 source 被改</td><td>等 1–10 分钟；Settings → Pages 确认 source=marin-deep-track /</td></tr><tr><td>日报缺某个窗口</td><td>该窗口不是「完整 12h 窗口」（数据时间戳未跨过窗口终点）</td><td>正常现象；下次运行自动补齐</td></tr><tr><td>dashboard 图空白</td><td>hero_data.json 缺失/字段变更</td><td>检查 workflow 日志的 dashboard 步骤；本地 JSON 校验</td></tr><tr><td>mixture 权重和 ≠ 1</td><td>权重是归一化前的原始值</td><td>当前实现已归一化（sum=1.0）；若偏离 &gt;1e-3 需查上游</td></tr></tbody></table></div>
+<h2 id="8-文件地图">8. 文件地图</h2>
+<pre><code>scripts/
+  marin_wandb.py        # W&amp;B 匿名 GraphQL 客户端（sampledHistory/systemMetrics/historyKeys）
+  pull_data.py          # 按模式拉时序：hero=dense/eval/mixture/system/router
+  pull_hero_system.py   # 系统遥测累计快照（已挂入 workflow，容错执行）
+  track_hero.py         # 追踪主控：update（拉+检测+日报）/ backfill / dashboard
+data/hero/hero-12d8b6f0-dee637/
+  dense.jsonl eval.jsonl mixture.jsonl router.jsonl system_metrics.json meta.json
+reports/
+  ladder/               # 任务一复盘：index.html（完整）+ scaling_ladder_report.md（摘要）+ figs/
+  daily/                # 任务二日报：YYYY-MM-DD-am|pm.md + _index.json
+dashboard/
+  index.html            # fetch 版（Pages 用）
+  hero_data.json        # 看板数据（track_hero.py dashboard 生成）
+docs/OPERATIONS.md      # 本文件
+.github/workflows/hero-track.yml   # 定时定义（main 与 marin-deep-track 需保持同步）</code></pre></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T06:45:11.944277+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

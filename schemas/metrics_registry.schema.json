@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fudan-chen.github.io/pretrain/schemas/metrics_registry.schema.json",
+  "title": "Marin metric registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "metrics"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "label",
+          "source_id",
+          "artifact",
+          "semantic_scope",
+          "unit",
+          "value_type",
+          "aggregation",
+          "sampling",
+          "provenance_fields",
+          "comparability",
+          "interpretation_limit"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+          "key": {"type": "string", "minLength": 1},
+          "label": {"type": "string", "minLength": 1},
+          "source_id": {"type": "string", "minLength": 1},
+          "artifact": {"type": "string", "minLength": 1},
+          "semantic_scope": {"type": "string", "minLength": 1},
+          "unit": {"type": "string", "minLength": 1},
+          "value_type": {"const": "number"},
+          "aggregation": {"type": "string", "minLength": 1},
+          "sampling": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["method", "complete_history", "cadence"],
+            "properties": {
+              "method": {"type": "string", "minLength": 1},
+              "complete_history": {"type": "boolean"},
+              "cadence": {"type": "string", "minLength": 1}
+            }
+          },
+          "provenance_fields": {
+            "type": "array",
+            "minItems": 2,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "comparability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["allowed", "forbidden"],
+            "properties": {
+              "allowed": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "forbidden": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              }
+            }
+          },
+          "interpretation_limit": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

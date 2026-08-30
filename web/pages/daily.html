@@ -1,0 +1,16 @@
+<section class="page-intro">
+  <p class="eyebrow">V2 DAILY REPORTS · {{REPORT_COUNT}} WINDOWS</p>
+  <h1>日报是一条可审计时间线，<br>不是每天重写一次故事。</h1>
+  <p>v2 日报写入 <code>reports/generated/hero/</code>，不会覆盖旧版 <code>reports/daily/</code>。索引和正文来自同一个 manifest。</p>
+</section>
+<section class="section-shell" aria-labelledby="daily-title">
+  <div class="section-heading"><p>INDEX</p><h2 id="daily-title">按时间倒序</h2><p>Residual 为空表示该窗口没有达到 5% 后的新 Paloma eval；不会用 Train CE 补位。</p></div>
+  <div class="table-scroll" tabindex="0" aria-label="v2 日报索引，可横向滚动">
+    <table class="daily-table"><thead><tr><th scope="col">报告</th><th scope="col">窗口末 step</th><th scope="col">进度</th><th scope="col">Paloma residual</th></tr></thead><tbody>{{DAILY_ROWS}}</tbody></table>
+  </div>
+</section>
+
+<section class="section-shell daily-contract" aria-labelledby="daily-contract-title">
+  <div class="section-heading"><p>REPORT CONTRACT</p><h2 id="daily-contract-title">每篇都必须回答</h2></div>
+  <ol><li>本窗口直接观察到什么？</li><li>有没有同口径 Paloma eval？</li><li>派生方法与版本是什么？</li><li>哪些判断尚缺证据？</li><li>数据采样与来源有什么限制？</li></ol>
+</section>

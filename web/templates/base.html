@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{DESCRIPTION}}">
+  <meta name="color-scheme" content="dark light">
+  <title>{{TITLE}}</title>
+  <link rel="stylesheet" href="{{ROOT}}/assets/styles.css">
+  <script defer src="{{ROOT}}/assets/site.js"></script>
+</head>
+<body data-page="{{PAGE}}">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="{{ROOT}}/">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="{{ROOT}}/" {{CURRENT_HOME}}>开始</a>
+        <a href="{{ROOT}}/live/" {{CURRENT_LIVE}}>状态</a>
+        <a href="{{ROOT}}/learn/" {{CURRENT_LEARN}}>学习</a>
+        <a href="{{ROOT}}/methodology/" {{CURRENT_METHODOLOGY}}>方法</a>
+        <a href="{{ROOT}}/daily/" {{CURRENT_DAILY}}>日报</a>
+        <a href="{{ROOT}}/legacy/" {{CURRENT_LEGACY}}>对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="{{ROOT}}/">开始</a><a href="{{ROOT}}/live/">状态</a>
+          <a href="{{ROOT}}/learn/">学习</a><a href="{{ROOT}}/methodology/">方法</a>
+          <a href="{{ROOT}}/daily/">日报</a><a href="{{ROOT}}/legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main">{{BODY}}</main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>{{UPDATED}}</time>。</p>
+    <p><a href="{{ROOT}}/data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

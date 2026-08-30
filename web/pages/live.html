@@ -1,0 +1,45 @@
+<section class="page-intro">
+  <p class="eyebrow">LIVE EVIDENCE · NOT LIVE CLAIMS</p>
+  <h1>同口径看状态，分层次下结论</h1>
+  <p>当前页面只消费已经通过方法测试的 v2 派生数据。旧版 Canvas 看板继续留在历史分支，方便逐图比较。</p>
+</section>
+
+<section class="status-strip" aria-label="数据新鲜度">
+  <div><span>数据状态</span><strong id="freshness-detail" data-freshness="{{DATA_AS_OF}}" data-threshold="{{FRESHNESS_HOURS}}">数据截止 {{DATA_AS_OF}}</strong></div>
+  <div><span>Run / step</span><strong>{{RUN_ID}} · {{STEP}}</strong></div>
+  <div><span>Recipe</span><strong>{{LR_SCHEDULE}} LR · {{DEVICE}} · {{CONFIGURED_SLOTS}} configured slots</strong></div>
+  <div><span>方法版本</span><strong>{{METHOD_ID}}</strong></div>
+</section>
+
+<section class="section-shell" aria-labelledby="core-comparison">
+  <div class="section-heading"><p>01 / SAME METRIC</p><h2 id="core-comparison">Paloma 实测 vs matched-progress 参考</h2><p>两条线都是 <code>eval_dropless/paloma/macro_loss</code>。阴影是 leave-one-rung-out 敏感性范围，不是置信区间。</p></div>
+  <div class="chart-card">{{PALOMA_CHART}}<p class="chart-conclusion"><span class="claim-badge">DERIVED</span> 最新 residual 为 <strong>{{RESIDUAL}}</strong>；只能说实测{{RESIDUAL_DIRECTION}}点预测，不能说“显著领先”。</p></div>
+  <details class="data-details"><summary>查看图中数据表</summary>{{PALOMA_TABLE}}</details>
+</section>
+
+<section class="section-shell" aria-labelledby="residual-title">
+  <div class="section-heading"><p>02 / DIRECTION</p><h2 id="residual-title">把方向画成 residual，而不是靠文案猜</h2><p><code>residual = actual − matched-progress prediction</code>；零线以下表示 loss 更低。</p></div>
+  <div class="chart-card">{{RESIDUAL_CHART}}<p class="chart-conclusion">当前 LOO 敏感性换算后的 residual 范围为 {{RESIDUAL_RANGE}}。它用于看方法敏感性，不是统计置信区间。</p></div>
+  <details class="data-details"><summary>查看 residual 数据表</summary>{{RESIDUAL_TABLE}}</details>
+</section>
+
+<section class="section-shell" aria-labelledby="train-title">
+  <div class="section-heading"><p>03 / DIFFERENT METRIC</p><h2 id="train-title">Train CE 必须单独看</h2><p>训练损失适合看优化轨迹、尖峰和趋势，但不能与 held-out Paloma 的绝对值画成一条“领先/落后”比较线。</p></div>
+  <div class="chart-card">{{TRAIN_CHART}}</div>
+  <details class="data-details"><summary>查看末 40 个显示点</summary>{{TRAIN_TABLE}}</details>
+</section>
+
+<section class="section-shell metric-snapshot" aria-labelledby="snapshot-title">
+  <div class="section-heading"><p>04 / METRIC CONTRACTS</p><h2 id="snapshot-title">其余信号：能观察什么，不能证明什么</h2></div>
+  <div class="compact-grid">
+    <article><code>grad/norm/total</code><p>用于观察尺度、尖峰和阶段形态。约 25% 只是经验参考，不是报警阈值。</p></article>
+    <article><code>throughput/mfu</code><p>适合看同一 run 内变化；跨硬件、跨 FLOPs 定义的 MFU 不宜直接排名。</p></article>
+    <article><code>moe/drop_fraction</code><p>反映 token drop；稳定吞吐不能单独证明 all-to-all 不构成瓶颈。</p></article>
+    <article><code>train/router/*</code><p>当前采集是 aggregate + edge layers，并非完整 48 层热力图。</p></article>
+  </div>
+</section>
+
+<section class="section-shell" aria-labelledby="live-claims">
+  <div class="section-heading"><p>05 / AUDIT TRAIL</p><h2 id="live-claims">这张页面实际渲染了哪些 Claim</h2></div>
+  <div class="claim-grid">{{CLAIM_CARDS}}</div>
+</section>

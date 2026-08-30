@@ -1,0 +1,1311 @@
+{
+  "schema_version": "1.0",
+  "method_id": "marin-matched-progress-v1",
+  "description": "One fixed-asymptote cross-rung fit per 5% training fraction.",
+  "source": {
+    "upstream_commit": "d23e6e9c3673435fb82d83aa6c51a607d0da6009",
+    "upstream_script": "https://github.com/marin-community/marin/blob/d23e6e9c3673435fb82d83aa6c51a607d0da6009/experiments/grug/moe_hero_ep/plot_scaling_ladder.py",
+    "input_path": "data/ladder_eval_grid.json",
+    "input_sha256": "2aa216d121d2b239af1f386c5080a68233c428c73b4969d71e34e5ae71156738",
+    "implementation_path": "scripts/marin_tracker/ladder.py",
+    "implementation_sha256": "8d47708bea42b4253b7662f43265de2e3bd35292039aaedb504881c01a6782a8",
+    "input_manifest_path": "data/ladder_eval_grid.manifest.json",
+    "input_manifest_sha256": "bd950075a27c68d8eac70280c20fae82fcde644f8e984cbb44974fc1acf3e8cf"
+  },
+  "applicability": {
+    "recipe_regime_id": "hero-4k-harrier-18t-v1",
+    "policy": "all requirements must be observed and match",
+    "requirements": [
+      {
+        "id": "run_id",
+        "selector": [
+          "name"
+        ],
+        "operator": "equals",
+        "expected": "hero-12d8b6f0-dee637"
+      },
+      {
+        "id": "context_length",
+        "selector": [
+          "config",
+          "model",
+          "max_seq_len"
+        ],
+        "operator": "equals",
+        "expected": 4096
+      },
+      {
+        "id": "registered_steps",
+        "selector": [
+          "config",
+          "trainer",
+          "trainer",
+          "num_train_steps"
+        ],
+        "operator": "equals",
+        "expected": 390251
+      },
+      {
+        "id": "tracker_group",
+        "selector": [
+          "config",
+          "trainer",
+          "trainer",
+          "tracker",
+          "group"
+        ],
+        "operator": "equals",
+        "expected": "moe-hero-ep-scaling-ladder"
+      },
+      {
+        "id": "datamix_revision",
+        "selector": [
+          "tags"
+        ],
+        "operator": "contains",
+        "expected": "harrier-mix-2026.08.18"
+      }
+    ]
+  },
+  "constants": {
+    "asymptote": 1.5,
+    "d2048_correction": 0.005,
+    "hero_steps": 390251,
+    "compute_excludes_lm_head": true
+  },
+  "d2048_extrapolation": {
+    "fit_window": [
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8
+    ],
+    "slope": -0.3508238792419433,
+    "intercept": 2.75453200340271,
+    "last_observed_fraction": 0.8
+  },
+  "fractions": [
+    {
+      "fraction": 0.05,
+      "progress_pct": 5.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 1.3248399401350595e+18,
+          "loss": 3.786311388015747,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 8.630591370899227e+18,
+          "loss": 3.4264705181121826,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 6.9066292500165665e+19,
+          "loss": 3.1583311557769775,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 3.870907473828225e+20,
+          "loss": 2.9312033653259277,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 67.55030055780415,
+        "exponent_alpha": 0.08129593842130106
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 1.3054470806886351e+23,
+        "prediction": 2.3920926134624474,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.38554844339603,
+          "high": 2.4134727287894746,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.4134727287894746
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.3885197958872046
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.38554844339603
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.394311285192792
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.1,
+      "progress_pct": 10.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 2.649679880270119e+18,
+          "loss": 3.539341926574707,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.7261182741798453e+19,
+          "loss": 3.264733076095581,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 1.3813258500033133e+20,
+          "loss": 3.001892566680908,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 7.74181494765645e+20,
+          "loss": 2.802788257598877,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 57.685927673976295,
+        "exponent_alpha": 0.07874755075535163
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 2.6108941613772703e+23,
+        "prediction": 2.326142719206299,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.3205145248817205,
+          "high": 2.3378727834352,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.3205145248817205
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.326436020315529
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.322855612002842
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.3378727834352
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.15,
+      "progress_pct": 15.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 3.9745198204051784e+18,
+          "loss": 3.4669861793518066,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 2.589177411269768e+19,
+          "loss": 3.18711519241333,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 2.0719887750049697e+20,
+          "loss": 2.944444179534912,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 1.1612722421484673e+21,
+          "loss": 2.7470338344573975,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 59.43343924786464,
+        "exponent_alpha": 0.07959816708984434
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 3.9163412420659054e+23,
+        "prediction": 2.2871922615777764,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.281573863794649,
+          "high": 2.2999153952256375,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.2888074119644286
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.286244249748676
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.281573863794649
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.2999153952256375
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.2,
+      "progress_pct": 20.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 5.299359760540238e+18,
+          "loss": 3.4246766567230225,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 3.4522365483596906e+19,
+          "loss": 3.144479513168335,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 2.7626517000066266e+20,
+          "loss": 2.9032158851623535,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 1.54836298953129e+21,
+          "loss": 2.710448741912842,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 63.28614207570875,
+        "exponent_alpha": 0.08104258158689549
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 5.2217883227545405e+23,
+        "prediction": 2.257103613906551,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.252433092712559,
+          "high": 2.2663782132610075,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.260407152843542
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.2560646925215297
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.252433092712559
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.2663782132610075
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.25,
+      "progress_pct": 25.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 6.624199700675297e+18,
+          "loss": 3.3789491653442383,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 4.315295685449613e+19,
+          "loss": 3.1228179931640625,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 3.453314625008283e+20,
+          "loss": 2.8789801597595215,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 1.9354537369141122e+21,
+          "loss": 2.6807942390441895,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 64.10508115546378,
+        "exponent_alpha": 0.08135971741881382
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 6.527235403443176e+23,
+        "prediction": 2.240172269155165,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.2295069298812376,
+          "high": 2.2641767386021723,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.2295069298812376
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.2406507298755067
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.233333574737472
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.2641767386021723
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.3,
+      "progress_pct": 30.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 7.949039640810357e+18,
+          "loss": 3.347630023956299,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 5.178354822539536e+19,
+          "loss": 3.0838675498962402,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 4.1439775500099394e+20,
+          "loss": 2.8418924808502197,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 2.3225444842969346e+21,
+          "loss": 2.6612348556518555,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 64.25662272405147,
+        "exponent_alpha": 0.08154928248213987
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 7.832682484131811e+23,
+        "prediction": 2.2234135463202236,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.2213280956604993,
+          "high": 2.228476783405442,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.2234396496980193
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.2231357407902728
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.2213280956604993
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.228476783405442
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.35,
+      "progress_pct": 35.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 9.273879580945416e+18,
+          "loss": 3.3215203285217285,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 6.041413959629459e+19,
+          "loss": 3.0643138885498047,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 4.834640475011596e+20,
+          "loss": 2.8284969329833984,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 2.709635231679757e+21,
+          "loss": 2.643836498260498,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 64.18489018562765,
+        "exponent_alpha": 0.08153334248630062
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 9.138129564820446e+23,
+        "prediction": 2.214206859614373,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.2098742589599145,
+          "high": 2.226974392773431,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.210945790388543
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.2140559493384773
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.2098742589599145
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.226974392773431
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.4,
+      "progress_pct": 40.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 1.0598719521080476e+19,
+          "loss": 3.3007681369781494,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 6.904473096719381e+19,
+          "loss": 3.048776149749756,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 5.525303400013253e+20,
+          "loss": 2.800361156463623,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 3.09672597906258e+21,
+          "loss": 2.6150641441345215,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 72.74557513704134,
+        "exponent_alpha": 0.08434790208766131
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 1.0443576645509081e+24,
+        "prediction": 2.1852783893703207,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.1759058550662704,
+          "high": 2.19927774042091,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.1759058550662704
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.1860728279979242
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.1820943541402267
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.19927774042091
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.45,
+      "progress_pct": 45.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 1.1923559461215535e+19,
+          "loss": 3.265657901763916,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 7.767532233809304e+19,
+          "loss": 3.0225400924682617,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 6.21596632501491e+20,
+          "loss": 2.7863872051239014,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 3.483816726445402e+21,
+          "loss": 2.6094987392425537,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 64.11242330607654,
+        "exponent_alpha": 0.08171723052316855
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 1.1749023726197716e+24,
+        "prediction": 2.191844206222697,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.1849806874953632,
+          "high": 2.203309960668153,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.1849806874953632
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.192357350344202
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.189004765288675
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.203309960668153
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.5,
+      "progress_pct": 50.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 1.3248399401350595e+19,
+          "loss": 3.246354103088379,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 8.630591370899227e+19,
+          "loss": 2.993273973464966,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 6.906629250016566e+20,
+          "loss": 2.75604510307312,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 3.8709074738282244e+21,
+          "loss": 2.590702533721924,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 67.29907458413558,
+        "exponent_alpha": 0.08294814434537899
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 1.3054470806886351e+24,
+        "prediction": 2.1724370145487124,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.169666874656731,
+          "high": 2.174000024007792,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.174000024007792
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.1723318804217002
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.1731647432815935
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.169666874656731
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.55,
+      "progress_pct": 55.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 1.4573239341485656e+19,
+          "loss": 3.219543218612671,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 9.49365050798915e+19,
+          "loss": 2.97526478767395,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 7.597292175018223e+20,
+          "loss": 2.7345495223999023,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 4.2579982212110473e+21,
+          "loss": 2.5618793964385986,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 73.2688896425788,
+        "exponent_alpha": 0.08496924830928941
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 1.4359917887574987e+24,
+        "prediction": 2.1490894748724516,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.1424906417941814,
+          "high": 2.1566474650480822,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.1424906417941814
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.149768518162096
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.147765902715503
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.1566474650480822
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.6,
+      "progress_pct": 60.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 1.5898079281620713e+19,
+          "loss": 3.197269916534424,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.0356709645079072e+20,
+          "loss": 2.9497318267822266,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 8.287955100019879e+20,
+          "loss": 2.714014768600464,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 4.645088968593869e+21,
+          "loss": 2.543623447418213,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 74.84190555873475,
+        "exponent_alpha": 0.08560637009424554
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 1.5665364968263622e+24,
+        "prediction": 2.135190222331752,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.131738311332879,
+          "high": 2.1407147429848425,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.131738311332879
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.135458836501539
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.1338487497034064
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.1407147429848425
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.65,
+      "progress_pct": 65.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 1.7222919221755773e+19,
+          "loss": 3.1782631874084473,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.1219768782168995e+20,
+          "loss": 2.9277210235595703,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 8.978618025021537e+20,
+          "loss": 2.6984610557556152,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 5.032179715976692e+21,
+          "loss": 2.527618408203125,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 76.16505398021582,
+        "exponent_alpha": 0.0861236614466208
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 1.6970812048952257e+24,
+        "prediction": 2.1237420861955094,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.121469934914927,
+          "high": 2.130024868073199,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.1226124232439467
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.123588299664965
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.121469934914927
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.130024868073199
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.7,
+      "progress_pct": 70.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 1.8547759161890832e+19,
+          "loss": 3.149127960205078,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.2082827919258917e+20,
+          "loss": 2.907698392868042,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 9.669280950023193e+20,
+          "loss": 2.6755783557891846,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 5.419270463359514e+21,
+          "loss": 2.5085854530334473,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 77.0250731713748,
+        "exponent_alpha": 0.0865945896806097
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 1.8276259129640892e+24,
+        "prediction": 2.1104975751824337,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.106081601241831,
+          "high": 2.1165673818160657,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.106081601241831
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.1108959841983315
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.1091934159245938
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.1165673818160657
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.75,
+      "progress_pct": 75.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 1.987259910202589e+19,
+          "loss": 3.127243995666504,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.294588705634884e+20,
+          "loss": 2.8838517665863037,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 1.035994387502485e+21,
+          "loss": 2.6567752361297607,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 5.806361210742337e+21,
+          "loss": 2.4904448986053467,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 78.78289838094804,
+        "exponent_alpha": 0.08728722466244662
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 1.9581706210329527e+24,
+        "prediction": 2.097122917287479,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.0946324696266387,
+          "high": 2.1031489415995797,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.0946324696266387
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.0972064956697203
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.0953200450797467
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.1031489415995797
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.8,
+      "progress_pct": 80.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 2.119743904216095e+19,
+          "loss": 3.106234073638916,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.3808946193438763e+20,
+          "loss": 2.8643991947174072,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 1.1050606800026506e+21,
+          "loss": 2.638200283050537,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 6.19345195812516e+21,
+          "loss": 2.474504232406616,
+          "status": "observed"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 80.38098089344513,
+        "exponent_alpha": 0.08790650709818572
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 2.0887153291018162e+24,
+        "prediction": 2.0851640854026336,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.0829719456226337,
+          "high": 2.089911513366923,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.0829719456226337
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.0852673678042333
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.0838028530659125
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.089911513366923
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.85,
+      "progress_pct": 85.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 2.252227898229601e+19,
+          "loss": 3.0818402767181396,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.4672005330528685e+20,
+          "loss": 2.8425564765930176,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 1.1741269725028162e+21,
+          "loss": 2.619727373123169,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 6.580542705507981e+21,
+          "loss": 2.461331706047058,
+          "status": "extrapolated_d2048"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 78.66769794653685,
+        "exponent_alpha": 0.08766364656492971
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 2.2192600371706797e+24,
+        "prediction": 2.077456203681624,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.076896624027333,
+          "high": 2.0791169671634027,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.076896624027333
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.0774579617024784
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.0769221387974426
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.0791169671634027
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.9,
+      "progress_pct": 90.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 2.384711892243107e+19,
+          "loss": 3.0587244033813477,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.5535064467618608e+20,
+          "loss": 2.8220372200012207,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 1.243193265002982e+21,
+          "loss": 2.599482536315918,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 6.967633452890804e+21,
+          "loss": 2.443790512084961,
+          "status": "extrapolated_d2048"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 80.52100171433395,
+        "exponent_alpha": 0.08839995576391244
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 2.3498047452395432e+24,
+        "prediction": 2.064301283523292,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.063454752794305,
+          "high": 2.0649745483351367,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.063454752794305
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.064403537617479
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.064250421783988
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.0649745483351367
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 0.95,
+      "progress_pct": 95.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 2.517195886256613e+19,
+          "loss": 3.038463592529297,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.639812360470853e+20,
+          "loss": 2.7989492416381836,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 1.3122595575031474e+21,
+          "loss": 2.579882860183716,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 7.354724200273626e+21,
+          "loss": 2.4262493181228635,
+          "status": "extrapolated_d2048"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 83.07213201369741,
+        "exponent_alpha": 0.08931005957354649
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 2.480349453308407e+24,
+        "prediction": 2.050528692774071,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.049432129270593,
+          "high": 2.0520811480520282,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.0520811480520282
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.0503343776065512
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.0505666382871506
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.049432129270593
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fraction": 1.0,
+      "progress_pct": 100.0,
+      "rungs": [
+        {
+          "rung": "d768",
+          "compute_flops_no_lm_head": 2.649679880270119e+19,
+          "loss": 3.015353202819824,
+          "status": "observed"
+        },
+        {
+          "rung": "d1024",
+          "compute_flops_no_lm_head": 1.7261182741798453e+20,
+          "loss": 2.780874729156494,
+          "status": "observed"
+        },
+        {
+          "rung": "d1536",
+          "compute_flops_no_lm_head": 1.3813258500033133e+21,
+          "loss": 2.5637738704681396,
+          "status": "observed"
+        },
+        {
+          "rung": "d2048",
+          "compute_flops_no_lm_head": 7.741814947656449e+21,
+          "loss": 2.4087081241607664,
+          "status": "extrapolated_d2048"
+        }
+      ],
+      "fit": {
+        "coefficient_A": 84.78759324113472,
+        "exponent_alpha": 0.0899756766073881
+      },
+      "hero": {
+        "compute_flops_no_lm_head": 2.6108941613772703e+24,
+        "prediction": 2.038784598674304,
+        "sensitivity": {
+          "kind": "leave-one-rung-out range; not a confidence interval",
+          "low": 2.037846888716931,
+          "high": 2.041490502410254,
+          "fits": [
+            {
+              "omitted_rung": "d768",
+              "prediction": 2.037846888716931
+            },
+            {
+              "omitted_rung": "d1024",
+              "prediction": 2.0387919354158868
+            },
+            {
+              "omitted_rung": "d1536",
+              "prediction": 2.037922971257515
+            },
+            {
+              "omitted_rung": "d2048",
+              "prediction": 2.041490502410254
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "terminal_prediction": 2.038784598674304
+}

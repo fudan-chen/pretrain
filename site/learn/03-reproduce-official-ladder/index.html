@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>03 · 从公开 rung evidence 复现 Scaling Ladder · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" >状态</a>
+        <a href="../../learn/" aria-current="page">学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="03-从公开-rung-evidence-复现-scaling-ladder">03 · 从公开 rung evidence 复现 Scaling Ladder</h1>
+<h2 id="本章目标">本章目标</h2>
+<p>从四个公开 W&amp;B rung 采集 Paloma evidence，生成 5% grid，再用固定的官方 FLOPs 常数重建：</p>
+<pre><code class="language-text">5%   Hero prediction = 2.3920926134624465
+10%  Hero prediction = 2.3261427192062980
+100% Hero prediction = 2.0387845986743045</code></pre>
+<h2 id="固定来源">固定来源</h2>
+<ul><li>上游 commit：<code>d23e6e9c3673435fb82d83aa6c51a607d0da6009</code></li><li>上游脚本：<code>experiments/grug/moe_hero_ep/plot_scaling_ladder.py</code></li><li>固定渐近项：<code>1.5</code></li><li>d2048 correction：<code>+0.005</code></li><li>Compute 口径：training FLOPs excluding <code>lm_head</code></li></ul>
+<p>固定 commit 很重要。使用浮动 <code>main</code> 会让今天和下周的“同一方法”可能不是同一份代码。</p>
+<h2 id="第零步-从公开-rung-建立-evidence">第零步：从公开 rung 建立 evidence</h2>
+<pre><code class="language-bash">python scripts/collect_ladder_grid.py</code></pre>
+<p>这一步按官方脚本固定的四个 display name 定位 run，读取 <code>eval_dropless/paloma/macro_loss</code>，并保存：</p>
+<pre><code class="language-text">data/ladder/source/{d768,d1024,d1536,d2048}.jsonl
+data/ladder_eval_grid.manifest.json
+data/ladder_eval_grid.json</code></pre>
+<p>Manifest 记录 run ID、状态、heartbeat、<code>stop_after_steps</code>、采样方式与每个 artifact 的 SHA-256。Collector 请求每个 run 最多 100,000 个样本；当前实际返回 16–21 条稀疏 eval 记录。来源仍是 W&amp;B <code>sampledHistory</code>，所以这是可重采的公开采样 evidence，不声称是完整逐步历史。</p>
+<p>这里要区分两种复现：</p>
+<ul><li><strong>离线复算</strong>：从仓库已经固定的 grid、manifest 和 checksum 重建 baseline，结果应逐位通过 fixture。</li><li><strong>重新采集</strong>：再次访问 W&amp;B，形成一份新的采样 evidence。上游记录或服务端采样可能变化，因此应审查 Git diff 和新 manifest，而不是要求新旧文件天然同 SHA。</li></ul>
+<p><code>collect_ladder_grid.py</code> 同时执行网络采集和 grid 归一化；普通 <code>build</code> 不会调用它。若采集中途失败，不要把部分刷新文件作为一组完整 evidence 发布，应重新运行并确认 manifest 中四个 rung 与 grid checksum 全部齐全。</p>
+<h2 id="rung-计算预算">Rung 计算预算</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">rung</th><th scope="col">steps</th><th scope="col">full compute，no lm_head</th></tr></thead><tbody><tr><td>d768</td><td>11,420</td><td>2.649679880270119e19</td></tr><tr><td>d1024</td><td>15,276</td><td>1.7261182741798453e20</td></tr><tr><td>d1536</td><td>15,128</td><td>1.3813258500033133e21</td></tr><tr><td>d2048</td><td>20,072</td><td>7.741814947656449e21</td></tr><tr><td>d6144 Hero</td><td>390,251</td><td>2.6108941613772703e24</td></tr></tbody></table></div>
+<p>报告中的 2.70e24 是包含或混合了其他口径的近似值，不能与 no-lm-head fit 混用而不解释。</p>
+<h2 id="第一步-把-eval-step-对齐到-5-网格">第一步：把 eval step 对齐到 5% 网格</h2>
+<p>对每个 rung：</p>
+<pre><code class="language-text">fraction = round(round(step / total_steps × 20) / 20, 2)</code></pre>
+<p>如果多个 eval 落到同一百分位，v2 选择离目标 step 最近者；距离相同但值冲突则报错，不能静默用最后一条覆盖。</p>
+<h2 id="第二步-处理-d2048-未完成部分">第二步：处理 d2048 未完成部分</h2>
+<p>d2048 在约 80% 后没有实测。官方方法用 60%、65%、70%、75%、80% 五点做线性拟合：</p>
+<pre><code class="language-text">loss(g) = slope × g + intercept</code></pre>
+<p>对 85%–100%：</p>
+<pre><code class="language-text">loss_pinned(g) = slope × g + intercept + 0.005</code></pre>
+<p>80% 本身仍使用实测值。100% 的 d2048 输入为：</p>
+<pre><code class="language-text">2.4087081241607664</code></pre>
+<h2 id="第三步-每个百分位单独拟合">第三步：每个百分位单独拟合</h2>
+<p>对 <code>g ∈ {0.05, 0.10, …, 1.00}</code>：</p>
+<pre><code class="language-text">C_rung(g) = C_full_rung × g
+log(loss_rung(g) - 1.5) = intercept + slope × log(C_rung(g))
+A_g = exp(intercept)
+alpha_g = -slope</code></pre>
+<p>然后：</p>
+<pre><code class="language-text">C_hero(g) = C_full_hero × g
+prediction_hero(g) = 1.5 + A_g × C_hero(g)^(-alpha_g)</code></pre>
+<p>关键拟合参数：</p>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">progress</th><th scope="col">A</th><th scope="col">alpha</th></tr></thead><tbody><tr><td>5%</td><td>67.5503005578</td><td>0.0812959384</td></tr><tr><td>10%</td><td>57.6859276740</td><td>0.0787475508</td></tr><tr><td>100%</td><td>84.7875932411</td><td>0.0899756766</td></tr></tbody></table></div>
+<h2 id="第四步-报告方法敏感性">第四步：报告方法敏感性</h2>
+<p>v2 在每个百分位对四个 rung 分别留一：</p>
+<pre><code class="language-text">omit d768  → fit three rungs → Hero prediction
+omit d1024 → fit three rungs → Hero prediction
+omit d1536 → fit three rungs → Hero prediction
+omit d2048 → fit three rungs → Hero prediction</code></pre>
+<p>四个预测的最小值与最大值形成 <code>leave-one-rung-out sensitivity range</code>。它回答“外推对某个 rung 有多敏感”，不回答统计覆盖率，因此不是 confidence interval。</p>
+<h2 id="离线复算">离线复算</h2>
+<pre><code class="language-bash">python scripts/track_hero.py baseline
+python -m unittest tests.test_ladder -v</code></pre>
+<p>输出文件：</p>
+<pre><code class="language-text">data/baselines/matched_progress_v1.json</code></pre>
+<p>每个百分位都保存：rung 输入、观测/外推状态、<code>A/alpha</code>、Hero compute、点预测和 LOO fits。</p>
+<h2 id="自测">自测</h2>
+<ol><li>d2048 的 100% loss 为什么不是 80% 最后一个观测值 <code>2.47450 + 0.005</code>？</li><li>为什么 Hero 100% compute 必须是 <code>2.610894e24</code>？</li><li>为什么 LOO range 不能写成 95% CI？</li></ol>
+<p>答案分别是：官方先对 60–80% 做线性外推；fit 明确排除 <code>lm_head</code>；LOO 不是一个有覆盖率定义的概率区间。</p></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T06:45:11.944277+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

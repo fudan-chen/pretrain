@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>数据契约 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../../assets/styles.css">
+  <script defer src="../../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../../" >开始</a>
+        <a href="../../../live/" >状态</a>
+        <a href="../../../learn/" aria-current="page">学习</a>
+        <a href="../../../methodology/" >方法</a>
+        <a href="../../../daily/" >日报</a>
+        <a href="../../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../../">开始</a><a href="../../../live/">状态</a>
+          <a href="../../../learn/">学习</a><a href="../../../methodology/">方法</a>
+          <a href="../../../daily/">日报</a><a href="../../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="数据契约">数据契约</h1>
+<h2 id="ladder-source-bundle">Ladder source bundle</h2>
+<p>显式网络命令 <code>python scripts/collect_ladder_grid.py</code> 维护三层输入：</p>
+<pre><code class="language-text">data/ladder/source/&lt;rung&gt;.jsonl
+data/ladder_eval_grid.manifest.json
+data/ladder_eval_grid.json</code></pre>
+<p>四个 JSONL 保存 W&amp;B <code>sampledHistory</code> 实际返回的 <code>_step</code>、<code>_timestamp</code> 和 <code>eval_dropless/paloma/macro_loss</code>。它们必须被描述为 <code>complete_history=false</code> 的采样源记录，不能称为完整逐步 history。</p>
+<p>Manifest 必须记录：provider、entity/project、metric、采样请求、归一化规则、固定上游 commit/script、grid path/SHA-256，以及每个 rung 的 display name、run ID、状态、heartbeat、<code>stop_after_steps</code>、source path/SHA-256、采样行数和选中行数。Grid checksum 必须与 manifest 一致；缺任一 rung 时不得发布为完整输入。</p>
+<p>重新联网采集产生的是一份新 evidence。由于上游或服务端采样可能变化，新旧 checksum 不必相同；维护者必须审查差异，而不是把“不相同”自动判为错误。</p>
+<h2 id="baseline">Baseline</h2>
+<p>路径：<code>data/baselines/matched_progress_v1.json</code></p>
+<p>必须包含：</p>
+<ul><li><code>method_id</code></li><li>pinned upstream commit/script</li><li>grid input path/SHA-256；存在 manifest 时同时记录 manifest path/SHA-256</li><li>asymptote、d2048 correction、Hero steps</li><li>5%–100% 每个 fraction 的 rung 输入</li><li>observed/extrapolated 状态</li><li><code>A/alpha</code></li><li>Hero point prediction</li><li>LOO sensitivity fits 与范围</li><li>machine-readable <code>applicability.recipe_regime_id/policy/requirements</code></li></ul>
+<p>当前 applicability requirements 为：run ID、4096 context、注册训练步数、tracker group 和 Harrier datamix tag。Requirement 由 selector、operator 和 expected 组成；渲染层不能自行决定是否适用。</p>
+<h2 id="current-status">Current Status</h2>
+<p>路径：<code>data/derived/current_status.json</code></p>
+<p>核心字段：</p>
+<ul><li><code>data_as_of</code>：最后一条数据时间，不是构建时间</li><li><code>run</code>：state、heartbeat、step、progress、regime</li><li><code>recipe</code>：从 meta 读取的 LR、设备，以及 <code>replicas × devices_per_replica</code> 得到的 configured device slots；它不等于瞬时 active/利用中的设备数</li><li><code>latest</code>：每个 metric 的最新值、step、时间</li><li><code>baseline_applicability</code>：<code>supported | mismatch | unverified</code>、逐项 observed/expected/result</li><li><code>matched_progress</code>：同口径实际值、点预测、residual、敏感性；门禁不是 <code>supported</code> 时必须为 <code>null</code></li><li><code>milestones</code>：只由数据推导的 reached/not_reached</li><li><code>source_health</code> 与 <code>artifacts</code></li></ul>
+<h2 id="claim-ledger">Claim Ledger</h2>
+<p>路径：<code>data/derived/claim_ledger.json</code></p>
+<p>共同字段：</p>
+<ul><li><code>id</code></li><li><code>kind = OBSERVED | DERIVED | INFERRED</code></li><li><code>support</code></li><li><code>statement</code></li><li><code>as_of</code></li><li><code>evidence</code></li></ul>
+<p>附加规则：</p>
+<ul><li>OBSERVED 必须有 evidence。</li><li>DERIVED 必须有 derivation。</li><li>INFERRED 必须有 confidence、alternative explanations、falsifiers 和 caveats。</li><li>没有 uncertainty method 时，不允许生成“显著”措辞。</li></ul>
+<p>Applicability 本身也生成 Claim：<code>supported</code> 才能支持 matched-progress；<code>mismatch</code> 对应 contradicted；缺字段造成的 <code>unverified</code> 对应 insufficient evidence。</p>
+<h2 id="canonical-数值与显示精度">Canonical 数值与显示精度</h2>
+<p>机器 JSON 中未截断的数值是 canonical value；HTML、Markdown 和表格中的五位小数只是 display value。派生计算必须使用 evidence/baseline 中的 canonical 数值，禁止把页面文本解析回来继续计算。</p>
+<p>step 32,999 的例子：</p>
+<pre><code class="language-text">actual canonical     = 2.2781243324279785
+prediction canonical = 2.3465101574845844
+residual canonical   = -0.06838582505660584
+display              = 2.27812, 2.34651, -0.06839</code></pre>
+<p>用显示值相减得到的 <code>-0.06839016</code> 是手算近似，不是第二个权威 residual。测试、Claim 和下游计算必须使用 canonical value；面向读者的句子应说明舍入精度。</p>
+<h2 id="report-index">Report Index</h2>
+<p>路径：<code>reports/generated/hero/index.json</code></p>
+<p>索引与 Markdown 详情必须来自同一份内存 manifest，避免列表与正文漂移。每条包括窗口、方法版本、窗口 stats 和可用的 matched-progress comparison。</p>
+<p>日报中的原始 metric 点是 OBSERVED；窗口 <code>mean/max</code>、progress 和 residual 是 DERIVED。窗口结束时间、eval <code>observed_at</code>、全局 <code>data_as_of</code> 和构建时间含义不同，不能互相替代。</p>
+<h2 id="self-contained-site-bundle">Self-contained site bundle</h2>
+<p><code>site/</code> 是发布边界，而不是一个依赖仓库父目录的预览壳：</p>
+<ul><li>学习 Markdown 渲染到 <code>site/learn/&lt;slug&gt;/index.html</code>；</li><li>日报 Markdown 渲染到 <code>site/daily/&lt;name&gt;/index.html</code>；</li><li>当前 Claim 所需 evidence 复制到 <code>site/artifacts/</code>；</li><li>派生 JSON 与 <code>catalog.json</code> 位于 <code>site/data/</code>。</li></ul>
+<p>所有站内链接解析后必须仍在 <code>site/</code> 内。<code>scripts/check_site.py</code> 将 path escape、缺页、缺 anchor、未替换 token 或无 title/desc 的数据 SVG 视为发布失败。</p>
+<h2 id="验证边界">验证边界</h2>
+<p><code>schemas/*.json</code> 提供公开结构说明；Phase 1 的关键语义约束同时由 <code>ladder.validate_baseline</code>、Claim validator、applicability gate 与单元测试执行。当前 JSON Schema 尚不是每个嵌套字段和跨文件关系的完整形式化证明，不能仅凭“schema 文件是合法 JSON”宣称全部数据契约已经验证。</p></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T06:45:11.944277+00:00</time>。</p>
+    <p><a href="../../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

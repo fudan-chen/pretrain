@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>文档地图 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" >状态</a>
+        <a href="../../learn/" aria-current="page">学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="文档地图">文档地图</h1>
+<p>这套文档不是按代码文件排序，而是按“理解一个公开大模型训练追踪系统需要哪些前置知识”排序。</p>
+<h2 id="推荐路径">推荐路径</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">读者</th><th scope="col">建议入口</th><th scope="col">目标</th></tr></thead><tbody><tr><td>第一次来</td><td><a href="../../learn/00-start-here/"><code>learning/00-start-here.md</code></a></td><td>5 分钟看懂项目边界与四个核心问题</td></tr><tr><td>想学方法</td><td><a href="../../learn/02-scaling-law-is-not-learning-curve/"><code>learning/02-scaling-law-is-not-learning-curve.md</code></a></td><td>理解本次错误为什么不是“小数算错”</td></tr><tr><td>想复算</td><td><a href="../../learn/03-reproduce-official-ladder/"><code>learning/03-reproduce-official-ladder.md</code></a></td><td>从公开采样 evidence 追到 grid，再重建官方预测</td></tr><tr><td>想审查结论</td><td><a href="../../learn/01-evidence-derived-inference/"><code>learning/01-evidence-derived-inference.md</code></a></td><td>检查事实、计算和推断是否混在一起</td></tr><tr><td>想主动反证</td><td><a href="../../learn/07-falsification-lab/"><code>learning/07-falsification-lab.md</code></a></td><td>注入 recipe mismatch 和 residual 反向案例</td></tr><tr><td>想维护</td><td><a href="../maintainers/RUNBOOK_V2/"><code>maintainers/RUNBOOK_V2.md</code></a></td><td>构建、验证、双跑和发布 v2</td></tr><tr><td>想比较旧版</td><td><a href="../comparison/v1-v2/"><code>comparison/v1-v2.md</code></a></td><td>对照旧方法、旧展示和 v2 的改动</td></tr></tbody></table></div>
+<h2 id="八章课程">八章课程</h2>
+<ol><li><a href="../../learn/00-start-here/"><code>00-start-here.md</code></a>：项目与证据边界。</li><li><a href="../../learn/01-evidence-derived-inference/"><code>01-evidence-derived-inference.md</code></a>：三层 Claim 模型。</li><li><a href="../../learn/02-scaling-law-is-not-learning-curve/"><code>02-scaling-law-is-not-learning-curve.md</code></a>：横截面 scaling law 与纵向 learning curve。</li><li><a href="../../learn/03-reproduce-official-ladder/"><code>03-reproduce-official-ladder.md</code></a>：忠实复现官方逐 5% 方法。</li><li><a href="../../learn/04-worked-example-step-32999/"><code>04-worked-example-step-32999.md</code></a>：符号反转的完整案例。</li><li><a href="../../learn/05-uncertainty-and-limits/"><code>05-uncertainty-and-limits.md</code></a>：敏感性、不确定性与语言边界。</li><li><a href="../../learn/06-reading-training-signals/"><code>06-reading-training-signals.md</code></a>：训练、路由与系统指标怎么读。</li><li><a href="../../learn/07-falsification-lab/"><code>07-falsification-lab.md</code></a>：把适用性失配和方向翻转变成可执行反证实验。</li></ol>
+<h2 id="查阅资料">查阅资料</h2>
+<ul><li><a href="../reference/architecture/"><code>reference/architecture.md</code></a>：代码与数据流。</li><li><a href="../reference/metric-dictionary/"><code>reference/metric-dictionary.md</code></a>：每个指标的单位、可比性与误读。</li><li><a href="../reference/data-contracts/"><code>reference/data-contracts.md</code></a>：baseline、status 和 claim JSON 契约。</li><li><a href="../reference/provenance/"><code>reference/provenance.md</code></a>：路径、checksum、采样与三个时间概念。</li><li><a href="../decisions/ADR-001-matched-progress-baseline/"><code>decisions/ADR-001-matched-progress-baseline.md</code></a>：为什么采用 matched-progress。</li><li><a href="../decisions/ADR-002-claim-status-model/"><code>decisions/ADR-002-claim-status-model.md</code></a>：为什么页面只能渲染 typed claims。</li><li><a href="../decisions/ADR-003-baseline-applicability-gate/"><code>decisions/ADR-003-baseline-applicability-gate.md</code></a>：为什么 recipe 可比性必须是可执行门禁。</li></ul>
+<h2 id="v2-phase-1-的边界">v2 Phase 1 的边界</h2>
+<p>当前 Phase 1 已闭合这条主路径：公开 rung 采样 evidence → 5% grid → matched-progress baseline → recipe 适用性门禁 → Hero status/claims → 自包含学习站点。重点是修正 Scaling Ladder 方法、建立证据分层，并证明错误结论能被自动抑制。</p>
+<p>以下内容仍是后续阶段，不应从当前站点中反向推断已经完成：Paloma 16 域归因、完整 48 层 Router heatmap、datamix phase delta/JSD、事件因果链、完整 W&amp;B scan、统计预测区间，以及生产 schedule/Pages 切换。Phase 1 的 <code>sampledHistory</code> 与 leave-one-rung-out 范围也分别不等于完整历史和置信区间。</p>
+<h2 id="历史材料">历史材料</h2>
+<p>旧版 <code>dashboard/</code>、<code>reports/daily/</code>、<code>reports/ladder/</code> 和 <code>docs/OPERATIONS.md</code> 暂时保留。它们是 v1 对照材料，不是 v2 的权威说明。三条原远端分支也没有在本次重构中删除或覆盖。</p></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T06:45:11.944277+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

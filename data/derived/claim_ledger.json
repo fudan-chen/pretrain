@@ -1,22 +1,22 @@
 {
   "schema_version": "1.0",
-  "generated_from_data_as_of": "2026-08-30T06:48:27.674715+00:00",
+  "generated_from_data_as_of": "2026-08-30T15:44:49.088257+00:00",
   "run_id": "hero-12d8b6f0-dee637",
   "claims": [
     {
       "id": "hero.run.progress",
       "kind": "DERIVED",
       "support": "supported",
-      "statement": "Hero 当前证据截止 step 38,290，约为计划训练的 9.81%。",
-      "as_of": "2026-08-30T06:48:27.674715+00:00",
-      "value": 9.811634050905699,
+      "statement": "Hero 当前证据截止 step 39,930，约为计划训练的 10.23%。",
+      "as_of": "2026-08-30T15:44:49.088257+00:00",
+      "value": 10.231876407747833,
       "unit": "percent",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/dense.jsonl",
-          "sha256": "95a706452db7913fdd7619249b5861b9d4c746a5592f00ac3d9a9e423826735c",
+          "sha256": "dbb36a6c0ce8e903be10c5d708c0d3414e5d1a43953557871b20d1e4e85dfc8b",
           "metric_key": "_step",
-          "step": 38290
+          "step": 39930
         }
       ],
       "derivation": {
@@ -35,11 +35,11 @@
       "kind": "OBSERVED",
       "support": "supported",
       "statement": "Run config 记录 LR schedule=linear，设备=GB200，replicas=176，每 replica 设备数=4。",
-      "as_of": "2026-08-30T06:49:44Z",
+      "as_of": "2026-08-30T15:45:59Z",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "a361eb0f4c300b3960236ef2b5588c949decc4c675212c4961b5b0aaeb3fd1c6"
+          "sha256": "e8f8bd28f42c1dded285d230ad0f1b131f61b039852e431d06328afd8321161e"
         }
       ],
       "facts": {
@@ -57,13 +57,13 @@
       "kind": "DERIVED",
       "support": "supported",
       "statement": "Run config 对应 704 个 configured GB200 device slots。",
-      "as_of": "2026-08-30T06:49:44Z",
+      "as_of": "2026-08-30T15:45:59Z",
       "value": 704,
       "unit": "configured device slots",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "a361eb0f4c300b3960236ef2b5588c949decc4c675212c4961b5b0aaeb3fd1c6"
+          "sha256": "e8f8bd28f42c1dded285d230ad0f1b131f61b039852e431d06328afd8321161e"
         }
       ],
       "derivation": {
@@ -83,13 +83,13 @@
       "kind": "DERIVED",
       "support": "supported",
       "statement": "Matched-progress baseline 适用性检查结果为 supported；只有 supported 时才生成 residual。",
-      "as_of": "2026-08-30T06:49:44Z",
+      "as_of": "2026-08-30T15:45:59Z",
       "value": "supported",
       "unit": "applicability status",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "a361eb0f4c300b3960236ef2b5588c949decc4c675212c4961b5b0aaeb3fd1c6"
+          "sha256": "e8f8bd28f42c1dded285d230ad0f1b131f61b039852e431d06328afd8321161e"
         },
         {
           "artifact": "data/baselines/matched_progress_v1.json",
@@ -177,19 +177,19 @@
       ]
     },
     {
-      "id": "hero.paloma.observed.step-35999",
+      "id": "hero.paloma.observed.step-38999",
       "kind": "OBSERVED",
       "support": "supported",
-      "statement": "step 35,999 的 dropless Paloma macro loss 为 2.27879。",
-      "as_of": "2026-08-29T18:20:49.369997+00:00",
-      "value": 2.2787857055664062,
+      "statement": "step 38,999 的 dropless Paloma macro loss 为 2.27067。",
+      "as_of": "2026-08-30T10:40:24.247770+00:00",
+      "value": 2.2706663608551025,
       "unit": "loss",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/eval.jsonl",
-          "sha256": "11e8b37a693e60ddfb6d55cf2e7e2d20a3058ea7a83f89c6da7dbf630eae1b4e",
+          "sha256": "126a8fa83406350777729f8445a4b1ba96b1897f1a99983a7186b26c2ee7dfad",
           "metric_key": "eval_dropless/paloma/macro_loss",
-          "step": 35999
+          "step": 38999
         }
       ],
       "caveats": [
@@ -197,19 +197,19 @@
       ]
     },
     {
-      "id": "hero.paloma.matched-progress.step-35999",
+      "id": "hero.paloma.matched-progress.step-38999",
       "kind": "DERIVED",
       "support": "supported",
-      "statement": "step 35,999 的 Paloma 实测比 matched-progress 点预测低 0.05758。",
-      "as_of": "2026-08-29T18:20:49.369997+00:00",
-      "value": -0.05758484009048637,
+      "statement": "step 38,999 的 Paloma 实测比 matched-progress 点预测低 0.05556。",
+      "as_of": "2026-08-30T10:40:24.247770+00:00",
+      "value": -0.05556457297409745,
       "unit": "loss residual (actual - prediction)",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/eval.jsonl",
-          "sha256": "11e8b37a693e60ddfb6d55cf2e7e2d20a3058ea7a83f89c6da7dbf630eae1b4e",
+          "sha256": "126a8fa83406350777729f8445a4b1ba96b1897f1a99983a7186b26c2ee7dfad",
           "metric_key": "eval_dropless/paloma/macro_loss",
-          "step": 35999
+          "step": 38999
         },
         {
           "path": "data/baselines/matched_progress_v1.json",
@@ -222,8 +222,8 @@
         "method_id": "marin-matched-progress-v1",
         "method": "linear interpolation between adjacent per-5% point predictions",
         "inputs": {
-          "actual": 2.2787857055664062,
-          "point_prediction": 2.3363705456568926,
+          "actual": 2.2706663608551025,
+          "point_prediction": 2.3262309338292,
           "left_fraction": 0.05,
           "right_fraction": 0.1
         }
@@ -231,12 +231,12 @@
       "uncertainty": {
         "kind": "sensitivity_only",
         "prediction_sensitivity_range": {
-          "low": 2.3306002974135605,
-          "high": 2.34959718617275
+          "low": 2.3206015142948533,
+          "high": 2.3379739059729387
         },
         "residual_sensitivity_range": {
-          "low": -0.07081148060634357,
-          "high": -0.0518145918471542
+          "low": -0.06730754511783621,
+          "high": -0.049935153439750746
         },
         "significance": "not_assessed"
       },
@@ -249,10 +249,10 @@
       "kind": "INFERRED",
       "support": "insufficient_evidence",
       "statement": "当前点估计显示 Hero 实测低于 matched-progress 参考；但尚不能声称显著领先或保证终点达标。",
-      "as_of": "2026-08-29T18:20:49.369997+00:00",
+      "as_of": "2026-08-30T10:40:24.247770+00:00",
       "evidence": [
         {
-          "claim_id": "hero.paloma.matched-progress.step-35999"
+          "claim_id": "hero.paloma.matched-progress.step-38999"
         }
       ],
       "confidence": "low",
@@ -273,13 +273,13 @@
       "kind": "DERIVED",
       "support": "supported",
       "statement": "当前尚未到达 ladder 叙述中的约 25% grad-norm 参考区。",
-      "as_of": "2026-08-30T06:48:27.674715+00:00",
+      "as_of": "2026-08-30T15:44:49.088257+00:00",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/dense.jsonl",
-          "sha256": "95a706452db7913fdd7619249b5861b9d4c746a5592f00ac3d9a9e423826735c",
+          "sha256": "dbb36a6c0ce8e903be10c5d708c0d3414e5d1a43953557871b20d1e4e85dfc8b",
           "metric_key": "_step",
-          "step": 38290
+          "step": 39930
         },
         {
           "artifact": "data/snapshots/2026-08-28/github_issues.json",

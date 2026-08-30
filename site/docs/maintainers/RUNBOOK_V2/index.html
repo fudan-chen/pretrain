@@ -71,7 +71,7 @@ python scripts/audit_v2.py --simulated-residual -0.1</code></pre>
 <h2 id="失败语义">失败语义</h2>
 <ul><li>Collect 失败：不重建成“新鲜”页面；保留旧 evidence 的 <code>data_as_of</code>。</li><li>Ladder collector 网络读取失败：发布阶段尚未开始，旧 evidence 保持不变；若多文件落盘阶段发生磁盘错误，重新完整采集并核对 manifest 后才能发布。</li><li>Analyze 失败：不发布一半新的 status/claims。</li><li>Render 失败：旧站点继续可用。</li><li>Recipe mismatch：applicability=<code>mismatch</code>，matched-progress comparison 为 unavailable；先登记新 regime/baseline。</li><li>Recipe 字段缺失：applicability=<code>unverified</code>，同样抑制 comparison，不能默认匹配。</li></ul></article></section></main>
   <footer class="site-footer">
-    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-30T05:55:48.243340+00:00</time>。</p>
     <p><a href="../../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
   </footer>
 </body>

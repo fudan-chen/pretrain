@@ -11,7 +11,7 @@ from marin_tracker.claims import build_claim_ledger, validate_claim_ledger  # no
 from marin_tracker.config import HERO_RUN, LADDER_GRID_PATH  # noqa: E402
 from marin_tracker.hero import assess_baseline_applicability, build_status  # noqa: E402
 from marin_tracker.io import read_json  # noqa: E402
-from marin_tracker.ladder import build_baseline  # noqa: E402
+from marin_tracker.ladder import build_baseline, interpolate_prediction  # noqa: E402
 
 
 class HeroAnalysisTests(unittest.TestCase):
@@ -55,14 +55,29 @@ class HeroAnalysisTests(unittest.TestCase):
         milestone = self.status["milestones"]["grad_norm_reference_25pct"]
         self.assertEqual(milestone["status"], "not_reached")
 
-    def test_paloma_comparison_is_same_metric_and_negative(self):
+    def test_paloma_comparison_uses_latest_metric_and_consistent_direction(self):
         comparison = self.status["matched_progress"]
-        self.assertEqual(comparison["step"], 32_999)
-        self.assertLess(comparison["residual"], 0)
-        self.assertEqual(comparison["direction"], "better_than_point_prediction")
+        latest = self.status["latest"]["paloma_macro"]
+        expected = interpolate_prediction(
+            self.baseline, latest["step"], self.status["run"]["total_steps"]
+        )
+        self.assertEqual(comparison["step"], latest["step"])
+        self.assertEqual(comparison["actual"], latest["value"])
+        self.assertAlmostEqual(comparison["prediction"], expected["prediction"], places=12)
+        self.assertAlmostEqual(
+            comparison["residual"],
+            comparison["actual"] - comparison["prediction"],
+            places=12,
+        )
+        expected_direction = (
+            "better_than_point_prediction"
+            if comparison["residual"] < 0
+            else "worse_than_point_prediction"
+            if comparison["residual"] > 0
+            else "equal_to_point_prediction"
+        )
+        self.assertEqual(comparison["direction"], expected_direction)
         self.assertEqual(comparison["significance"], "not_assessed")
-        self.assertAlmostEqual(comparison["prediction"], 2.3465101574845844, places=12)
-        self.assertAlmostEqual(comparison["residual"], -0.06838582505660584, places=12)
 
     def test_claim_contract(self):
         ledger = build_claim_ledger(self.status)

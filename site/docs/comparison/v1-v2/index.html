@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>v1 与 v2 对比指南 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../../assets/styles.css">
+  <script defer src="../../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../../" >开始</a>
+        <a href="../../../live/" >状态</a>
+        <a href="../../../learn/" aria-current="page">学习</a>
+        <a href="../../../methodology/" >方法</a>
+        <a href="../../../daily/" >日报</a>
+        <a href="../../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../../">开始</a><a href="../../../live/">状态</a>
+          <a href="../../../learn/">学习</a><a href="../../../methodology/">方法</a>
+          <a href="../../../daily/">日报</a><a href="../../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="v1-与-v2-对比指南">v1 与 v2 对比指南</h1>
+<h2 id="对比对象">对比对象</h2>
+<ul><li><code>main@9c61dc2</code>：公开生态证据采集。</li><li><code>marin-deep-track@65bb272</code>：第一版深度追踪。</li><li><code>codex/cloud-marin-tracker@af5c5f9</code>：最初云端工作流。</li><li><code>codex/marin-learning-v2</code>：本次非破坏性整合与重构。</li></ul>
+<p>原远端分支均保持不动。本文件解释差异，不要求删除旧内容。</p>
+<h2 id="方法对比">方法对比</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">主题</th><th scope="col">v1</th><th scope="col">v2</th></tr></thead><tbody><tr><td>中途预测</td><td>用终点 <code>A/alpha</code> 缩放 current compute</td><td>每 5% 跨 rung fit，相邻 Hero 点预测插值</td></tr><tr><td>d2048</td><td>80% 最后值的处理含混</td><td>60–80% 线性外推，85%–100% +0.005</td></tr><tr><td>Hero compute</td><td>2.70e24 与其他口径混用</td><td>2.610894e24，明确 no lm_head</td></tr><tr><td>step 32,999</td><td>residual +0.0673</td><td>canonical residual -0.06838583</td></tr><tr><td>不确定性</td><td>“差 &lt;2%”当作验证</td><td>LOO sensitivity，明确不是 CI</td></tr><tr><td>Regime</td><td>隐含</td><td><code>recipe_regime_id</code> 显式记录</td></tr></tbody></table></div>
+<h2 id="展示对比">展示对比</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">主题</th><th scope="col">v1</th><th scope="col">v2</th></tr></thead><tbody><tr><td>首页</td><td>先展示大量 KPI/曲线</td><td>先回答 freshness、recipe、轨道、变化</td></tr><tr><td>Train CE / Paloma</td><td>不同指标同图</td><td>分图，Paloma 只与同指标 baseline 比</td></tr><tr><td>图表</td><td>Canvas + 鼠标 tooltip</td><td>静态 SVG + title/desc + 数据表</td></tr><tr><td>文案</td><td>硬编码“当前已过 25%”等</td><td>从 status/claim JSON 生成</td></tr><tr><td>状态</td><td>永久绿色 TRACKING</td><td>客户端按 <code>data_as_of</code> 显示新鲜/延迟/陈旧</td></tr><tr><td>日报</td><td>有 JSON index 但无网页入口</td><td>统一 manifest + 可浏览索引 + 前后链接</td></tr><tr><td>学习</td><td>长报告孤立</td><td>八章依赖顺序 + 反证实验室 + 方法页 + 对比页</td></tr></tbody></table></div>
+<h2 id="旧版应保留的价值">旧版应保留的价值</h2>
+<ul><li>视觉层级、色彩与 KPI→下钻的产品意识。</li><li>对 Scaling Ladder、Hero、Router、datamix 和系统信号的广泛覆盖。</li><li>官方图与公开证据的集中整理。</li><li>早期自动化探索形成的运维经验。</li></ul>
+<h2 id="旧版不再作为当前事实的内容">旧版不再作为当前事实的内容</h2>
+<ul><li>终点 fit 生成的全程预测曲线。</li><li>Train CE 与 Paloma prediction 的同轴比较。</li><li>“约 9% 已越过 25% 峰值区”。</li><li>WSD/cosine、TPU v5p、active 792 cards。</li><li>Router overflow 固定约 0.1–0.2%。</li><li>phase 2 必然转向更高质量课程。</li><li>吞吐稳定即可证明 all-to-all 无瓶颈。</li></ul>
+<p>这些内容继续留在旧分支，作为“证据纪律为什么重要”的案例。</p>
+<h2 id="不应夸大的-v2-范围">不应夸大的 v2 范围</h2>
+<p>v2 Phase 1 修复的是 matched-progress 主线与证据/展示契约，不是一次性完成旧报告提出的全部研究问题。它尚未交付 Paloma 16 域归因、完整 Router heatmap、datamix phase delta、系统通信归因、事故因果链或统计预测区间。旧版覆盖面更广但结论纪律不足；v2 当前结论更窄，但每一步更容易复查与反证。</p></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p><a href="../../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fudan-chen.github.io/pretrain/schemas/sources_registry.schema.json",
+  "title": "Marin evidence source registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "priority", "sources"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "priority": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rank", "kind", "reason"],
+        "properties": {
+          "rank": {"type": "integer", "minimum": 1},
+          "kind": {
+            "enum": [
+              "observed_runtime_or_raw_record",
+              "pinned_first_party_source",
+              "first_party_narrative",
+              "derived_secondary_analysis"
+            ]
+          },
+          "reason": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "provider",
+          "kind",
+          "authority_rank",
+          "canonical_url",
+          "mutability",
+          "collection_method",
+          "evidence_scope",
+          "artifact_paths",
+          "required_provenance",
+          "limitations"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+          "label": {"type": "string", "minLength": 1},
+          "provider": {"type": "string", "minLength": 1},
+          "kind": {
+            "enum": [
+              "observed_runtime_or_raw_record",
+              "pinned_first_party_source",
+              "first_party_narrative",
+              "derived_secondary_analysis"
+            ]
+          },
+          "authority_rank": {"type": "integer", "minimum": 1, "maximum": 4},
+          "canonical_url": {"type": "string", "format": "uri"},
+          "mutability": {"enum": ["immutable", "mutable"]},
+          "collection_method": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "operation", "authentication", "completeness"],
+            "properties": {
+              "mode": {"enum": ["api", "html", "pinned_file"]},
+              "operation": {"type": "string", "minLength": 1},
+              "authentication": {"type": "string", "minLength": 1},
+              "completeness": {"type": "string", "minLength": 1}
+            }
+          },
+          "evidence_scope": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "artifact_paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "required_provenance": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "limitations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    }
+  }
+}

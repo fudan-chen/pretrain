@@ -1,0 +1,184 @@
+{
+  "schema_version": "1.0",
+  "metrics": [
+    {
+      "id": "train_ce",
+      "key": "train/cross_entropy_loss",
+      "label": "Training cross-entropy",
+      "source_id": "wandb-hero-run",
+      "artifact": "dense.jsonl",
+      "semantic_scope": "current training batch objective",
+      "unit": "loss",
+      "value_type": "number",
+      "aggregation": "logged training step value",
+      "sampling": {
+        "method": "server-sampled history",
+        "complete_history": false,
+        "cadence": "training-log cadence"
+      },
+      "provenance_fields": ["_step", "_timestamp"],
+      "comparability": {
+        "allowed": ["same metric within the same run and recipe regime"],
+        "forbidden": ["eval_dropless/paloma/macro_loss absolute value"]
+      },
+      "interpretation_limit": "A lower trend does not by itself establish held-out generalization."
+    },
+    {
+      "id": "paloma_macro",
+      "key": "eval_dropless/paloma/macro_loss",
+      "label": "Dropless Paloma macro loss",
+      "source_id": "wandb-hero-run",
+      "artifact": "eval.jsonl",
+      "semantic_scope": "held-out Paloma domain macro average under dropless evaluation",
+      "unit": "loss",
+      "value_type": "number",
+      "aggregation": "macro average across Paloma domains",
+      "sampling": {
+        "method": "scheduled evaluation points via server-sampled history",
+        "complete_history": false,
+        "cadence": "evaluation cadence"
+      },
+      "provenance_fields": ["_step", "_timestamp"],
+      "comparability": {
+        "allowed": [
+          "same metric and evaluation protocol across ladder rungs",
+          "matched-progress baseline in the same recipe regime"
+        ],
+        "forbidden": ["train/cross_entropy_loss absolute value"]
+      },
+      "interpretation_limit": "The macro average can hide domain-specific regressions."
+    },
+    {
+      "id": "grad_norm",
+      "key": "grad/norm/total",
+      "label": "Total gradient norm",
+      "source_id": "wandb-hero-run",
+      "artifact": "dense.jsonl",
+      "semantic_scope": "current optimizer step",
+      "unit": "norm",
+      "value_type": "number",
+      "aggregation": "total norm",
+      "sampling": {
+        "method": "server-sampled history",
+        "complete_history": false,
+        "cadence": "training-log cadence"
+      },
+      "provenance_fields": ["_step", "_timestamp"],
+      "comparability": {
+        "allowed": ["same run phase and recipe"],
+        "forbidden": ["a universal fixed health threshold"]
+      },
+      "interpretation_limit": "The 25% peak is a narrative reference, not a causal rule."
+    },
+    {
+      "id": "learning_rate",
+      "key": "optim/learning_rate",
+      "label": "Primary optimizer learning rate",
+      "source_id": "wandb-hero-run",
+      "artifact": "dense.jsonl",
+      "semantic_scope": "optimizer primary parameter group",
+      "unit": "learning_rate",
+      "value_type": "number",
+      "aggregation": "logged training step value",
+      "sampling": {
+        "method": "server-sampled history",
+        "complete_history": false,
+        "cadence": "training-log cadence"
+      },
+      "provenance_fields": ["_step", "_timestamp"],
+      "comparability": {
+        "allowed": ["pinned run configuration"],
+        "forbidden": ["a schedule inferred only from issue prose"]
+      },
+      "interpretation_limit": "Runtime configuration outranks conflicting narrative."
+    },
+    {
+      "id": "throughput",
+      "key": "throughput/tokens_per_second",
+      "label": "Global token throughput",
+      "source_id": "wandb-hero-run",
+      "artifact": "dense.jsonl",
+      "semantic_scope": "current distributed job",
+      "unit": "tokens_per_second",
+      "value_type": "number",
+      "aggregation": "global logged rate",
+      "sampling": {
+        "method": "server-sampled history",
+        "complete_history": false,
+        "cadence": "training-log cadence"
+      },
+      "provenance_fields": ["_step", "_timestamp"],
+      "comparability": {
+        "allowed": ["same run over time"],
+        "forbidden": ["different hardware or batch without normalization"]
+      },
+      "interpretation_limit": "Stable throughput does not prove communication is not a bottleneck."
+    },
+    {
+      "id": "mfu",
+      "key": "throughput/mfu",
+      "label": "Model FLOPs utilization",
+      "source_id": "wandb-hero-run",
+      "artifact": "dense.jsonl",
+      "semantic_scope": "current job under its reported FLOPs definition",
+      "unit": "percent",
+      "value_type": "number",
+      "aggregation": "global logged utilization",
+      "sampling": {
+        "method": "server-sampled history",
+        "complete_history": false,
+        "cadence": "training-log cadence"
+      },
+      "provenance_fields": ["_step", "_timestamp"],
+      "comparability": {
+        "allowed": ["same hardware and FLOPs definition"],
+        "forbidden": ["cross-run values with unknown FLOPs definitions"]
+      },
+      "interpretation_limit": "Device count and FLOPs scope are required for comparison."
+    },
+    {
+      "id": "drop_fraction",
+      "key": "moe/drop_fraction",
+      "label": "MoE token drop fraction",
+      "source_id": "wandb-hero-run",
+      "artifact": "dense.jsonl",
+      "semantic_scope": "capacity-limited routed tokens",
+      "unit": "fraction",
+      "value_type": "number",
+      "aggregation": "job-level aggregate",
+      "sampling": {
+        "method": "server-sampled history",
+        "complete_history": false,
+        "cadence": "training-log cadence"
+      },
+      "provenance_fields": ["_step", "_timestamp"],
+      "comparability": {
+        "allowed": ["same router recipe"],
+        "forbidden": ["router bias units"]
+      },
+      "interpretation_limit": "One aggregate cannot establish all-layer router health."
+    },
+    {
+      "id": "router_overflow",
+      "key": "train/router/capacity_overflow_rate_mean",
+      "label": "Mean router capacity overflow rate",
+      "source_id": "wandb-hero-run",
+      "artifact": "router.jsonl",
+      "semantic_scope": "selected router aggregate",
+      "unit": "fraction",
+      "value_type": "number",
+      "aggregation": "mean overflow rate",
+      "sampling": {
+        "method": "selected aggregate and edge-layer server-sampled history",
+        "complete_history": false,
+        "cadence": "router-log cadence"
+      },
+      "provenance_fields": ["_step", "_timestamp"],
+      "comparability": {
+        "allowed": ["same metric over time"],
+        "forbidden": ["train/router/bias_max on one shared axis"]
+      },
+      "interpretation_limit": "Current evidence is not a full 48-layer heatmap."
+    }
+  ]
+}

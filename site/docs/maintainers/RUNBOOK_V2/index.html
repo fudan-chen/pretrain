@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>v2 维护手册 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../../assets/styles.css">
+  <script defer src="../../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../../" >开始</a>
+        <a href="../../../live/" >状态</a>
+        <a href="../../../learn/" aria-current="page">学习</a>
+        <a href="../../../methodology/" >方法</a>
+        <a href="../../../daily/" >日报</a>
+        <a href="../../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../../">开始</a><a href="../../../live/">状态</a>
+          <a href="../../../learn/">学习</a><a href="../../../methodology/">方法</a>
+          <a href="../../../daily/">日报</a><a href="../../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="v2-维护手册">v2 维护手册</h1>
+<h2 id="安全边界">安全边界</h2>
+<ul><li><code>main</code>、<code>marin-deep-track</code>、<code>codex/cloud-marin-tracker</code> 暂不删除。</li><li><code>build</code> 只重建 <code>data/baselines/</code>、<code>data/derived/</code>、<code>reports/generated/hero/</code> 和 <code>site/</code>，不访问网络。</li><li><code>update</code> 还会刷新 <code>data/hero/&lt;run&gt;/</code>；只在明确需要新 Hero evidence 时运行。</li><li><code>collect_ladder_grid.py</code> 会刷新 <code>data/ladder/source/</code>、<code>data/ladder_eval_grid.json</code> 与 manifest；它是独立的显式网络操作，不属于普通 build。</li><li>旧 <code>dashboard/</code>、<code>reports/daily/</code>、<code>reports/ladder/</code> 不由 v2 构建覆盖。</li><li>在验证稳定前，v2 workflow 只允许手动运行，不与旧 schedule 抢写路径。</li></ul>
+<h2 id="本地构建">本地构建</h2>
+<pre><code class="language-bash">python scripts/track_hero.py build
+python -m unittest discover -s tests -v
+python -m compileall -q scripts tests</code></pre>
+<p>启动预览：</p>
+<pre><code class="language-bash">python -m http.server 8000 --directory site</code></pre>
+<p>访问 <code>http://127.0.0.1:8000/</code>。</p>
+<p><code>site/</code> 必须能单独工作：课程、参考资料、日报和 evidence 定位页已经渲染进站点，完整 Claim evidence 位于 <code>site/artifacts/</code>。不要用仓库根目录服务器掩盖逃出 <code>site/</code> 的坏链接。</p>
+<h2 id="刷新公开-w-b-数据">刷新公开 W&amp;B 数据</h2>
+<pre><code class="language-bash">python scripts/track_hero.py update</code></pre>
+<p><code>update</code> 会先运行现有 <code>pull_data.pull_run()</code>，再重建 v2 派生内容。仅重建时使用 <code>build</code>，避免无意触发网络请求。</p>
+<h2 id="刷新-ladder-rung-evidence">刷新 Ladder rung evidence</h2>
+<p>只有在明确要建立新 evidence 版本时运行：</p>
+<pre><code class="language-bash">python scripts/collect_ladder_grid.py
+python scripts/track_hero.py baseline
+python -m unittest tests.test_ladder -v
+git diff -- data/ladder data/ladder_eval_grid.json data/ladder_eval_grid.manifest.json data/baselines</code></pre>
+<p>Collector 使用 W&amp;B <code>sampledHistory</code>，重新采集不保证与旧 checksum 相同。重点审查：四个 display name/run ID、<code>stop_after_steps</code>、每个 source SHA、选中行数、grid SHA 和 5%/10%/100% fixture。</p>
+<p>Collector 会先把四个 rung 全部取回并验证，再进入文件发布阶段，因此中途网络失败不会覆盖旧 evidence。多文件落盘仍不是文件系统级事务；若发布阶段发生磁盘错误，不要 stage、build 或发布，必须重新完整采集并核对 manifest。</p>
+<h2 id="运行反证门禁">运行反证门禁</h2>
+<pre><code class="language-bash">python scripts/audit_v2.py
+python scripts/audit_v2.py --context-length 8192
+python scripts/audit_v2.py --simulated-residual 0.1
+python scripts/audit_v2.py --simulated-residual -0.1</code></pre>
+<p>正常 evidence 应得到 applicability=<code>supported</code>。8192 注入应得到 <code>mismatch</code>；自动分析遇到同类 mismatch/unverified 时必须令 <code>matched_progress=null</code>。正负 residual 注入必须改变推断方向，不能复用固定乐观文案。详见 <a href="../../../learn/07-falsification-lab/"><code>07 · 反证实验室</code></a>。</p>
+<h2 id="发布前检查">发布前检查</h2>
+<ol><li><code>tests/test_ladder.py</code> 的 5%/10%/100% fixture 通过。</li><li>step 32,999 canonical residual 为约 <code>-0.06838583</code>；显示值是 <code>-0.06839</code>，不得用截断值制造另一个权威结果。</li><li>Applicability 五项为 <code>match</code>；mismatch/unverified fixture 会抑制 comparison。</li><li><code>tests/test_hero_analysis.py</code> 验证 <code>linear / GB200 / 704 configured slots</code> 与方向切换。</li><li><code>track_hero.py --help</code> 返回 0，非法命令非零。</li><li><code>site/learn/07-falsification-lab/index.html</code> 和所有日报详情已生成。</li><li><code>python scripts/check_site.py</code> 无内部 404、path escape、<code>&#123;&#123;TOKEN&#125;&#125;</code> 或缺 anchor。</li><li>390、768、1280、1440 宽度检查首页、状态页、课程、表格与公式。</li><li>每个 SVG 有 <code>&lt;title&gt;</code> 和 <code>&lt;desc&gt;</code>，每张数据图有表格。</li><li><code>claim_ledger.json</code> 全部通过 Claim lint；Claim 能点击到 <code>site/evidence/</code> 定位页，完整文件能在 <code>site/artifacts/</code> 与 catalog 中找到。</li><li><code>rg &#x27;A_FIT|ALPHA_FIT|C_FULL_HERO \*&#x27; scripts</code> 为空。</li><li>常见 token 扫描无敏感串。</li></ol>
+<h2 id="双跑策略">双跑策略</h2>
+<ol><li>旧 schedule 保持写旧分支/旧路径。</li><li>v2 先由 workflow dispatch 手动跑，只写 v2 路径。</li><li>比较至少两个完整定时周期：数据时间、报告数、Pages 链接、Claim 方向。</li><li>确认无漂移后，再讨论切换 Pages 主入口和 schedule。</li><li>本阶段不删除旧分支。</li></ol>
+<p>双跑验收只覆盖 Phase 1：matched-progress、gating、日报、课程和自包含站点。不要把两个成功周期表述成 Paloma domain、全层 Router、datamix、通信归因或统计显著性已经验证。</p>
+<h2 id="失败语义">失败语义</h2>
+<ul><li>Collect 失败：不重建成“新鲜”页面；保留旧 evidence 的 <code>data_as_of</code>。</li><li>Ladder collector 网络读取失败：发布阶段尚未开始，旧 evidence 保持不变；若多文件落盘阶段发生磁盘错误，重新完整采集并核对 manifest 后才能发布。</li><li>Analyze 失败：不发布一半新的 status/claims。</li><li>Render 失败：旧站点继续可用。</li><li>Recipe mismatch：applicability=<code>mismatch</code>，matched-progress comparison 为 unavailable；先登记新 regime/baseline。</li><li>Recipe 字段缺失：applicability=<code>unverified</code>，同样抑制 comparison，不能默认匹配。</li></ul></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p><a href="../../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

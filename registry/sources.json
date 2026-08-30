@@ -1,0 +1,178 @@
+{
+  "schema_version": "1.0",
+  "priority": [
+    {
+      "rank": 1,
+      "kind": "observed_runtime_or_raw_record",
+      "reason": "Closest available evidence of what a run executed, logged, or published."
+    },
+    {
+      "rank": 2,
+      "kind": "pinned_first_party_source",
+      "reason": "Reproducible implementation or methodology fixed to an immutable upstream revision."
+    },
+    {
+      "rank": 3,
+      "kind": "first_party_narrative",
+      "reason": "Evidence of intent and events that may describe plans, approximations, or stale assumptions."
+    },
+    {
+      "rank": 4,
+      "kind": "derived_secondary_analysis",
+      "reason": "A reproducible synthesis that must retain links and checksums for its higher-priority inputs."
+    }
+  ],
+  "sources": [
+    {
+      "id": "wandb-hero-run",
+      "label": "Marin Hero public W&B run",
+      "provider": "Weights & Biases",
+      "kind": "observed_runtime_or_raw_record",
+      "authority_rank": 1,
+      "canonical_url": "https://wandb.ai/marin-community/marin_moe/runs/hero-12d8b6f0-dee637",
+      "mutability": "mutable",
+      "collection_method": {
+        "mode": "api",
+        "operation": "GraphQL run metadata and sampledHistory",
+        "authentication": "public-read",
+        "completeness": "server-sampled"
+      },
+      "evidence_scope": [
+        "run configuration and state",
+        "training, evaluation, throughput, and selected router metrics"
+      ],
+      "artifact_paths": [
+        "data/hero/hero-12d8b6f0-dee637/meta.json",
+        "data/hero/hero-12d8b6f0-dee637/*.jsonl"
+      ],
+      "required_provenance": [
+        "canonical_url",
+        "collected_at",
+        "data_as_of",
+        "sha256",
+        "sampling"
+      ],
+      "limitations": [
+        "sampledHistory is not guaranteed to contain every logged step",
+        "collection time is not the same as the last metric timestamp"
+      ]
+    },
+    {
+      "id": "marin-pinned-ladder-source",
+      "label": "Pinned Marin Scaling Ladder implementation",
+      "provider": "marin-community/marin",
+      "kind": "pinned_first_party_source",
+      "authority_rank": 2,
+      "canonical_url": "https://github.com/marin-community/marin/blob/d23e6e9c3673435fb82d83aa6c51a607d0da6009/experiments/grug/moe_hero_ep/plot_scaling_ladder.py",
+      "mutability": "immutable",
+      "collection_method": {
+        "mode": "pinned_file",
+        "operation": "read source at exact Git commit",
+        "authentication": "public-read",
+        "completeness": "single-immutable-document"
+      },
+      "evidence_scope": [
+        "per-5% matched-progress method",
+        "lm_head-excluded compute constants",
+        "d2048 extrapolation and correction"
+      ],
+      "artifact_paths": [
+        "data/ladder_eval_grid.json",
+        "data/baselines/matched_progress_v1.json"
+      ],
+      "required_provenance": [
+        "canonical_url",
+        "upstream_commit",
+        "input_path",
+        "sha256",
+        "method_id"
+      ],
+      "limitations": [
+        "the four-rung extrapolation is a point estimate",
+        "leave-one-rung-out ranges are sensitivity analyses, not confidence intervals"
+      ]
+    },
+    {
+      "id": "marin-github-activity",
+      "label": "Marin GitHub issues, comments, and commits",
+      "provider": "GitHub",
+      "kind": "first_party_narrative",
+      "authority_rank": 3,
+      "canonical_url": "https://github.com/marin-community/marin",
+      "mutability": "mutable",
+      "collection_method": {
+        "mode": "api",
+        "operation": "paginated half-open UTC window collection",
+        "authentication": "optional-token-with-public-fallback",
+        "completeness": "paginated-window"
+      },
+      "evidence_scope": [
+        "engineering events and decisions",
+        "code changes and direct comment URLs"
+      ],
+      "artifact_paths": [
+        "data/snapshots/*/github_issues.json",
+        "data/snapshots/*/github_commits.json"
+      ],
+      "required_provenance": [
+        "canonical_url",
+        "window_start",
+        "window_end",
+        "collected_at",
+        "sha256"
+      ],
+      "limitations": [
+        "issue prose may describe intent rather than the executed run",
+        "runtime configuration outranks conflicting narrative"
+      ]
+    },
+    {
+      "id": "marin-hugging-face-org",
+      "label": "Marin Hugging Face organization",
+      "provider": "Hugging Face",
+      "kind": "observed_runtime_or_raw_record",
+      "authority_rank": 1,
+      "canonical_url": "https://huggingface.co/marin-community",
+      "mutability": "mutable",
+      "collection_method": {
+        "mode": "api",
+        "operation": "paginated organization model and dataset listing",
+        "authentication": "public-read",
+        "completeness": "paginated-window"
+      },
+      "evidence_scope": ["published model and dataset metadata"],
+      "artifact_paths": ["data/snapshots/*/hugging_face.json"],
+      "required_provenance": [
+        "canonical_url",
+        "window_start",
+        "window_end",
+        "collected_at",
+        "sha256"
+      ],
+      "limitations": ["publication metadata does not establish training quality or causality"]
+    },
+    {
+      "id": "marin-public-site",
+      "label": "Marin public website",
+      "provider": "Marin",
+      "kind": "first_party_narrative",
+      "authority_rank": 3,
+      "canonical_url": "https://marin.community/",
+      "mutability": "mutable",
+      "collection_method": {
+        "mode": "html",
+        "operation": "deterministic page snapshot",
+        "authentication": "public-read",
+        "completeness": "single-document"
+      },
+      "evidence_scope": ["public project presentation and outbound links"],
+      "artifact_paths": ["data/snapshots/*/marin_site.json"],
+      "required_provenance": [
+        "canonical_url",
+        "collected_at",
+        "sha256"
+      ],
+      "limitations": ["the website is descriptive and may lag runtime state"]
+    }
+  ]
+}

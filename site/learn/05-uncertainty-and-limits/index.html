@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>05 · 敏感性不是置信区间 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" >状态</a>
+        <a href="../../learn/" aria-current="page">学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="05-敏感性不是置信区间">05 · 敏感性不是置信区间</h1>
+<h2 id="本章问题">本章问题</h2>
+<p>页面已经有一个阴影范围，为什么仍然不能写“显著领先”？</p>
+<p>因为“有一个范围”不等于“这个范围具有统计覆盖率”。</p>
+<h2 id="当前实现了什么">当前实现了什么</h2>
+<p>当前 baseline 每个百分位只有四个 rung。v2 依次省略一个 rung，重新拟合 Hero 预测，并把四次预测的最小值/最大值记为：</p>
+<pre><code class="language-text">leave-one-rung-out sensitivity envelope</code></pre>
+<p>它适合回答：</p>
+<ul><li>结果是否被某一个 rung 强烈支配？</li><li>省略 d2048 时外推会移动多少？</li><li>当前 residual 的方向是否对 rung 选择敏感？</li></ul>
+<p>它不能回答：</p>
+<ul><li>真值有 95% 概率落在范围内吗？</li><li>多次重复实验中这个范围有 95% 覆盖率吗？</li><li>实测和预测差异是否具有统计显著性？</li></ul>
+<h2 id="不确定性的来源">不确定性的来源</h2>
+<h3 id="1-rung-数量">1. Rung 数量</h3>
+<p>只有四个尺度，而且 Hero compute 远大于各 rung。外推距离越远，对 <code>alpha</code> 的微小变化越敏感。</p>
+<h3 id="2-固定渐近项">2. 固定渐近项</h3>
+<p>当前固定 <code>asymptote=1.5</code>。它是方法先验，不是由四个点自由估计。改变渐近项会改变外推。</p>
+<h3 id="3-d2048-未完成">3. d2048 未完成</h3>
+<p>85%–100% 的 d2048 是用 60%–80% 线性外推并加 0.005 correction 得到。它不是实测终点。</p>
+<h3 id="4-metric-与评测噪声">4. Metric 与评测噪声</h3>
+<p>Paloma macro 是 held-out aggregate。单次 eval 的采样波动、domain 构成与评测实现也会影响比较。</p>
+<h3 id="5-regime-变化">5. Regime 变化</h3>
+<p>Baseline 假定 Hero 与 Ladder 在可比 recipe 下运行。Context length、datamix、token budget 或关键训练 recipe 改变后，必须新建或分段 baseline。</p>
+<h3 id="6-w-b-数据采样">6. W&amp;B 数据采样</h3>
+<p>当前公开时序使用 <code>sampledHistory</code>。它可能不足以支撑“从未出现短时异常”之类全称命题。</p>
+<h2 id="用词规则">用词规则</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">当前证据</th><th scope="col">可以写</th><th scope="col">不应写</th></tr></thead><tbody><tr><td>只有点预测</td><td>高于/低于点预测</td><td>显著领先/显著落后</td></tr><tr><td>有 LOO envelope</td><td>对 rung 选择较稳健/敏感</td><td>95% 置信区间</td></tr><tr><td>有 recipe 冲突</td><td>当前 baseline 可能不适用</td><td>仍在同一轨道</td></tr><tr><td>数据陈旧</td><td>最后一次观测为…</td><td>当前正在…</td></tr><tr><td>吞吐稳定</td><td>未见持续吞吐恶化</td><td>通信不是瓶颈</td></tr></tbody></table></div>
+<h2 id="下一步如何变得更严谨">下一步如何变得更严谨</h2>
+<p>建议依次增加：</p>
+<ol><li>报告 log-excess fit residual，而不把它伪装成预测 CI。</li><li>对不同 asymptote 和 d2048 处理做方法敏感性矩阵。</li><li>若能获得可重复评测或合理采样模型，再定义 bootstrap 或预测区间。</li><li>做 leave-one-rung-out 的历史回测：用小 rung 预测被省略 rung。</li><li>对 Paloma 16 domains 分别追踪，避免 macro 掩盖偏科。</li><li>明确 recipe regime 切换点，禁止跨 regime 无条件比较。</li></ol>
+<h2 id="一个好的结论模板">一个好的结论模板</h2>
+<blockquote><p><strong>OBSERVED</strong>：step 32,999 Paloma macro 原始值 = 2.2781243324279785。 <strong>DERIVED</strong>：matched-progress point prediction = 2.3465101574845844，canonical residual = -0.06838582505660584。 <strong>SENSITIVITY</strong>：LOO envelope 已报告，但不是置信区间。 <strong>INFERRED</strong>：当前点估计没有显示弱于参考；对终点与显著性证据不足。</p></blockquote></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

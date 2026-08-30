@@ -1,0 +1,356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fudan-chen.github.io/pretrain/schemas/current_status.schema.json",
+  "title": "Marin Hero current status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "method_id",
+    "data_as_of",
+    "run",
+    "recipe",
+    "baseline_applicability",
+    "latest",
+    "matched_progress",
+    "milestones",
+    "series",
+    "source_health",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "method_id": {"const": "marin-matched-progress-v1"},
+    "data_as_of": {"type": "string", "format": "date-time"},
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "state",
+        "created_at",
+        "heartbeat_at",
+        "freshness_threshold_hours",
+        "step",
+        "total_steps",
+        "progress_pct",
+        "tokens_trained",
+        "recipe_regime_id",
+        "mixture_stage"
+      ],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "state": {"type": "string", "minLength": 1},
+        "created_at": {"type": ["string", "null"]},
+        "heartbeat_at": {"type": ["string", "null"]},
+        "freshness_threshold_hours": {"type": "number", "exclusiveMinimum": 0},
+        "step": {"type": "integer", "minimum": 0},
+        "total_steps": {"type": "integer", "minimum": 1},
+        "progress_pct": {"type": "number", "minimum": 0},
+        "tokens_trained": {"type": "number", "minimum": 0},
+        "recipe_regime_id": {"type": ["string", "null"], "minLength": 1},
+        "mixture_stage": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "recipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "learning_rate_schedule",
+        "warmup_fraction",
+        "decay",
+        "device_kind",
+        "device_variant",
+        "replicas",
+        "devices_per_replica",
+        "configured_device_slots",
+        "topology_note"
+      ],
+      "properties": {
+        "learning_rate_schedule": {"type": ["string", "null"]},
+        "warmup_fraction": {"type": ["number", "null"], "minimum": 0},
+        "decay": {"type": ["number", "string", "null"]},
+        "device_kind": {"type": ["string", "null"]},
+        "device_variant": {"type": ["string", "null"]},
+        "replicas": {"type": "integer", "minimum": 0},
+        "devices_per_replica": {"type": "integer", "minimum": 0},
+        "configured_device_slots": {"type": "integer", "minimum": 0},
+        "topology_note": {"type": "string", "minLength": 1}
+      }
+    },
+    "baseline_applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "recipe_regime_id", "policy", "checks"],
+      "properties": {
+        "status": {"enum": ["supported", "unverified", "mismatch"]},
+        "recipe_regime_id": {"type": ["string", "null"], "minLength": 1},
+        "policy": {"type": "string", "minLength": 1},
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "selector",
+              "operator",
+              "expected",
+              "observed",
+              "result"
+            ],
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "selector": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "operator": {"enum": ["equals", "contains"]},
+              "expected": true,
+              "observed": true,
+              "result": {"enum": ["match", "mismatch", "unverified"]}
+            }
+          }
+        }
+      }
+    },
+    "latest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "train_ce",
+        "grad_norm",
+        "learning_rate",
+        "throughput",
+        "mfu",
+        "drop_fraction",
+        "paloma_macro",
+        "router_bias_max",
+        "router_overflow"
+      ],
+      "properties": {
+        "train_ce": {"$ref": "#/$defs/nullableObservation"},
+        "grad_norm": {"$ref": "#/$defs/nullableObservation"},
+        "learning_rate": {"$ref": "#/$defs/nullableObservation"},
+        "throughput": {"$ref": "#/$defs/nullableObservation"},
+        "mfu": {"$ref": "#/$defs/nullableObservation"},
+        "drop_fraction": {"$ref": "#/$defs/nullableObservation"},
+        "paloma_macro": {"$ref": "#/$defs/nullableObservation"},
+        "router_bias_max": {"$ref": "#/$defs/nullableObservation"},
+        "router_overflow": {"$ref": "#/$defs/nullableObservation"}
+      }
+    },
+    "matched_progress": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/matchedProgressComparison"}
+      ]
+    },
+    "milestones": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["grad_norm_reference_25pct", "mixture_phase_boundary_80pct"],
+      "properties": {
+        "grad_norm_reference_25pct": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "reference_only"],
+          "properties": {
+            "status": {"enum": ["not_reached", "reached"]},
+            "reference_only": {"const": true}
+          }
+        },
+        "mixture_phase_boundary_80pct": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": {"enum": ["not_reached", "reached"]}
+          }
+        }
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "train_ce",
+        "grad_norm",
+        "learning_rate",
+        "throughput",
+        "mfu",
+        "drop_fraction",
+        "paloma_macro",
+        "router_bias_max",
+        "router_overflow",
+        "matched_progress",
+        "paloma_residual"
+      ],
+      "properties": {
+        "train_ce": {"$ref": "#/$defs/twoNumberSeries"},
+        "grad_norm": {"$ref": "#/$defs/twoNumberSeries"},
+        "learning_rate": {"$ref": "#/$defs/twoNumberSeries"},
+        "throughput": {"$ref": "#/$defs/twoNumberSeries"},
+        "mfu": {"$ref": "#/$defs/twoNumberSeries"},
+        "drop_fraction": {"$ref": "#/$defs/twoNumberSeries"},
+        "paloma_macro": {"$ref": "#/$defs/twoNumberSeries"},
+        "router_bias_max": {"$ref": "#/$defs/twoNumberSeries"},
+        "router_overflow": {"$ref": "#/$defs/twoNumberSeries"},
+        "paloma_residual": {"$ref": "#/$defs/twoNumberSeries"},
+        "matched_progress": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "prefixItems": [
+              {"type": "integer", "minimum": 0},
+              {"type": "number"},
+              {"type": "number"},
+              {"type": "number"}
+            ],
+            "items": false
+          }
+        }
+      }
+    },
+    "source_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wandb_dense",
+        "wandb_eval",
+        "wandb_router",
+        "run_meta",
+        "baseline_applicability",
+        "ecosystem_evidence"
+      ],
+      "properties": {
+        "wandb_dense": {"enum": ["available", "missing"]},
+        "wandb_eval": {"enum": ["available", "missing"]},
+        "wandb_router": {"enum": ["available", "missing"]},
+        "run_meta": {"enum": ["available", "missing"]},
+        "baseline_applicability": {"enum": ["supported", "unverified", "mismatch"]},
+        "ecosystem_evidence": {"type": "string", "minLength": 1}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "required": [
+        "dense",
+        "eval",
+        "router",
+        "meta",
+        "baseline",
+        "baseline_grid",
+        "baseline_grid_manifest",
+        "hero_issue_snapshot"
+      ],
+      "additionalProperties": {"$ref": "#/$defs/artifact"},
+      "properties": {
+        "dense": {"$ref": "#/$defs/artifact"},
+        "eval": {"$ref": "#/$defs/artifact"},
+        "router": {"$ref": "#/$defs/artifact"},
+        "meta": {"$ref": "#/$defs/artifact"},
+        "baseline": {"$ref": "#/$defs/artifact"},
+        "baseline_grid": {"$ref": "#/$defs/artifact"},
+        "baseline_grid_manifest": {"$ref": "#/$defs/artifact"},
+        "hero_issue_snapshot": {"$ref": "#/$defs/artifact"}
+      }
+    }
+  },
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "value", "observed_at"],
+      "properties": {
+        "step": {"type": "integer", "minimum": 0},
+        "value": {"type": "number"},
+        "observed_at": {"type": ["string", "null"]}
+      }
+    },
+    "nullableObservation": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/observation"}
+      ]
+    },
+    "matchedProgressComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "method",
+        "method_id",
+        "step",
+        "fraction",
+        "progress_pct",
+        "left_fraction",
+        "right_fraction",
+        "interpolation_weight",
+        "prediction",
+        "sensitivity_low",
+        "sensitivity_high",
+        "uncertainty_note",
+        "actual",
+        "residual",
+        "direction",
+        "significance",
+        "caveat"
+      ],
+      "properties": {
+        "available": {"const": true},
+        "method": {"type": "string", "minLength": 1},
+        "method_id": {"const": "marin-matched-progress-v1"},
+        "step": {"type": "integer", "minimum": 0},
+        "fraction": {"type": "number", "minimum": 0.05, "maximum": 1},
+        "progress_pct": {"type": "number", "minimum": 5, "maximum": 100},
+        "left_fraction": {"type": "number", "minimum": 0.05, "maximum": 1},
+        "right_fraction": {"type": "number", "minimum": 0.05, "maximum": 1},
+        "interpolation_weight": {"type": "number", "minimum": 0, "maximum": 1},
+        "prediction": {"type": "number"},
+        "sensitivity_low": {"type": "number"},
+        "sensitivity_high": {"type": "number"},
+        "uncertainty_note": {"type": "string", "minLength": 1},
+        "actual": {"type": "number"},
+        "residual": {"type": "number"},
+        "direction": {
+          "enum": [
+            "better_than_point_prediction",
+            "equal_to_point_prediction",
+            "worse_than_point_prediction"
+          ]
+        },
+        "significance": {"const": "not_assessed"},
+        "caveat": {"type": "string", "minLength": 1}
+      }
+    },
+    "twoNumberSeries": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "prefixItems": [
+          {"type": "integer", "minimum": 0},
+          {"type": "number"}
+        ],
+        "items": false
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "provider"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "provider": {"type": "string", "minLength": 1},
+        "sampling": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

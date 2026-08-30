@@ -1,0 +1,16 @@
+{"_step": 1003, "_timestamp": 1787058727.3692958, "eval_dropless/paloma/macro_loss": 2.9312033653259277}
+{"_step": 2007, "_timestamp": 1787061394.015536, "eval_dropless/paloma/macro_loss": 2.802788257598877}
+{"_step": 3011, "_timestamp": 1787064177.1345606, "eval_dropless/paloma/macro_loss": 2.7470338344573975}
+{"_step": 4015, "_timestamp": 1787066914.053611, "eval_dropless/paloma/macro_loss": 2.710448741912842}
+{"_step": 5019, "_timestamp": 1787069617.8480623, "eval_dropless/paloma/macro_loss": 2.6807942390441895}
+{"_step": 6023, "_timestamp": 1787072278.4284086, "eval_dropless/paloma/macro_loss": 2.6612348556518555}
+{"_step": 7027, "_timestamp": 1787074910.6740217, "eval_dropless/paloma/macro_loss": 2.643836498260498}
+{"_step": 8031, "_timestamp": 1787077536.2137115, "eval_dropless/paloma/macro_loss": 2.6150641441345215}
+{"_step": 9035, "_timestamp": 1787080155.8713608, "eval_dropless/paloma/macro_loss": 2.6094987392425537}
+{"_step": 10039, "_timestamp": 1787082697.201735, "eval_dropless/paloma/macro_loss": 2.590702533721924}
+{"_step": 11043, "_timestamp": 1787085281.6665263, "eval_dropless/paloma/macro_loss": 2.5618793964385986}
+{"_step": 12047, "_timestamp": 1787087868.1926262, "eval_dropless/paloma/macro_loss": 2.543623447418213}
+{"_step": 13051, "_timestamp": 1787090420.0627537, "eval_dropless/paloma/macro_loss": 2.527618408203125}
+{"_step": 14055, "_timestamp": 1787093004.8917694, "eval_dropless/paloma/macro_loss": 2.5085854530334473}
+{"_step": 15059, "_timestamp": 1787095627.6940365, "eval_dropless/paloma/macro_loss": 2.4904448986053467}
+{"_step": 16063, "_timestamp": 1787098256.6290393, "eval_dropless/paloma/macro_loss": 2.474504232406616}

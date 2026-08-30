@@ -1,0 +1,53 @@
+<section class="hero-shell">
+  <div class="eyebrow">START HERE · METHOD {{METHOD_ID}}</div>
+  <h1>先回答四个问题，<br><span>再决定该相信什么。</span></h1>
+  <p class="lede">这不是一块用绿色圆点制造“实时感”的看板。它把公开观测、确定性计算和解释性判断拆开，让每个数字都能回到输入与方法。</p>
+  <div class="path-pills" aria-label="三条阅读路径">
+    <a href="{{ROOT}}/live/">3 分钟：看当前证据</a>
+    <a href="{{ROOT}}/learn/">20 分钟：理解 Scaling Ladder</a>
+    <a href="{{ROOT}}/methodology/">复现者：公式、数据与命令</a>
+  </div>
+</section>
+
+<section class="section-shell first-answers" aria-labelledby="answers-title">
+  <div class="section-heading"><p>01 / CURRENT EVIDENCE</p><h2 id="answers-title">第一屏只回答这四件事</h2></div>
+  <div class="answer-grid">
+    <article class="answer-card answer-primary">
+      <p class="question">训练是否仍在更新？</p>
+      <p class="answer"><span id="freshness-word" data-freshness="{{DATA_AS_OF}}" data-threshold="{{FRESHNESS_HOURS}}">需按数据时间判断</span></p>
+      <p>最后的 W&amp;B 元数据状态是 <code>{{RUN_STATE}}</code>；指标截止 <time>{{DATA_AS_OF}}</time>，heartbeat 为 <time>{{HEARTBEAT_AT}}</time>。</p>
+    </article>
+    <article class="answer-card">
+      <p class="question">处于什么 recipe / phase？</p>
+      <p class="answer">{{PROGRESS}}% · stage {{MIXTURE_STAGE}}</p>
+      <p>step {{STEP}} / {{TOTAL_STEPS}}，LR schedule=<code>{{LR_SCHEDULE}}</code>；配置声明 {{CONFIGURED_SLOTS}} 个 {{DEVICE}} device slots，不等同于实时利用率。</p>
+    </article>
+    <article class="answer-card">
+      <p class="question">相对同进度参考怎样？</p>
+      <p class="answer good-ink">{{RESIDUAL}}</p>
+      <p>适用性门禁为 <code>{{BASELINE_APPLICABILITY}}</code>。step {{PALOMA_STEP}} 的 Paloma 实测 {{PALOMA}}，{{RESIDUAL_DIRECTION}} matched-progress 点预测 {{RESIDUAL_ABS}}。尚未评估统计显著性。</p>
+    </article>
+    <article class="answer-card">
+      <p class="question">最近可验证的变化是什么？</p>
+      <p class="answer">新 Paloma eval</p>
+      <p>当前最新可比较点为 step {{PALOMA_STEP}}。Train CE 不用于替代 held-out Paloma，也不与其比较绝对值。</p>
+    </article>
+  </div>
+</section>
+
+<section class="section-shell split-story" aria-labelledby="system-title">
+  <div>
+    <div class="section-heading"><p>02 / TRUST MODEL</p><h2 id="system-title">页面先问“怎么知道”，再说“意味着什么”</h2></div>
+    <p>新版本的数据流只有一个方向：原始证据 → 归一化事实 → 派生分析 → 有类型的 Claim → 静态页面。页面不能手写当前进度、硬件、LR 或“已越过某里程碑”。</p>
+  </div>
+  <ol class="evidence-ladder">
+    <li><strong>OBSERVED</strong><span>直接观测：metric key、step、时间、文件 checksum</span></li>
+    <li><strong>DERIVED</strong><span>可复算：公式、参数、方法版本、输入 artifact</span></li>
+    <li><strong>INFERRED</strong><span>可反驳：置信度、替代解释、可能推翻它的证据</span></li>
+  </ol>
+</section>
+
+<section class="section-shell" aria-labelledby="claims-title">
+  <div class="section-heading"><p>03 / CLAIM LEDGER</p><h2 id="claims-title">当前结论账本</h2><p>颜色只是辅助，每张卡都用文字写明证据等级与支持状态。</p></div>
+  <div class="claim-grid">{{CLAIM_CARDS}}</div>
+</section>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>02 · Scaling law 不是 learning curve · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" >状态</a>
+        <a href="../../learn/" aria-current="page">学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="02-scaling-law-不是-learning-curve">02 · Scaling law 不是 learning curve</h1>
+<h2 id="本章问题">本章问题</h2>
+<p>一个公式如果能预测“不同模型规模在训练终点的 loss”，能否把 compute 换成当前累计 compute，从而预测同一个大模型的整条训练曲线？</p>
+<p>通常不能。这里混淆了横截面规律和纵向轨迹。</p>
+<h2 id="两类完全不同的问题">两类完全不同的问题</h2>
+<h3 id="横截面-scaling-law">横截面 Scaling Law</h3>
+<p>在相同训练百分位 <code>g</code> 上，比较不同宽度的 rung：</p>
+<pre><code class="language-text">d768  @ g% → (compute, Paloma loss)
+d1024 @ g% → (compute, Paloma loss)
+d1536 @ g% → (compute, Paloma loss)
+d2048 @ g% → (compute, Paloma loss)</code></pre>
+<p>然后拟合：</p>
+<pre><code class="language-text">L(C) = 1.5 + A_g · C^(-alpha_g)</code></pre>
+<p>注意下标 <code>g</code>：每个训练百分位都有自己的 <code>A_g</code> 和 <code>alpha_g</code>。</p>
+<h3 id="纵向-learning-curve">纵向 Learning Curve</h3>
+<p>固定一个模型，观察它随 step 的 loss：</p>
+<pre><code class="language-text">Hero step 3k → loss
+Hero step 6k → loss
+Hero step 9k → loss
+...</code></pre>
+<p>它受到 warmup、optimizer、batch、数据阶段、context length、checkpoint 恢复和评测 cadence 等因素影响。它不是把终点的 <code>A_100/alpha_100</code> 套在 <code>C_full × progress</code> 上就自然得到的。</p>
+<h2 id="一个直观类比">一个直观类比</h2>
+<p>横截面问题像是：</p>
+<blockquote><p>同样学完课程 50% 时，不同基础的四个班考多少分？据此预测第五个班。</p></blockquote>
+<p>纵向问题像是：</p>
+<blockquote><p>第五个班从开课到结课，分数随每一周如何变化？</p></blockquote>
+<p>“结课时不同班级之间的规模规律”不能自动变成“某一个班每周的成长曲线”。</p>
+<h2 id="旧版为什么会错">旧版为什么会错</h2>
+<p>旧版使用固定终点参数：</p>
+<pre><code class="language-python">c = C_full_hero * step / hero_steps
+loss = 1.5 + A_terminal * c ** (-alpha_terminal)</code></pre>
+<p>这段代码在代数上可以执行，却回答了一个没有被 Ladder 实验注册的问题。结果在 step 32,999 给出约 2.21083，而正确的同进度参考约 2.34651。</p>
+<p>实测 2.27812：</p>
+<pre><code class="language-text">旧 baseline：2.27812 - 2.21083 = +0.06729
+v2 baseline：2.27812 - 2.34651 = -0.06839</code></pre>
+<p>方向完全反转。</p>
+<h2 id="官方逐-5-方法">官方逐 5% 方法</h2>
+<p>Marin 固定脚本在 5%、10%、…、100% 的每一个百分位重新拟合四个 rung，然后把同百分位 Hero compute 代入。非 5% 的 Hero eval，v2 只在相邻两个 Hero 点预测之间插值。</p>
+<p>因此，正确数据结构不是一组全局系数：</p>
+<pre><code class="language-json">{&quot;A&quot;: 87.1, &quot;alpha&quot;: 0.0894}</code></pre>
+<p>而是一张方法表：</p>
+<pre><code class="language-text">5%   → A_5,   alpha_5,   hero_prediction_5
+10%  → A_10,  alpha_10,  hero_prediction_10
+...
+100% → A_100, alpha_100, hero_prediction_100</code></pre>
+<h2 id="看到-全程预测曲线-时的检查表">看到“全程预测曲线”时的检查表</h2>
+<ol><li>曲线的每个点是否来自同一实验定义？</li><li>终点 fit 是否被未经验证地扩展到中途？</li><li>对比双方是否为相同 metric、dataset 和评测协议？</li><li>Recipe/context/datamix 改变后 baseline 是否重置？</li><li>图中曲线是测量、插值还是外推？是否有清楚标记？</li></ol>
+<h2 id="尚不能得出的结论">尚不能得出的结论</h2>
+<p>即使 matched-progress residual 为负，也不能直接推出：</p>
+<ul><li>终点一定达到 2.04；</li><li>训练显著领先；</li><li>后续 phase 改变仍保持同一 residual；</li><li>训练 loss 也相对 Ladder “领先”。</li></ul></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

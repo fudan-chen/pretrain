@@ -1,0 +1,31 @@
+<section class="page-intro learning-intro">
+  <p class="eyebrow">LEARNING PATH · 8 CHAPTERS</p>
+  <h1>不是多看几张图，<br>而是学会不被图骗。</h1>
+  <p>课程按知识依赖排序。每章都使用同一个结构：问题 → 直觉 → 公式 → 真实数据 → 可执行命令 → 常见误区 → 尚不能得出的结论。</p>
+</section>
+
+<section class="section-shell course-list" aria-labelledby="course-title">
+  <div class="section-heading"><p>CURRICULUM</p><h2 id="course-title">建议依次阅读</h2></div>
+  <ol>
+    <li><a href="{{ROOT}}/learn/00-start-here/"><span>00</span><strong>项目与证据边界</strong><small>这个仓库在追踪什么，不在声称什么</small></a></li>
+    <li><a href="{{ROOT}}/learn/01-evidence-derived-inference/"><span>01</span><strong>OBSERVED / DERIVED / INFERRED</strong><small>如何把事实、计算与判断分开</small></a></li>
+    <li><a href="{{ROOT}}/learn/02-scaling-law-is-not-learning-curve/"><span>02</span><strong>Scaling law 不是 learning curve</strong><small>本项目最重要的方法论分界</small></a></li>
+    <li><a href="{{ROOT}}/learn/03-reproduce-official-ladder/"><span>03</span><strong>复算官方 2.03878</strong><small>逐 5% 拟合、d2048 外推与 compute 口径</small></a></li>
+    <li><a href="{{ROOT}}/learn/04-worked-example-step-32999/"><span>04</span><strong>step 32,999：方向为什么会反转</strong><small>同一实测、两种 baseline、相反结论</small></a></li>
+    <li><a href="{{ROOT}}/learn/05-uncertainty-and-limits/"><span>05</span><strong>敏感性不是置信区间</strong><small>什么时候只能说高于或低于点预测</small></a></li>
+    <li><a href="{{ROOT}}/learn/06-reading-training-signals/"><span>06</span><strong>读懂训练、Router 与系统信号</strong><small>指标能支持的结论边界</small></a></li>
+    <li><a href="{{ROOT}}/learn/07-falsification-lab/"><span>07</span><strong>反证实验室</strong><small>注入 recipe mismatch 与 residual 反向案例，确认系统会拒绝旧结论</small></a></li>
+  </ol>
+</section>
+
+<section class="section-shell worked-case" aria-labelledby="case-title">
+  <div class="section-heading"><p>THE CORE LESSON</p><h2 id="case-title">一眼看懂 step 32,999</h2></div>
+  <div class="equation-flow" aria-label="残差复算流程">
+    <div><small>OBSERVED</small><strong>{{PALOMA}}</strong><span>Paloma macro</span></div>
+    <b aria-hidden="true">−</b>
+    <div><small>DERIVED</small><strong>{{PREDICTION}}</strong><span>matched-progress</span></div>
+    <b aria-hidden="true">=</b>
+    <div class="result"><small>RESIDUAL</small><strong>{{RESIDUAL}}</strong><span>actual − prediction</span></div>
+  </div>
+  <p>旧版把终点 scaling law 当作时间曲线，得到正 residual；v2 在相邻的 5% 和 10% 官方点预测间插值，得到负 residual。错误不在小数点，而在问题定义。</p>
+</section>

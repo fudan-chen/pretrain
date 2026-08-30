@@ -1,50 +1,58 @@
-name: hero-track
-# Marin 535B hero run 定时追踪
-# 触发时刻: 北京时间 08:00 / 20:00  =  UTC 00:00 / 12:00
-# 本文件需位于默认分支 main 才会被 schedule 触发；
-# 修改后必须同步合入 main，否则定时器仍按旧逻辑执行。
-# 数据与报告写入 marin-deep-track 分支。运维细节见 docs/OPERATIONS.md。
+name: Hero Track v2 Preview
 
+# v2 first runs manually and writes only v2/evidence paths. Keep the legacy
+# scheduled branch untouched until two preview cycles pass the acceptance gate.
 on:
-  schedule:
-    - cron: "0 0,12 * * *"
-  workflow_dispatch: {}   # 允许手动触发（dispatch 的 ref 选 main）
+  workflow_dispatch: {}
 
 permissions:
   contents: write
 
+concurrency:
+  group: hero-track-v2-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   track:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Checkout marin-deep-track
-        uses: actions/checkout@v4
-        with:
-          ref: marin-deep-track
+      - name: Check out the selected branch
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - name: Run tracker (pull + update + dashboard)
-        working-directory: scripts
+      - name: Require a branch ref
+        env:
+          REF_TYPE: ${{ github.ref_type }}
         run: |
-          python track_hero.py update
-          python track_hero.py dashboard
+          if [[ "$REF_TYPE" != "branch" ]]; then
+            echo "Hero Track v2 must run from a branch, not $REF_TYPE."
+            exit 1
+          fi
 
-      - name: Refresh system metrics snapshot (optional, non-blocking)
-        working-directory: scripts
-        run: python pull_hero_system.py || echo "::warning::system metrics refresh failed, continuing"
+      - name: Refresh public evidence and build v2
+        run: python scripts/track_hero.py update
 
-      - name: Commit & push updates to marin-deep-track
+      - name: Validate refreshed products
         run: |
+          python -m unittest discover -s tests -v
+          python -m compileall -q scripts tests
+          python scripts/check_site.py
+
+      - name: Commit only evidence and v2 outputs
+        run: |
+          git add data/hero data/baselines data/derived reports/generated site
+          if git diff --cached --quiet; then
+            echo "No v2 changes to commit."
+            exit 0
+          fi
           git config user.name "marin-track-bot"
           git config user.email "marin-track-bot@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "no changes, skip commit"
-          else
-            git commit -m "track: hero update $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push origin marin-deep-track
-          fi
+          git commit -m "track: update Hero v2 evidence and derived outputs"
+          git fetch origin "$GITHUB_REF_NAME"
+          git rebase FETCH_HEAD
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"

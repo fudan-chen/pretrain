@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fudan-chen.github.io/pretrain/schemas/runs_registry.schema.json",
+  "title": "Marin run registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "runs"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "role",
+          "provider",
+          "entity",
+          "project",
+          "canonical_url",
+          "source_id",
+          "recipe_regime_id",
+          "registered_steps",
+          "registered_tokens",
+          "context_length",
+          "tracker_group",
+          "datamix_revision",
+          "baseline_id",
+          "evidence",
+          "baseline_applicability"
+        ],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "role": {"enum": ["ladder_rung", "hero"]},
+          "provider": {"type": "string", "minLength": 1},
+          "entity": {"type": "string", "minLength": 1},
+          "project": {"type": "string", "minLength": 1},
+          "canonical_url": {"type": "string", "format": "uri"},
+          "source_id": {"type": "string", "minLength": 1},
+          "recipe_regime_id": {"type": "string", "minLength": 1},
+          "registered_steps": {"type": "integer", "minimum": 1},
+          "registered_tokens": {"type": "integer", "minimum": 1},
+          "context_length": {"type": "integer", "minimum": 1},
+          "tracker_group": {"type": "string", "minLength": 1},
+          "datamix_revision": {"type": "string", "minLength": 1},
+          "baseline_id": {"type": "string", "minLength": 1},
+          "evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["metadata_path", "metric_paths", "identity_fields"],
+            "properties": {
+              "metadata_path": {"type": "string", "minLength": 1},
+              "metric_paths": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "identity_fields": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              }
+            }
+          },
+          "baseline_applicability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "policy",
+              "required_requirement_ids",
+              "on_unknown",
+              "on_mismatch"
+            ],
+            "properties": {
+              "policy": {"type": "string", "minLength": 1},
+              "required_requirement_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "on_unknown": {"const": "unavailable"},
+              "on_mismatch": {"const": "unavailable"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

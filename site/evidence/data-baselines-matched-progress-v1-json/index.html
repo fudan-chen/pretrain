@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Claim 所引用证据的来源、checksum 与可读预览。">
+  <meta name="color-scheme" content="dark light">
+  <title>baseline · Evidence · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="live">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" aria-current="page">状态</a>
+        <a href="../../learn/" >学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../live/">← 返回 Claim 账本</a></p><article class="markdown-doc evidence-doc"><p class="eyebrow evidence-eyebrow">EVIDENCE ARTIFACT</p><h1>baseline</h1><dl class="evidence-meta"><div><dt>仓库路径</dt><dd><code>data/baselines/matched_progress_v1.json</code></dd></div><div><dt>来源</dt><dd>generated matched-progress baseline</dd></div><div><dt>采样</dt><dd>deterministic output from pinned grid and method</dd></div><div><dt>SHA-256</dt><dd><code>13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3</code></dd></div></dl><p><strong>预览不是第二份事实源。</strong>它只帮助定位记录；校验与复算使用上面的完整文件 checksum。</p><p><a href="../../artifacts/data/baselines/matched_progress_v1.json">打开或下载完整原始文件 →</a></p><h2>可读预览</h2><pre><code>{
+  &quot;schema_version&quot;: &quot;1.0&quot;,
+  &quot;method_id&quot;: &quot;marin-matched-progress-v1&quot;,
+  &quot;description&quot;: &quot;One fixed-asymptote cross-rung fit per 5% training fraction.&quot;,
+  &quot;source&quot;: {
+    &quot;upstream_commit&quot;: &quot;d23e6e9c3673435fb82d83aa6c51a607d0da6009&quot;,
+    &quot;upstream_script&quot;: &quot;https://github.com/marin-community/marin/blob/d23e6e9c3673435fb82d83aa6c51a607d0da6009/experiments/grug/moe_hero_ep/plot_scaling_ladder.py&quot;,
+    &quot;input_path&quot;: &quot;data/ladder_eval_grid.json&quot;,
+    &quot;input_sha256&quot;: &quot;2aa216d121d2b239af1f386c5080a68233c428c73b4969d71e34e5ae71156738&quot;,
+    &quot;implementation_path&quot;: &quot;scripts/marin_tracker/ladder.py&quot;,
+    &quot;implementation_sha256&quot;: &quot;8d47708bea42b4253b7662f43265de2e3bd35292039aaedb504881c01a6782a8&quot;,
+    &quot;input_manifest_path&quot;: &quot;data/ladder_eval_grid.manifest.json&quot;,
+    &quot;input_manifest_sha256&quot;: &quot;bd950075a27c68d8eac70280c20fae82fcde644f8e984cbb44974fc1acf3e8cf&quot;
+  },
+  &quot;applicability&quot;: {
+    &quot;recipe_regime_id&quot;: &quot;hero-4k-harrier-18t-v1&quot;,
+    &quot;policy&quot;: &quot;all requirements must be observed and match&quot;,
+    &quot;requirements&quot;: [
+      {
+        &quot;id&quot;: &quot;run_id&quot;,
+        &quot;selector&quot;: [
+          &quot;name&quot;
+        ],
+        &quot;operator&quot;: &quot;equals&quot;,
+        &quot;expected&quot;: &quot;hero-12d8b6f0-dee637&quot;
+      },
+      {
+        &quot;id&quot;: &quot;context_length&quot;,
+        &quot;selector&quot;: [
+          &quot;config&quot;,
+          &quot;model&quot;,
+          &quot;max_seq_len&quot;
+        ],
+        &quot;operator&quot;: &quot;equals&quot;,
+        &quot;expected&quot;: 4096
+      },
+      {
+        &quot;id&quot;: &quot;registered_steps&quot;,
+        &quot;selector&quot;: [
+          &quot;config&quot;,
+          &quot;trainer&quot;,
+          &quot;trainer&quot;,
+          &quot;num_train_steps&quot;
+        ],
+        &quot;operator&quot;: &quot;equals&quot;,
+        &quot;expected&quot;: 390251
+      },
+      {
+        &quot;id&quot;: &quot;tracker_group&quot;,
+        &quot;selector&quot;: [
+          &quot;config&quot;,
+          &quot;trainer&quot;,
+          &quot;trainer&quot;,
+          &quot;tracker&quot;,
+          &quot;group&quot;
+        ],
+        &quot;operator&quot;: &quot;equals&quot;,
+        &quot;expected&quot;: &quot;moe-hero-ep-scaling-ladder&quot;
+      },
+      {
+        &quot;id&quot;: &quot;datamix_revision&quot;,
+        &quot;selector&quot;: [
+          &quot;tags&quot;
+        ],
+        &quot;operator&quot;: &quot;contains&quot;,
+        &quot;expected&quot;: &quot;harrier-mix-2026.08.18&quot;
+      }
+    ]
+  },
+  &quot;constants&quot;: {
+    &quot;asymptote&quot;: 1.5,
+    &quot;d2048_correction&quot;: 0.005,
+    &quot;hero_steps&quot;: 390251,
+    &quot;compute_excludes_lm_head&quot;: true
+  },
+  &quot;d2048_extrapolation&quot;: {
+    &quot;fit_window&quot;: [
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8
+    ],
+    &quot;slope&quot;: -0.35082387924194336,
+    &quot;intercept&quot;: 2.75453200340271,
+    &quot;last_observed_fraction&quot;: 0.8
+  },
+  &quot;fractions&quot;: [
+    {
+      &quot;fraction&quot;: 0.05,
+      &quot;progress_pct&quot;: 5.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 1.3248399401350595e+18,
+          &quot;loss&quot;: 3.786311388015747,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1024&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 8.630591370899227e+18,
+          &quot;loss&quot;: 3.4264705181121826,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1536&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 6.9066292500165665e+19,
+          &quot;loss&quot;: 3.1583311557769775,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d2048&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 3.870907473828225e+20,
+          &quot;loss&quot;: 2.9312033653259277,
+          &quot;status&quot;: &quot;observed&quot;
+        }
+      ],
+      &quot;fit&quot;: {
+        &quot;coefficient_A&quot;: 67.55030055780408,
+        &quot;exponent_alpha&quot;: 0.08129593842130106
+      },
+      &quot;hero&quot;: {
+        &quot;compute_flops_no_lm_head&quot;: 1.3054470806886351e+23,
+        &quot;prediction&quot;: 2.3920926134624465,
+        &quot;sensitivity&quot;: {
+          &quot;kind&quot;: &quot;leave-one-rung-out range; not a confidence interval&quot;,
+          &quot;low&quot;: 2.3855484433960297,
+          &quot;high&quot;: 2.4134727287894737,
+          &quot;fits&quot;: [
+            {
+              &quot;omitted_rung&quot;: &quot;d768&quot;,
+              &quot;prediction&quot;: 2.4134727287894737
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1024&quot;,
+              &quot;prediction&quot;: 2.3885197958872055
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1536&quot;,
+              &quot;prediction&quot;: 2.3855484433960297
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d2048&quot;,
+              &quot;prediction&quot;: 2.3943112851927912
+            }
+          ]
+        }
+      }
+    },
+    {
+      &quot;fraction&quot;: 0.1,
+      &quot;progress_pct&quot;: 10.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 2.649679880270119e+18,
+          &quot;loss&quot;: 3.539341926574707,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1024&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 1.7261182741798453e+19,
+          &quot;loss&quot;: 3.264733076095581,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1536&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 1.3813258500033133e+20,
+          &quot;loss&quot;: 3.001892566680908,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d2048&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 7.74181494765645e+20,
+          &quot;loss&quot;: 2.802788257598877,
+          &quot;status&quot;: &quot;observed&quot;
+        }
+      ],
+      &quot;fit&quot;: {
+        &quot;coefficient_A&quot;: 57.685927673976295,
+        &quot;exponent_alpha&quot;: 0.07874755075535164
+      },
+      &quot;hero&quot;: {
+        &quot;compute_flops_no_lm_head&quot;: 2.6108941613772703e+23,
+        &quot;prediction&quot;: 2.326142719206298,
+        &quot;sensitivity&quot;: {
+          &quot;kind&quot;: &quot;leave-one-rung-out range; not a confidence interval&quot;,
+          &quot;low&quot;: 2.3205145248817205,
+          &quot;high&quot;: 2.3378727834352,
+          &quot;fits&quot;: [
+            {
+              &quot;omitted_rung&quot;: &quot;d768&quot;,
+              &quot;prediction&quot;: 2.3205145248817205
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1024&quot;,
+              &quot;prediction&quot;: 2.326436020315529
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1536&quot;,
+              &quot;prediction&quot;: 2.322855612002842
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d2048&quot;,
+              &quot;prediction&quot;: 2.3378727834352
+            }
+          ]
+        }
+      }
+    },
+    {
+      &quot;fraction&quot;: 0.15,
+      &quot;progress_pct&quot;: 15.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 3.9745198204051784e+18,
+          &quot;loss&quot;: 3.4669861793518066,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1024&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 2.589177411269768e+19,
+          &quot;loss&quot;: 3.18711519241333,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1536&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 2.0719887750049697e+20,
+          &quot;loss&quot;: 2.944444179534912,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d2048&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 1.1612722421484673e+21,
+          &quot;loss&quot;: 2.7470338344573975,
+          &quot;status&quot;: &quot;observed&quot;
+        }
+      ],
+      &quot;fit&quot;: {
+        &quot;coefficient_A&quot;: 59.43343924786464,
+        &quot;exponent_alpha&quot;: 0.07959816708984434
+      },
+      &quot;hero&quot;: {
+        &quot;compute_flops_no_lm_head&quot;: 3.9163412420659054e+23,
+        &quot;prediction&quot;: 2.2871922615777764,
+        &quot;sensitivity&quot;: {
+          &quot;kind&quot;: &quot;leave-one-rung-out range; not a confidence interval&quot;,
+          &quot;low&quot;: 2.281573863794648,
+          &quot;high&quot;: 2.299915395225637,
+          &quot;fits&quot;: [
+            {
+              &quot;omitted_rung&quot;: &quot;d768&quot;,
+              &quot;prediction&quot;: 2.2888074119644286
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1024&quot;,
+              &quot;prediction&quot;: 2.286244249748677
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1536&quot;,
+              &quot;prediction&quot;: 2.281573863794648
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d2048&quot;,
+              &quot;prediction&quot;: 2.299915395225637
+            }
+          ]
+        }
+      }
+    },
+    {
+      &quot;fraction&quot;: 0.2,
+      &quot;progress_pct&quot;: 20.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 5.299359760540238e+18,
+          &quot;loss&quot;: 3.4246766567230225,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1024&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 3.4522365483596906e+19,
+          &quot;loss&quot;: 3.144479513168335,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1536&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 2.7626517000066266e+20,
+          &quot;loss&quot;: 2.9032158851623535,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d2048&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 1.54836298953129e+21,
+          &quot;loss&quot;: 2.710448741912842,
+          &quot;status&quot;: &quot;observed&quot;
+        }
+      ],
+      &quot;fit&quot;: {
+        &quot;coefficient_A&quot;: 63.28614207570875,
+        &quot;exponent_alpha&quot;: 0.08104258158689549
+      },
+      &quot;hero&quot;: {
+        &quot;compute_flops_no_lm_head&quot;: 5.2217883227545405e+23,
+        &quot;prediction&quot;: 2.257103613906551,
+        &quot;sensitivity&quot;: {
+          &quot;kind&quot;: &quot;leave-one-rung-out range; not a confidence interval&quot;,
+          &quot;low&quot;: 2.252433092712559,
+          &quot;high&quot;: 2.2663782132610075,
+          &quot;fits&quot;: [
+            {
+              &quot;omitted_rung&quot;: &quot;d768&quot;,
+              &quot;prediction&quot;: 2.260407152843542
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1024&quot;,
+              &quot;prediction&quot;: 2.2560646925215306
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1536&quot;,
+              &quot;prediction&quot;: 2.252433092712559
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d2048&quot;,
+              &quot;prediction&quot;: 2.2663782132610075
+            }
+          ]
+        }
+      }
+    },
+    {
+      &quot;fraction&quot;: 0.25,
+      &quot;progress_pct&quot;: 25.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 6.624199700675297e+18,
+          &quot;loss&quot;: 3.3789491653442383,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1024&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 4.315295685449613e+19,
+          &quot;loss&quot;: 3.1228179931640625,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1536&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 3.453314625008283e+20,
+          &quot;loss&quot;: 2.8789801597595215,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d2048&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 1.9354537369141122e+21,
+          &quot;loss&quot;: 2.6807942390441895,
+          &quot;status&quot;: &quot;observed&quot;
+        }
+      ],
+      &quot;fit&quot;: {
+        &quot;coefficient_A&quot;: 64.10508115546378,
+        &quot;exponent_alpha&quot;: 0.08135971741881382
+      },
+      &quot;hero&quot;: {
+        &quot;compute_flops_no_lm_head&quot;: 6.527235403443176e+23,
+        &quot;prediction&quot;: 2.240172269155165,
+        &quot;sensitivity&quot;: {
+          &quot;kind&quot;: &quot;leave-one-rung-out range; not a confidence interval&quot;,
+          &quot;low&quot;: 2.2295069298812376,
+          &quot;high&quot;: 2.2641767386021723,
+          &quot;fits&quot;: [
+            {
+              &quot;omitted_rung&quot;: &quot;d768&quot;,
+              &quot;prediction&quot;: 2.2295069298812376
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1024&quot;,
+              &quot;prediction&quot;: 2.2406507298755067
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1536&quot;,
+              &quot;prediction&quot;: 2.2333335747374727
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d2048&quot;,
+              &quot;prediction&quot;: 2.2641767386021723
+            }
+          ]
+        }
+      }
+    },
+    {
+      &quot;fraction&quot;: 0.3,
+      &quot;progress_pct&quot;: 30.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 7.949039640810357e+18,
+          &quot;loss&quot;: 3.347630023956299,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1024&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 5.178354822539536e+19,
+          &quot;loss&quot;: 3.0838675498962402,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1536&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 4.1439775500099394e+20,
+          &quot;loss&quot;: 2.8418924808502197,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d2048&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 2.3225444842969346e+21,
+          &quot;loss&quot;: 2.6612348556518555,
+          &quot;status&quot;: &quot;observed&quot;
+        }
+      ],
+      &quot;fit&quot;: {
+        &quot;coefficient_A&quot;: 64.25662272405141,
+        &quot;exponent_alpha&quot;: 0.08154928248213986
+      },
+      &quot;hero&quot;: {
+        &quot;compute_flops_no_lm_head&quot;: 7.832682484131811e+23,
+        &quot;prediction&quot;: 2.2234135463202236,
+        &quot;sensitivity&quot;: {
+          &quot;kind&quot;: &quot;leave-one-rung-out range; not a confidence interval&quot;,
+          &quot;low&quot;: 2.221328095660499,
+          &quot;high&quot;: 2.2284767834054415,
+          &quot;fits&quot;: [
+            {
+              &quot;omitted_rung&quot;: &quot;d768&quot;,
+              &quot;prediction&quot;: 2.2234396496980193
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1024&quot;,
+              &quot;prediction&quot;: 2.2231357407902728
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1536&quot;,
+              &quot;prediction&quot;: 2.221328095660499
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d2048&quot;,
+              &quot;prediction&quot;: 2.2284767834054415
+            }
+          ]
+        }
+      }
+    },
+    {
+      &quot;fraction&quot;: 0.35,
+      &quot;progress_pct&quot;: 35.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 9.273879580945416e+18,
+          &quot;loss&quot;: 3.3215203285217285,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1024&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 6.041413959629459e+19,
+          &quot;loss&quot;: 3.0643138885498047,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1536&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 4.834640475011596e+20,
+          &quot;loss&quot;: 2.8284969329833984,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d2048&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 2.709635231679757e+21,
+          &quot;loss&quot;: 2.643836498260498,
+          &quot;status&quot;: &quot;observed&quot;
+        }
+      ],
+      &quot;fit&quot;: {
+        &quot;coefficient_A&quot;: 64.18489018562765,
+        &quot;exponent_alpha&quot;: 0.08153334248630062
+      },
+      &quot;hero&quot;: {
+        &quot;compute_flops_no_lm_head&quot;: 9.138129564820446e+23,
+        &quot;prediction&quot;: 2.214206859614373,
+        &quot;sensitivity&quot;: {
+          &quot;kind&quot;: &quot;leave-one-rung-out range; not a confidence interval&quot;,
+          &quot;low&quot;: 2.2098742589599145,
+          &quot;high&quot;: 2.226974392773431,
+          &quot;fits&quot;: [
+            {
+              &quot;omitted_rung&quot;: &quot;d768&quot;,
+              &quot;prediction&quot;: 2.2109457903885437
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1024&quot;,
+              &quot;prediction&quot;: 2.2140559493384773
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1536&quot;,
+              &quot;prediction&quot;: 2.2098742589599145
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d2048&quot;,
+              &quot;prediction&quot;: 2.226974392773431
+            }
+          ]
+        }
+      }
+    },
+    {
+      &quot;fraction&quot;: 0.4,
+      &quot;progress_pct&quot;: 40.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 1.0598719521080476e+19,
+          &quot;loss&quot;: 3.3007681369781494,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1024&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 6.904473096719381e+19,
+          &quot;loss&quot;: 3.048776149749756,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1536&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 5.525303400013253e+20,
+          &quot;loss&quot;: 2.800361156463623,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d2048&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 3.09672597906258e+21,
+          &quot;loss&quot;: 2.6150641441345215,
+          &quot;status&quot;: &quot;observed&quot;
+        }
+      ],
+      &quot;fit&quot;: {
+        &quot;coefficient_A&quot;: 72.74557513704134,
+        &quot;exponent_alpha&quot;: 0.0843479020876613
+      },
+      &quot;hero&quot;: {
+        &quot;compute_flops_no_lm_head&quot;: 1.0443576645509081e+24,
+        &quot;prediction&quot;: 2.185278389370321,
+        &quot;sensitivity&quot;: {
+          &quot;kind&quot;: &quot;leave-one-rung-out range; not a confidence interval&quot;,
+          &quot;low&quot;: 2.1759058550662704,
+          &quot;high&quot;: 2.19927774042091,
+          &quot;fits&quot;: [
+            {
+              &quot;omitted_rung&quot;: &quot;d768&quot;,
+              &quot;prediction&quot;: 2.1759058550662704
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1024&quot;,
+              &quot;prediction&quot;: 2.186072827997924
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1536&quot;,
+              &quot;prediction&quot;: 2.1820943541402267
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d2048&quot;,
+              &quot;prediction&quot;: 2.19927774042091
+            }
+          ]
+        }
+      }
+    },
+    {
+      &quot;fraction&quot;: 0.45,
+      &quot;progress_pct&quot;: 45.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 1.1923559461215535e+19,
+          &quot;loss&quot;: 3.265657901763916,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1024&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 7.767532233809304e+19,
+          &quot;loss&quot;: 3.0225400924682617,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d1536&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 6.21596632501491e+20,
+          &quot;loss&quot;: 2.7863872051239014,
+          &quot;status&quot;: &quot;observed&quot;
+        },
+        {
+          &quot;rung&quot;: &quot;d2048&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 3.483816726445402e+21,
+          &quot;loss&quot;: 2.6094987392425537,
+          &quot;status&quot;: &quot;observed&quot;
+        }
+      ],
+      &quot;fit&quot;: {
+        &quot;coefficient_A&quot;: 64.11242330607654,
+        &quot;exponent_alpha&quot;: 0.08171723052316855
+      },
+      &quot;hero&quot;: {
+        &quot;compute_flops_no_lm_head&quot;: 1.1749023726197716e+24,
+        &quot;prediction&quot;: 2.191844206222697,
+        &quot;sensitivity&quot;: {
+          &quot;kind&quot;: &quot;leave-one-rung-out range; not a confidence interval&quot;,
+          &quot;low&quot;: 2.1849806874953632,
+          &quot;high&quot;: 2.203309960668153,
+          &quot;fits&quot;: [
+            {
+              &quot;omitted_rung&quot;: &quot;d768&quot;,
+              &quot;prediction&quot;: 2.1849806874953632
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1024&quot;,
+              &quot;prediction&quot;: 2.192357350344202
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d1536&quot;,
+              &quot;prediction&quot;: 2.189004765288675
+            },
+            {
+              &quot;omitted_rung&quot;: &quot;d2048&quot;,
+              &quot;prediction&quot;: 2.203309960668153
+            }
+          ]
+        }
+      }
+    },
+    {
+      &quot;fraction&quot;: 0.5,
+      &quot;progress_pct&quot;: 50.0,
+      &quot;rungs&quot;: [
+        {
+          &quot;rung&quot;: &quot;d768&quot;,
+          &quot;compute_flops_no_lm_head&quot;: 1.3248399401350595e+19,
+          &quot;loss&quot;
+
+… PREVIEW TRUNCATED …</code></pre></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

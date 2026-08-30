@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="matched-progress 的公式、输入与限制。">
+  <meta name="color-scheme" content="dark light">
+  <title>方法与复现 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+  <script defer src="../assets/site.js"></script>
+</head>
+<body data-page="methodology">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../" >开始</a>
+        <a href="../live/" >状态</a>
+        <a href="../learn/" >学习</a>
+        <a href="../methodology/" aria-current="page">方法</a>
+        <a href="../daily/" >日报</a>
+        <a href="../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../">开始</a><a href="../live/">状态</a>
+          <a href="../learn/">学习</a><a href="../methodology/">方法</a>
+          <a href="../daily/">日报</a><a href="../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="page-intro">
+  <p class="eyebrow">METHODOLOGY · marin-matched-progress-v1</p>
+  <h1>每一个预测，都要能从零复算。</h1>
+  <p>当前实现忠实对应 Marin 固定 commit <code>d23e6e9c</code> 的 per-5% 方法，并额外报告 leave-one-rung-out 敏感性范围。</p>
+</section>
+
+<section class="section-shell methodology-grid" aria-labelledby="method-question">
+  <div class="section-heading"><p>01 / QUESTION</p><h2 id="method-question">到底在拟合什么？</h2></div>
+  <div class="prose-card">
+    <p>在每一个相同训练百分位 <em>g</em> 上，取 d768、d1024、d1536、d2048 四个 rung 的 Paloma loss 与同百分位 compute，拟合：</p>
+    <div class="formula">log(L − 1.5) = log(A<sub>g</sub>) − α<sub>g</sub> · log(C)</div>
+    <p>再把同百分位的 Hero compute 代入。于是每个 5% 都有自己的一组 <code>A_g / alpha_g</code>；这是一组横截面 fits，不是一条由终点系数生成的纵向学习曲线。</p>
+  </div>
+</section>
+
+<section class="section-shell" aria-labelledby="fixtures-title">
+  <div class="section-heading"><p>02 / FIXTURES</p><h2 id="fixtures-title">必须固定的官方复算值</h2></div>
+  <div class="fixture-grid">
+    <article><span>5%</span><strong>2.39209</strong><small>Hero point prediction</small></article>
+    <article><span>10%</span><strong>2.32614</strong><small>Hero point prediction</small></article>
+    <article><span>100%</span><strong>2.03878</strong><small>terminal point prediction</small></article>
+    <article><span>d2048 @100%</span><strong>2.40871</strong><small>60–80% extrapolation + 0.005</small></article>
+  </div>
+  <p class="method-note">Compute 统一为 training FLOPs excluding lm_head；Hero terminal compute 为官方脚本中的 2.6108941613772703e24，而不是未解释口径的 2.70e24。</p>
+</section>
+
+<section class="section-shell" aria-labelledby="interpolation-title">
+  <div class="section-heading"><p>03 / BETWEEN GRID POINTS</p><h2 id="interpolation-title">非 5% eval 如何比较</h2></div>
+  <div class="prose-card">
+    <p>step 32,999 对应 8.45584%。v2 不插值 <code>A/alpha</code>，只在 5% 与 10% 两个 Hero 点预测之间对 loss 线性插值：</p>
+    <div class="formula">prediction(8.45584%) = 2.34651</div>
+    <div class="formula">residual = 2.27812 − 2.34651 = -0.06839</div>
+    <p>5% 之前返回 <code>unavailable</code>，100% 之后返回越界；不会静默外推。</p>
+  </div>
+</section>
+
+<section class="section-shell" aria-labelledby="uncertainty-title">
+  <div class="section-heading"><p>04 / UNCERTAINTY</p><h2 id="uncertainty-title">敏感性范围不等于置信区间</h2></div>
+  <div class="split-story">
+    <p>当前对四个 rung 逐一 leave-one-out，得到一个方法敏感性 envelope。它能揭示单个 rung 对外推的影响，但不提供统计覆盖率，因此页面禁止自动写“显著领先”。</p>
+    <ul class="boundary-list">
+      <li>允许：实测低于点预测 0.06839</li>
+      <li>允许：LOO residual range [-0.08310, -0.06247]</li>
+      <li>不允许：已显著领先</li>
+      <li>不允许：保证终点达到 2.04</li>
+    </ul>
+  </div>
+</section>
+
+<section class="section-shell" aria-labelledby="reproduce-title">
+  <div class="section-heading"><p>05 / RAW EVIDENCE</p><h2 id="reproduce-title">先追到 rung 原始记录，再谈复现</h2></div>
+  <div class="prose-card">
+    <p>普通 <code>build</code> 从已固定的本地证据离线复算。若要审查 grid 的来源，需显式运行网络采集器；它保存四个 rung 的 JSONL、run ID、metric key、采集时间、归一化规则与 checksum。</p>
+    <pre><code>python scripts/collect_ladder_grid.py
+python scripts/track_hero.py build</code></pre>
+    <p>证据链是：W&amp;B sampled history → rung JSONL → 5% grid + manifest → baseline → current status → typed Claim。采集被明确标为 server-sampled，不冒充完整逐步历史。</p>
+    <p><a href="../learn/03-reproduce-official-ladder/">阅读完整复算章节 →</a></p>
+  </div>
+</section>
+
+<section class="section-shell" aria-labelledby="build-title">
+  <div class="section-heading"><p>06 / BUILD &amp; FALSIFY</p><h2 id="build-title">重建之后，还要主动让结论失败</h2></div>
+  <pre><code>python scripts/track_hero.py build
+python -m unittest discover -s tests -v
+python scripts/audit_v2.py --context-length 8192
+python scripts/audit_v2.py --simulated-residual 0.1</code></pre>
+  <p>context 或 datamix 不匹配时，baseline applicability gate 会抑制 comparison；residual 方向翻转时，解释文案必须同步翻转。<a href="../learn/07-falsification-lab/">进入反证实验室 →</a></p>
+  <p>官方实现：<a href="https://github.com/marin-community/marin/blob/d23e6e9c3673435fb82d83aa6c51a607d0da6009/experiments/grug/moe_hero_ep/plot_scaling_ladder.py">pinned plot_scaling_ladder.py</a>。本仓库的纯标准库实现与 fixture 位于 <code>scripts/marin_tracker/ladder.py</code> 和 <code>tests/test_ladder.py</code>。</p>
+</section>
+
+<section class="section-shell" aria-labelledby="priority-title">
+  <div class="section-heading"><p>07 / SOURCE PRIORITY</p><h2 id="priority-title">来源冲突时怎么判</h2></div>
+  <ol class="source-priority"><li><strong>1</strong> 实际 run config / 原始 metric</li><li><strong>2</strong> 固定 commit 的源码</li><li><strong>3</strong> issue / comment 叙述</li><li><strong>4</strong> 本仓库与其他二手总结</li></ol>
+</section>
+</main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p><a href="../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

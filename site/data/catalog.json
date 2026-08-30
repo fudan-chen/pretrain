@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0",
+  "data_as_of": "2026-08-29T15:56:34.967791+00:00",
+  "method_id": "marin-matched-progress-v1",
+  "derived_artifacts": [
+    "current_status.json",
+    "claim_ledger.json",
+    "matched_progress_v1.json",
+    "daily_index.json"
+  ],
+  "evidence_artifacts": [
+    {
+      "id": "dense",
+      "path": "../artifacts/data/hero/hero-12d8b6f0-dee637/dense.jsonl",
+      "sha256": "6168d51560b37844d770f855a69b3f7eb259e32bf7d4a429b1e10c8d250eb484",
+      "provider": "wandb sampledHistory",
+      "sampling": "server sampled; complete_history=false"
+    },
+    {
+      "id": "eval",
+      "path": "../artifacts/data/hero/hero-12d8b6f0-dee637/eval.jsonl",
+      "sha256": "e508e36cd1d909dd44f7d42706f00fa60a3de2a50c3fea871d3ca8ec6a1e8d50",
+      "provider": "wandb sampledHistory",
+      "sampling": "server sampled; complete_history=false"
+    },
+    {
+      "id": "router",
+      "path": "../artifacts/data/hero/hero-12d8b6f0-dee637/router.jsonl",
+      "sha256": "7e40edfabbe2d92daa8d229a087b592746242a5528541800ac520457fa77d37e",
+      "provider": "wandb sampledHistory",
+      "sampling": "selected aggregate and edge-layer metrics"
+    },
+    {
+      "id": "meta",
+      "path": "../artifacts/data/hero/hero-12d8b6f0-dee637/meta.json",
+      "sha256": "a9d5513798782ad3942dfa7253ac0b8eb9ad58723a290a190da19955434a4042",
+      "provider": "wandb run metadata",
+      "sampling": null
+    },
+    {
+      "id": "baseline",
+      "path": "../artifacts/data/baselines/matched_progress_v1.json",
+      "sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "provider": "generated matched-progress baseline",
+      "sampling": "deterministic output from pinned grid and method"
+    },
+    {
+      "id": "baseline_grid",
+      "path": "../artifacts/data/ladder_eval_grid.json",
+      "sha256": "2aa216d121d2b239af1f386c5080a68233c428c73b4969d71e34e5ae71156738",
+      "provider": "normalized Marin ladder grid input",
+      "sampling": null
+    },
+    {
+      "id": "hero_issue_snapshot",
+      "path": "../artifacts/data/snapshots/2026-08-28/github_issues.json",
+      "sha256": "da993f16e88b2f6dfd5d5797aabccf4bc63944766e289843f7039a9724647d8e",
+      "provider": "GitHub issue snapshot; upstream https://github.com/marin-community/marin/issues/8435",
+      "sampling": "daily immutable snapshot; select issue number 8435"
+    },
+    {
+      "id": "baseline_grid_manifest",
+      "path": "../artifacts/data/ladder_eval_grid.manifest.json",
+      "sha256": "bd950075a27c68d8eac70280c20fae82fcde644f8e984cbb44974fc1acf3e8cf",
+      "provider": "ladder evidence collection manifest",
+      "sampling": null
+    },
+    {
+      "id": "ladder_source_d768",
+      "path": "../artifacts/data/ladder/source/d768.jsonl",
+      "sha256": "19d757ae05129f8008ab98b260627917d038daa9ad841dc4b64f00823e72651b",
+      "provider": "wandb sampledHistory for rav-ladder-d768-v2",
+      "sampling": "server sampled; complete_history=false"
+    },
+    {
+      "id": "ladder_source_d1024",
+      "path": "../artifacts/data/ladder/source/d1024.jsonl",
+      "sha256": "c4bfd3583d1c42dbdac679545a322f61d38f33bee94943b33b5fda1bc9e8b2bd",
+      "provider": "wandb sampledHistory for rav-ladder-d1024",
+      "sampling": "server sampled; complete_history=false"
+    },
+    {
+      "id": "ladder_source_d1536",
+      "path": "../artifacts/data/ladder/source/d1536.jsonl",
+      "sha256": "7d2548c59c685c9b12b382acd1052bc1095b63ce2c91b23c08fd06c56e5bdf11",
+      "provider": "wandb sampledHistory for rav-ladder-d1536",
+      "sampling": "server sampled; complete_history=false"
+    },
+    {
+      "id": "ladder_source_d2048",
+      "path": "../artifacts/data/ladder/source/d2048.jsonl",
+      "sha256": "fad52d583f84d37e102955c134e2881d9c60781f582afe05e389106e283c8bcf",
+      "provider": "wandb sampledHistory for rav-ladder-d2048-v3",
+      "sampling": "server sampled; complete_history=false"
+    }
+  ]
+}

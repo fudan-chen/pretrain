@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "runs": [
+    {
+      "id": "hero-12d8b6f0-dee637",
+      "role": "hero",
+      "provider": "wandb",
+      "entity": "marin-community",
+      "project": "marin_moe",
+      "canonical_url": "https://wandb.ai/marin-community/marin_moe/runs/hero-12d8b6f0-dee637",
+      "source_id": "wandb-hero-run",
+      "recipe_regime_id": "hero-4k-harrier-18t-v1",
+      "registered_steps": 390251,
+      "registered_tokens": 18000000000000,
+      "context_length": 4096,
+      "tracker_group": "moe-hero-ep-scaling-ladder",
+      "datamix_revision": "harrier-mix-2026.08.18",
+      "baseline_id": "marin-matched-progress-v1",
+      "evidence": {
+        "metadata_path": "data/hero/hero-12d8b6f0-dee637/meta.json",
+        "metric_paths": [
+          "data/hero/hero-12d8b6f0-dee637/dense.jsonl",
+          "data/hero/hero-12d8b6f0-dee637/eval.jsonl",
+          "data/hero/hero-12d8b6f0-dee637/router.jsonl"
+        ],
+        "identity_fields": [
+          "name",
+          "config.model.max_seq_len",
+          "config.trainer.trainer.num_train_steps",
+          "config.trainer.trainer.tracker.group",
+          "tags"
+        ]
+      },
+      "baseline_applicability": {
+        "policy": "all requirements must be observed and match",
+        "required_requirement_ids": [
+          "run_id",
+          "context_length",
+          "registered_steps",
+          "tracker_group",
+          "datamix_revision"
+        ],
+        "on_unknown": "unavailable",
+        "on_mismatch": "unavailable"
+      }
+    }
+  ]
+}

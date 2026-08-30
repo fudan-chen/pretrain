@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "collected_at": "2026-08-30T04:14:53.875755+00:00",
+  "provider": "W&B public GraphQL sampledHistory",
+  "entity_project": "marin-community/marin_moe",
+  "metric": "eval_dropless/paloma/macro_loss",
+  "sampling": {
+    "samples": 100000,
+    "complete_history": false
+  },
+  "normalization": "snap step/stop_after_steps to nearest 5%; choose the closest sample to each target step",
+  "upstream_commit": "d23e6e9c3673435fb82d83aa6c51a607d0da6009",
+  "upstream_script": "https://github.com/marin-community/marin/blob/d23e6e9c3673435fb82d83aa6c51a607d0da6009/experiments/grug/moe_hero_ep/plot_scaling_ladder.py",
+  "grid_path": "data/ladder_eval_grid.json",
+  "grid_sha256": "2aa216d121d2b239af1f386c5080a68233c428c73b4969d71e34e5ae71156738",
+  "runs": [
+    {
+      "rung": "d768",
+      "display_name": "rav-ladder-d768-v2",
+      "run_id": "rav-ladder-d768-v2",
+      "state": "finished",
+      "heartbeat_at": "2026-08-18T13:54:24Z",
+      "stop_after_steps": 11420,
+      "source_path": "data/ladder/source/d768.jsonl",
+      "source_sha256": "19d757ae05129f8008ab98b260627917d038daa9ad841dc4b64f00823e72651b",
+      "sampled_rows": 20,
+      "selected_grid_rows": 20
+    },
+    {
+      "rung": "d1024",
+      "display_name": "rav-ladder-d1024",
+      "run_id": "rav-ladder-d1024",
+      "state": "finished",
+      "heartbeat_at": "2026-08-19T09:01:23Z",
+      "stop_after_steps": 15276,
+      "source_path": "data/ladder/source/d1024.jsonl",
+      "source_sha256": "c4bfd3583d1c42dbdac679545a322f61d38f33bee94943b33b5fda1bc9e8b2bd",
+      "sampled_rows": 20,
+      "selected_grid_rows": 20
+    },
+    {
+      "rung": "d1536",
+      "display_name": "rav-ladder-d1536",
+      "run_id": "rav-ladder-d1536",
+      "state": "finished",
+      "heartbeat_at": "2026-08-19T11:45:31Z",
+      "stop_after_steps": 15128,
+      "source_path": "data/ladder/source/d1536.jsonl",
+      "source_sha256": "7d2548c59c685c9b12b382acd1052bc1095b63ce2c91b23c08fd06c56e5bdf11",
+      "sampled_rows": 21,
+      "selected_grid_rows": 20
+    },
+    {
+      "rung": "d2048",
+      "display_name": "rav-ladder-d2048-v3",
+      "run_id": "rav-ladder-d2048-v3",
+      "state": "crashed",
+      "heartbeat_at": "2026-08-19T00:28:51Z",
+      "stop_after_steps": 20072,
+      "source_path": "data/ladder/source/d2048.jsonl",
+      "source_sha256": "fad52d583f84d37e102955c134e2881d9c60781f582afe05e389106e283c8bcf",
+      "sampled_rows": 16,
+      "selected_grid_rows": 16
+    }
+  ],
+  "limitations": [
+    "sampledHistory is server-sampled and is not claimed to be full history.",
+    "The pinned upstream script is the authority for run selection and method constants."
+  ]
+}

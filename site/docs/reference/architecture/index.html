@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>v2 架构 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../../assets/styles.css">
+  <script defer src="../../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../../" >开始</a>
+        <a href="../../../live/" >状态</a>
+        <a href="../../../learn/" aria-current="page">学习</a>
+        <a href="../../../methodology/" >方法</a>
+        <a href="../../../daily/" >日报</a>
+        <a href="../../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../../">开始</a><a href="../../../live/">状态</a>
+          <a href="../../../learn/">学习</a><a href="../../../methodology/">方法</a>
+          <a href="../../../daily/">日报</a><a href="../../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="v2-架构">v2 架构</h1>
+<h2 id="两条边界-显式联网-默认离线">两条边界：显式联网，默认离线</h2>
+<p>v2 不把“采集”和“解释”藏在一次隐式运行里：</p>
+<ul><li><code>python scripts/track_hero.py build</code> 是离线、确定性的 analyze → render；只消费仓库内证据。</li><li><code>python scripts/track_hero.py update</code> 先刷新 Hero W&amp;B evidence，再执行 build。</li><li><code>python scripts/collect_ladder_grid.py</code> 是独立的 rung 网络采集命令；普通 build/update 都不会替用户刷新 Ladder 输入。</li></ul>
+<p>这样，方法改动可以在不改变 evidence 的情况下复算；刷新外部数据也会留下单独可审查的 diff。</p>
+<h2 id="端到端数据流">端到端数据流</h2>
+<pre><code class="language-text">GitHub / Hugging Face / marin.community
+  └─ track_marin.py
+       └─ data/snapshots/YYYY-MM-DD + notes/daily
+
+Hero W&amp;B public GraphQL sampledHistory
+  └─ pull_data.py
+       └─ data/hero/&lt;run&gt;/{meta,dense,eval,router,mixture,...}
+
+四个 Ladder rung 的 W&amp;B public GraphQL sampledHistory
+  └─ collect_ladder_grid.py                         [显式网络命令]
+       ├─ data/ladder/source/{d768,...,d2048}.jsonl
+       ├─ data/ladder_eval_grid.manifest.json
+       └─ data/ladder_eval_grid.json
+
+固定 grid + manifest + 官方 commit/常数
+  └─ marin_tracker/ladder.py                        [离线]
+       └─ data/baselines/matched_progress_v1.json
+            └─ applicability requirements
+
+Hero meta + baseline requirements
+  └─ hero.assess_baseline_applicability
+       ├─ supported  → 允许 matched-progress/residual
+       ├─ mismatch   → 抑制比较
+       └─ unverified → 抑制比较
+
+Hero evidence + gated baseline
+  └─ marin_tracker/hero.py
+       └─ data/derived/current_status.json
+            ├─ claims.py  → claim_ledger.json
+            ├─ reports.py → reports/generated/hero/
+            └─ render.py  → site/</code></pre>
+<p><code>sampledHistory</code> 是公开采样证据，不是完整逐步 scan。<code>data/ladder/source/*.jsonl</code> 中的“source”表示 collector 实际收到的源记录，不表示它覆盖上游每一个瞬时点。</p>
+<h2 id="模块职责">模块职责</h2>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">模块</th><th scope="col">只负责</th><th scope="col">明确不负责</th></tr></thead><tbody><tr><td><code>collect_ladder_grid.py</code></td><td>定位四个固定 rung、保存采样记录、grid 与 manifest</td><td>离线构建、统计显著性</td></tr><tr><td><code>config.py</code></td><td>固定 run、官方方法常数与 applicability requirements</td><td>页面文案</td></tr><tr><td><code>io.py</code></td><td>读取、checksum、原子写入和 metric 序列</td><td>科研判断</td></tr><tr><td><code>ladder.py</code></td><td>per-5% fit、d2048 外推、LOO、Hero 插值</td><td>W&amp;B 网络请求</td></tr><tr><td><code>hero.py</code></td><td>applicability gate；本地 evidence → current status</td><td>HTML</td></tr><tr><td><code>claims.py</code></td><td>typed claims 与运行时验证</td><td>图表布局</td></tr><tr><td><code>reports.py</code></td><td>从 status/baseline 生成纠正版日报</td><td>重新实现生态 GitHub 抓取</td></tr><tr><td><code>render.py</code></td><td>静态 HTML/SVG/JSON、Markdown 页面和 evidence 副本</td><td>重新计算科研结论</td></tr><tr><td><code>audit_v2.py</code></td><td>只读故障注入与方向/适用性审计</td><td>修改 evidence</td></tr><tr><td><code>check_site.py</code></td><td>站内链接、越界链接、模板 token、SVG 可访问性</td><td>证明科研结论正确</td></tr><tr><td><code>cli.py</code></td><td>collect/analyze/render 编排</td><td>方法实现</td></tr></tbody></table></div>
+<h2 id="自包含发布包">自包含发布包</h2>
+<p><code>render.py</code> 不再让站点链接逃到仓库根目录：</p>
+<ul><li><code>docs/learning/*.md</code> → <code>site/learn/&lt;slug&gt;/index.html</code>；</li><li><code>reports/generated/hero/*.md</code> → <code>site/daily/&lt;name&gt;/index.html</code>；</li><li>当前 Claim 使用的本地 evidence → <code>site/artifacts/&lt;repository-path&gt;</code>；</li><li>每份 evidence → <code>site/evidence/&lt;artifact-slug&gt;/index.html</code>，展示 provider、sampling、SHA、定位预览与原始文件入口；</li><li>status、claims、baseline、日报索引 → <code>site/data/</code>；</li><li><code>site/data/catalog.json</code> 列出派生数据和可下载 evidence 副本。</li></ul>
+<p>因此 <code>python -m http.server 8000 --directory site</code> 与只部署 <code>site/</code> 具有相同的内部链接语义。读者先进入 HTML evidence 页定位记录，不必直接打开数 MB JSON；完整 artifact 仍保留为复算权威输入。<code>check_site.py</code> 会拒绝解析后逃出 <code>site/</code> 根的链接，而不只是检查宿主仓库里碰巧存在同名文件。</p>
+<h2 id="为什么暂不重写-track-marin-py">为什么暂不重写 <code>track_marin.py</code></h2>
+<p>它虽然长，但已有 18 个测试，并实现了分页、精确 UTC 窗口、spillover、部分/全部失败语义、不可变成功证据和原子发布。当前重构优先修复确有方法错误的 Hero 单体脚本，避免为了目录漂亮而扩大风险。</p>
+<h2 id="v2-phase-1-范围">v2 Phase 1 范围</h2>
+<p>Phase 1 的完成定义是：Ladder 采样 provenance 可追踪、官方逐 5% 方法可离线复算、baseline applicability 可执行、Claim 有类型、课程/日报/evidence 能作为一个站点发布。</p>
+<p>本阶段没有实现：完整 rung/Hero history scan、Paloma 16 域归因、完整 48 层 Router 分析、datamix delta/JSD、change-point 与事故因果链、概率置信/预测区间，以及生产 schedule 或 Pages 主入口迁移。第 06 章描述这些指标的解释边界，不代表相应分析模块已经存在。</p>
+<h2 id="legacy-共存">Legacy 共存</h2>
+<p>以下目录暂不删除：</p>
+<ul><li><code>dashboard/</code></li><li><code>reports/daily/</code></li><li><code>reports/ladder/</code></li><li><code>docs/OPERATIONS.md</code></li></ul>
+<p>新输出使用 <code>site/</code>、<code>reports/generated/hero/</code> 和 <code>data/{baselines,derived}/</code>，因此可以逐文件比较。旧目录属于对照材料，不是 v2 的权威数据接口。</p></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p><a href="../../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

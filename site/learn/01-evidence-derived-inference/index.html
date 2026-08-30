@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>01 · OBSERVED、DERIVED、INFERRED：别把三种句子混成一种 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" >状态</a>
+        <a href="../../learn/" aria-current="page">学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="01-observed-derived-inferred-别把三种句子混成一种">01 · OBSERVED、DERIVED、INFERRED：别把三种句子混成一种</h1>
+<h2 id="本章问题">本章问题</h2>
+<p>“Paloma 低于预测，所以 Hero 训练很好”这句话包含了几层不同性质的判断？</p>
+<p>答案是至少三层：一个观测值、一次派生计算和一个解释性推断。它们需要不同的证据要求。</p>
+<h2 id="observed-直接观测">OBSERVED：直接观测</h2>
+<p>示例：</p>
+<blockquote><p>step 32,999 的 <code>eval_dropless/paloma/macro_loss</code> 原始值为 2.2781243324279785（页面显示 2.27812）。</p></blockquote>
+<p>一条合格的 OBSERVED claim 至少需要：</p>
+<ul><li>原始 metric key；</li><li>run ID 和 step；</li><li>观测时间；</li><li>本地 evidence artifact；</li><li>artifact checksum；</li><li>采样方式。</li></ul>
+<p>“图上看起来大概 2.28”不够。“官方说目前很好”也不是这个 metric 的直接观测。</p>
+<h2 id="derived-确定性计算">DERIVED：确定性计算</h2>
+<p>示例：</p>
+<blockquote><p>step 32,999 的 canonical residual 为 <code>2.2781243324279785 − 2.3465101574845844 = -0.06838582505660584</code>。</p></blockquote>
+<p>DERIVED claim 除了 evidence，还必须记录：</p>
+<ul><li><code>method_id</code>；</li><li>公式或算法；</li><li>输入值；</li><li>参数与固定假设；</li><li>代码或测试位置；</li><li>不确定性状态。</li></ul>
+<p>同一实测值可以因为 baseline 定义不同而得到方向相反的 residual。因此“计算器算对了”远远不够，问题定义也必须可见。</p>
+<h2 id="inferred-解释性判断">INFERRED：解释性判断</h2>
+<p>示例：</p>
+<blockquote><p>当前点估计没有显示 Hero 弱于 matched-progress 参考，但不能声称显著领先。</p></blockquote>
+<p>INFERRED claim 必须额外包含：</p>
+<ul><li>置信度；</li><li>替代解释；</li><li>什么证据会推翻它；</li><li>适用的 recipe regime；</li><li>明确限制。</li></ul>
+<p>当前 claim 被标记为 <code>support=insufficient_evidence</code>、<code>confidence=low</code>，因为只有四个 rung，当前范围是敏感性 envelope 而非统计置信区间。</p>
+<h2 id="来源冲突怎么办">来源冲突怎么办</h2>
+<p>本项目采用以下优先级：</p>
+<pre><code class="language-text">实际 run config / 原始 metric
+  &gt; 固定 commit 的源码
+  &gt; issue / comment 叙述
+  &gt; 本仓库或其他二手总结</code></pre>
+<p>这不是说 issue 没价值。Issue 很适合说明意图、事件和团队判断，但当 issue 写“cosine”而实际 run config 是 <code>lr_schedule=linear</code> 时，页面应显示实际配置，并把冲突作为冲突记录，而不是悄悄挑一个更好讲故事的版本。</p>
+<h2 id="claim-最小结构">Claim 最小结构</h2>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;hero.paloma.matched-progress.step-32999&quot;,
+  &quot;kind&quot;: &quot;DERIVED&quot;,
+  &quot;support&quot;: &quot;supported&quot;,
+  &quot;statement&quot;: &quot;实测比 matched-progress 点预测低 0.06839&quot;,
+  &quot;as_of&quot;: &quot;...&quot;,
+  &quot;evidence&quot;: [&quot;eval artifact&quot;, &quot;baseline artifact&quot;],
+  &quot;derivation&quot;: {
+    &quot;method_id&quot;: &quot;marin-matched-progress-v1&quot;
+  },
+  &quot;uncertainty&quot;: {
+    &quot;kind&quot;: &quot;sensitivity_only&quot;,
+    &quot;significance&quot;: &quot;not_assessed&quot;
+  }
+}</code></pre>
+<h2 id="为什么页面不能直接写结论">为什么页面不能直接写结论</h2>
+<p>旧版页面把“已过 25%”“TPU v5p”“cosine decay”等文字硬编码进 HTML。数据更新不会自动修正文案，于是页面的数值是新的、解释却是旧的。</p>
+<p>v2 的规则是：</p>
+<pre><code class="language-text">HTML 只能渲染 current_status.json 和 claim_ledger.json</code></pre>
+<p>如果没有合法 claim，页面宁可显示“证据不足”，也不补写一个顺畅故事。</p>
+<h2 id="自测">自测</h2>
+<p>请给以下句子标记类型：</p>
+<ol><li>“W&amp;B meta 的 device variant 是 GB200。”</li><li>“176 replicas × 4 devices = 704 configured device slots。”</li><li>“704 configured slots 说明 11 个 NVL72 rack 中每一张卡都被充分利用。”</li></ol>
+<p>答案：1 是 OBSERVED；2 是 DERIVED；3 是 INFERRED，而且当前证据不足。配置容量不能改写成实时活跃率。</p></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

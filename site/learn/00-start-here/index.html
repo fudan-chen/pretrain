@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
+  <meta name="color-scheme" content="dark light">
+  <title>00 · 从这里开始：这个项目到底在回答什么 · Marin 学习系统</title>
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <script defer src="../../assets/site.js"></script>
+</head>
+<body data-page="learn">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../../">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span><strong>Marin 训练学习系统</strong><small>evidence → method → claim</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="../../" >开始</a>
+        <a href="../../live/" >状态</a>
+        <a href="../../learn/" aria-current="page">学习</a>
+        <a href="../../methodology/" >方法</a>
+        <a href="../../daily/" >日报</a>
+        <a href="../../legacy/" >对比</a>
+      </nav>
+      <details class="mobile-nav">
+        <summary>导航</summary>
+        <nav aria-label="移动端主导航">
+          <a href="../../">开始</a><a href="../../live/">状态</a>
+          <a href="../../learn/">学习</a><a href="../../methodology/">方法</a>
+          <a href="../../daily/">日报</a><a href="../../legacy/">对比</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../learn/">← 返回学习中心</a></p><article class="markdown-doc"><h1 id="00-从这里开始-这个项目到底在回答什么">00 · 从这里开始：这个项目到底在回答什么</h1>
+<h2 id="本章问题">本章问题</h2>
+<p>面对一个正在公开训练的 535B MoE，哪些问题可以由公开数据回答？哪些问题即使有漂亮图表也回答不了？</p>
+<h2 id="先记住四个问题">先记住四个问题</h2>
+<p>首页只应该回答：</p>
+<ol><li>最后的公开证据是否足够新？</li><li>Run 处于什么 recipe、阶段和训练进度？</li><li>同口径 eval 相对同进度参考更高、更低，还是暂时不可比较？</li><li>最近出现了什么可验证变化？</li></ol>
+<p>如果一个页面先讲架构故事、性能结论或“走势很好”，却没有先回答数据时间和比较口径，应先降低信任。</p>
+<h2 id="三层数据-一层叙事">三层数据，一层叙事</h2>
+<pre><code class="language-text">外部公开源
+  ↓
+evidence：尽量保留原始记录、查询状态与 checksum
+  ↓
+derived：用固定算法从 evidence 生成，可全部重建
+  ↓
+claims：给每条结论标记 OBSERVED / DERIVED / INFERRED
+  ↓
+site / reports：只负责呈现，不在页面里重新推导</code></pre>
+<h3 id="evidence">Evidence</h3>
+<ul><li><code>data/snapshots/</code>：<code>main</code> 已有的 GitHub、Hugging Face、官网证据快照。</li><li><code>data/hero/&lt;run&gt;/</code>：W&amp;B run meta、dense、eval、router、mixture 与系统时序。</li><li><code>data/ladder/source/*.jsonl</code>：四个 rung 经 W&amp;B <code>sampledHistory</code> 返回的源记录。</li><li><code>data/ladder_eval_grid.manifest.json</code>：run、采样、归一化与 checksum 清单。</li><li><code>data/ladder_eval_grid.json</code>：从上述源记录选择出的逐 5% Paloma 输入。</li></ul>
+<p>Evidence 不等于“完整真相”。当前 W&amp;B 时序来自 <code>sampledHistory</code>，因此 v2 明确标记 <code>complete_history=false</code>，不能假装每一个瞬时尖峰都被保留。</p>
+<h3 id="derived">Derived</h3>
+<ul><li><code>data/baselines/matched_progress_v1.json</code>：每 5% 的 scaling fit 与 Hero 点预测。</li><li><code>data/derived/current_status.json</code>：当前 run 状态、同口径比较和用于绘图的序列。</li><li><code>data/derived/claim_ledger.json</code>：机器可读结论账本。</li></ul>
+<p>Derived 文件可以删除后重建；它们不应被当成不可变原始证据。</p>
+<h3 id="presentation">Presentation</h3>
+<ul><li><code>site/</code>：v2 自包含静态学习站点；课程和日报会被渲染到站点内部，当前 Claim 所需 evidence 会复制到 <code>site/artifacts/</code>。</li><li><code>reports/generated/hero/</code>：纠正版 Hero 日报。</li></ul>
+<p>旧版 <code>dashboard/</code> 与 <code>reports/daily/</code> 不被覆盖，便于学习者比较错误是如何进入图表和文字的。</p>
+<h2 id="一条命令开始">一条命令开始</h2>
+<pre><code class="language-bash">python scripts/track_hero.py build
+python -m unittest discover -s tests -v</code></pre>
+<p><code>build</code> 不访问网络，只用仓库内已有证据重建 baseline、status、claims、v2 日报和站点。<code>update</code> 才会先刷新公开 W&amp;B 数据。</p>
+<p>如需主动刷新四个 rung 的采样 evidence，使用单独的网络命令 <code>python scripts/collect_ladder_grid.py</code>。这不是普通 <code>build</code> 的一部分；由于来源是 server-sampled history，新采集是一份新证据，不承诺与旧 checksum 完全相同。</p>
+<p>预期关键输出：</p>
+<pre><code class="language-text">terminal prediction ≈ 2.03878460
+step 32999 canonical residual ≈ -0.06838583</code></pre>
+<h2 id="你应该能回答的自测题">你应该能回答的自测题</h2>
+<ol><li>页面写 “run state=running” 是否等于此刻仍在训练？</li><li>为什么构建时间不能替代 <code>data_as_of</code>？</li><li>为什么 <code>data/derived/</code> 应该可重建？</li><li>旧页面为什么仍然保留？</li><li>为什么 <code>sampledHistory</code> 的 JSONL 不能被称为完整逐步历史？</li></ol>
+<h2 id="答案">答案</h2>
+<ol><li>不等于。它只是最后一次 run metadata 中的状态，还要结合 heartbeat 和数据时间。</li><li>重新构建旧数据会产生新的构建时间，却不会让证据变新。</li><li>因为只有原始证据与固定方法共同决定派生结果；否则就无法审计。</li><li>错误路径是最好的反例。删除旧内容会损失方法演进的学习价值。</li><li>因为采样由服务端决定；它能复查被返回的记录，却不能证明未返回的瞬时事件不存在。</li></ol>
+<h2 id="当前阶段边界">当前阶段边界</h2>
+<p>v2 Phase 1 聚焦 Scaling Ladder、matched-progress、证据分层和可执行适用性门禁。Paloma 16 域、完整 Router 层间结构、datamix delta、系统瓶颈归因和事故因果链仍是待补分析；第 06 章对它们给出阅读边界，不代表这些分析已经实现。</p>
+<h2 id="尚不能得出的结论">尚不能得出的结论</h2>
+<ul><li>不能仅凭公开采样数据证明训练没有任何短时异常。</li><li>不能仅凭当前 residual 保证最终达到 2.04。</li><li>不能仅凭吞吐稳定证明 all-to-all 不构成瓶颈。</li><li>不能把 issue 中的计划描述自动当成当前 run 的实际配置。</li></ul></article></section></main>
+  <footer class="site-footer">
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-08-29T15:56:34.967791+00:00</time>。</p>
+    <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
+  </footer>
+</body>
+</html>

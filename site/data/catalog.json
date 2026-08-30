@@ -33,7 +33,7 @@
     {
       "id": "meta",
       "path": "../artifacts/data/hero/hero-12d8b6f0-dee637/meta.json",
-      "sha256": "8b21c4a7555cb25620aae17620141668ea86e291be520cd455d8142cd6c56c94",
+      "sha256": "6ba7908dfc06f9e0e9cf8909a1b3c278721620633f9e0b68c4d6ae6786fec299",
       "provider": "wandb run metadata",
       "sampling": null
     },

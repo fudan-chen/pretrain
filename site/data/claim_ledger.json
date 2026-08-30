@@ -35,11 +35,11 @@
       "kind": "OBSERVED",
       "support": "supported",
       "statement": "Run config 记录 LR schedule=linear，设备=GB200，replicas=176，每 replica 设备数=4。",
-      "as_of": "2026-08-30T05:59:59Z",
+      "as_of": "2026-08-30T06:00:44Z",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "8b21c4a7555cb25620aae17620141668ea86e291be520cd455d8142cd6c56c94"
+          "sha256": "6ba7908dfc06f9e0e9cf8909a1b3c278721620633f9e0b68c4d6ae6786fec299"
         }
       ],
       "facts": {
@@ -57,13 +57,13 @@
       "kind": "DERIVED",
       "support": "supported",
       "statement": "Run config 对应 704 个 configured GB200 device slots。",
-      "as_of": "2026-08-30T05:59:59Z",
+      "as_of": "2026-08-30T06:00:44Z",
       "value": 704,
       "unit": "configured device slots",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "8b21c4a7555cb25620aae17620141668ea86e291be520cd455d8142cd6c56c94"
+          "sha256": "6ba7908dfc06f9e0e9cf8909a1b3c278721620633f9e0b68c4d6ae6786fec299"
         }
       ],
       "derivation": {
@@ -83,13 +83,13 @@
       "kind": "DERIVED",
       "support": "supported",
       "statement": "Matched-progress baseline 适用性检查结果为 supported；只有 supported 时才生成 residual。",
-      "as_of": "2026-08-30T05:59:59Z",
+      "as_of": "2026-08-30T06:00:44Z",
       "value": "supported",
       "unit": "applicability status",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "8b21c4a7555cb25620aae17620141668ea86e291be520cd455d8142cd6c56c94"
+          "sha256": "6ba7908dfc06f9e0e9cf8909a1b3c278721620633f9e0b68c4d6ae6786fec299"
         },
         {
           "artifact": "data/baselines/matched_progress_v1.json",

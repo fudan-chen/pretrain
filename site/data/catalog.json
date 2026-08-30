@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "data_as_of": "2026-08-30T05:55:48.243340+00:00",
+  "data_as_of": "2026-08-30T05:59:04.711002+00:00",
   "method_id": "marin-matched-progress-v1",
   "derived_artifacts": [
     "current_status.json",
@@ -12,7 +12,7 @@
     {
       "id": "dense",
       "path": "../artifacts/data/hero/hero-12d8b6f0-dee637/dense.jsonl",
-      "sha256": "46781951fe2152ea7e2b4a10507980fc980f6253e98d7c7d1079df259edbd2c5",
+      "sha256": "99b4ee4f21fd27046b3f4a47dd5999dd5aaa48cc7967844eac42d951bcb33e4b",
       "provider": "wandb sampledHistory",
       "sampling": "server sampled; complete_history=false"
     },
@@ -33,14 +33,14 @@
     {
       "id": "meta",
       "path": "../artifacts/data/hero/hero-12d8b6f0-dee637/meta.json",
-      "sha256": "39d92454deed1a07cfca84388bdd772fddad87b724ade57c59a614fafa11c349",
+      "sha256": "8b21c4a7555cb25620aae17620141668ea86e291be520cd455d8142cd6c56c94",
       "provider": "wandb run metadata",
       "sampling": null
     },
     {
       "id": "baseline",
       "path": "../artifacts/data/baselines/matched_progress_v1.json",
-      "sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "provider": "generated matched-progress baseline",
       "sampling": "deterministic output from pinned grid and method"
     },

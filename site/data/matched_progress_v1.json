@@ -81,7 +81,7 @@
       0.75,
       0.8
     ],
-    "slope": -0.35082387924194336,
+    "slope": -0.3508238792419433,
     "intercept": 2.75453200340271,
     "last_observed_fraction": 0.8
   },
@@ -116,32 +116,32 @@
         }
       ],
       "fit": {
-        "coefficient_A": 67.55030055780408,
+        "coefficient_A": 67.55030055780415,
         "exponent_alpha": 0.08129593842130106
       },
       "hero": {
         "compute_flops_no_lm_head": 1.3054470806886351e+23,
-        "prediction": 2.3920926134624465,
+        "prediction": 2.3920926134624474,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
-          "low": 2.3855484433960297,
-          "high": 2.4134727287894737,
+          "low": 2.38554844339603,
+          "high": 2.4134727287894746,
           "fits": [
             {
               "omitted_rung": "d768",
-              "prediction": 2.4134727287894737
+              "prediction": 2.4134727287894746
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.3885197958872055
+              "prediction": 2.3885197958872046
             },
             {
               "omitted_rung": "d1536",
-              "prediction": 2.3855484433960297
+              "prediction": 2.38554844339603
             },
             {
               "omitted_rung": "d2048",
-              "prediction": 2.3943112851927912
+              "prediction": 2.394311285192792
             }
           ]
         }
@@ -178,11 +178,11 @@
       ],
       "fit": {
         "coefficient_A": 57.685927673976295,
-        "exponent_alpha": 0.07874755075535164
+        "exponent_alpha": 0.07874755075535163
       },
       "hero": {
         "compute_flops_no_lm_head": 2.6108941613772703e+23,
-        "prediction": 2.326142719206298,
+        "prediction": 2.326142719206299,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
           "low": 2.3205145248817205,
@@ -246,8 +246,8 @@
         "prediction": 2.2871922615777764,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
-          "low": 2.281573863794648,
-          "high": 2.299915395225637,
+          "low": 2.281573863794649,
+          "high": 2.2999153952256375,
           "fits": [
             {
               "omitted_rung": "d768",
@@ -255,15 +255,15 @@
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.286244249748677
+              "prediction": 2.286244249748676
             },
             {
               "omitted_rung": "d1536",
-              "prediction": 2.281573863794648
+              "prediction": 2.281573863794649
             },
             {
               "omitted_rung": "d2048",
-              "prediction": 2.299915395225637
+              "prediction": 2.2999153952256375
             }
           ]
         }
@@ -316,7 +316,7 @@
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.2560646925215306
+              "prediction": 2.2560646925215297
             },
             {
               "omitted_rung": "d1536",
@@ -381,7 +381,7 @@
             },
             {
               "omitted_rung": "d1536",
-              "prediction": 2.2333335747374727
+              "prediction": 2.233333574737472
             },
             {
               "omitted_rung": "d2048",
@@ -421,16 +421,16 @@
         }
       ],
       "fit": {
-        "coefficient_A": 64.25662272405141,
-        "exponent_alpha": 0.08154928248213986
+        "coefficient_A": 64.25662272405147,
+        "exponent_alpha": 0.08154928248213987
       },
       "hero": {
         "compute_flops_no_lm_head": 7.832682484131811e+23,
         "prediction": 2.2234135463202236,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
-          "low": 2.221328095660499,
-          "high": 2.2284767834054415,
+          "low": 2.2213280956604993,
+          "high": 2.228476783405442,
           "fits": [
             {
               "omitted_rung": "d768",
@@ -442,11 +442,11 @@
             },
             {
               "omitted_rung": "d1536",
-              "prediction": 2.221328095660499
+              "prediction": 2.2213280956604993
             },
             {
               "omitted_rung": "d2048",
-              "prediction": 2.2284767834054415
+              "prediction": 2.228476783405442
             }
           ]
         }
@@ -495,7 +495,7 @@
           "fits": [
             {
               "omitted_rung": "d768",
-              "prediction": 2.2109457903885437
+              "prediction": 2.210945790388543
             },
             {
               "omitted_rung": "d1024",
@@ -544,11 +544,11 @@
       ],
       "fit": {
         "coefficient_A": 72.74557513704134,
-        "exponent_alpha": 0.0843479020876613
+        "exponent_alpha": 0.08434790208766131
       },
       "hero": {
         "compute_flops_no_lm_head": 1.0443576645509081e+24,
-        "prediction": 2.185278389370321,
+        "prediction": 2.1852783893703207,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
           "low": 2.1759058550662704,
@@ -560,7 +560,7 @@
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.186072827997924
+              "prediction": 2.1860728279979242
             },
             {
               "omitted_rung": "d1536",
@@ -665,8 +665,8 @@
         }
       ],
       "fit": {
-        "coefficient_A": 67.29907458413552,
-        "exponent_alpha": 0.08294814434537898
+        "coefficient_A": 67.29907458413558,
+        "exponent_alpha": 0.08294814434537899
       },
       "hero": {
         "compute_flops_no_lm_head": 1.3054470806886351e+24,
@@ -682,7 +682,7 @@
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.172331880421701
+              "prediction": 2.1723318804217002
             },
             {
               "omitted_rung": "d1536",
@@ -743,7 +743,7 @@
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.1497685181620962
+              "prediction": 2.149768518162096
             },
             {
               "omitted_rung": "d1536",
@@ -787,12 +787,12 @@
         }
       ],
       "fit": {
-        "coefficient_A": 74.84190555873468,
+        "coefficient_A": 74.84190555873475,
         "exponent_alpha": 0.08560637009424554
       },
       "hero": {
         "compute_flops_no_lm_head": 1.5665364968263622e+24,
-        "prediction": 2.1351902223317514,
+        "prediction": 2.135190222331752,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
           "low": 2.131738311332879,
@@ -856,7 +856,7 @@
         "prediction": 2.1237420861955094,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
-          "low": 2.121469934914928,
+          "low": 2.121469934914927,
           "high": 2.130024868073199,
           "fits": [
             {
@@ -865,11 +865,11 @@
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.1235882996649655
+              "prediction": 2.123588299664965
             },
             {
               "omitted_rung": "d1536",
-              "prediction": 2.121469934914928
+              "prediction": 2.121469934914927
             },
             {
               "omitted_rung": "d2048",
@@ -909,12 +909,12 @@
         }
       ],
       "fit": {
-        "coefficient_A": 77.02507317137487,
-        "exponent_alpha": 0.08659458968060972
+        "coefficient_A": 77.0250731713748,
+        "exponent_alpha": 0.0865945896806097
       },
       "hero": {
         "compute_flops_no_lm_head": 1.8276259129640892e+24,
-        "prediction": 2.1104975751824333,
+        "prediction": 2.1104975751824337,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
           "low": 2.106081601241831,
@@ -926,7 +926,7 @@
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.110895984198331
+              "prediction": 2.1108959841983315
             },
             {
               "omitted_rung": "d1536",
@@ -970,8 +970,8 @@
         }
       ],
       "fit": {
-        "coefficient_A": 78.78289838094797,
-        "exponent_alpha": 0.08728722466244661
+        "coefficient_A": 78.78289838094804,
+        "exponent_alpha": 0.08728722466244662
       },
       "hero": {
         "compute_flops_no_lm_head": 1.9581706210329527e+24,
@@ -1031,12 +1031,12 @@
         }
       ],
       "fit": {
-        "coefficient_A": 80.38098089344506,
-        "exponent_alpha": 0.08790650709818569
+        "coefficient_A": 80.38098089344513,
+        "exponent_alpha": 0.08790650709818572
       },
       "hero": {
         "compute_flops_no_lm_head": 2.0887153291018162e+24,
-        "prediction": 2.085164085402634,
+        "prediction": 2.0851640854026336,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
           "low": 2.0829719456226337,
@@ -1100,16 +1100,16 @@
         "prediction": 2.077456203681624,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
-          "low": 2.0768966240273325,
-          "high": 2.0791169671634036,
+          "low": 2.076896624027333,
+          "high": 2.0791169671634027,
           "fits": [
             {
               "omitted_rung": "d768",
-              "prediction": 2.0768966240273325
+              "prediction": 2.076896624027333
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.0774579617024793
+              "prediction": 2.0774579617024784
             },
             {
               "omitted_rung": "d1536",
@@ -1117,7 +1117,7 @@
             },
             {
               "omitted_rung": "d2048",
-              "prediction": 2.0791169671634036
+              "prediction": 2.0791169671634027
             }
           ]
         }
@@ -1148,37 +1148,37 @@
         {
           "rung": "d2048",
           "compute_flops_no_lm_head": 6.967633452890804e+21,
-          "loss": 2.4437905120849606,
+          "loss": 2.443790512084961,
           "status": "extrapolated_d2048"
         }
       ],
       "fit": {
-        "coefficient_A": 80.52100171433418,
-        "exponent_alpha": 0.08839995576391249
+        "coefficient_A": 80.52100171433395,
+        "exponent_alpha": 0.08839995576391244
       },
       "hero": {
         "compute_flops_no_lm_head": 2.3498047452395432e+24,
         "prediction": 2.064301283523292,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
-          "low": 2.0634547527943043,
-          "high": 2.0649745483351363,
+          "low": 2.063454752794305,
+          "high": 2.0649745483351367,
           "fits": [
             {
               "omitted_rung": "d768",
-              "prediction": 2.0634547527943043
+              "prediction": 2.063454752794305
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.064403537617478
+              "prediction": 2.064403537617479
             },
             {
               "omitted_rung": "d1536",
-              "prediction": 2.0642504217839877
+              "prediction": 2.064250421783988
             },
             {
               "omitted_rung": "d2048",
-              "prediction": 2.0649745483351363
+              "prediction": 2.0649745483351367
             }
           ]
         }
@@ -1231,7 +1231,7 @@
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.050334377606551
+              "prediction": 2.0503343776065512
             },
             {
               "omitted_rung": "d1536",
@@ -1276,11 +1276,11 @@
       ],
       "fit": {
         "coefficient_A": 84.78759324113472,
-        "exponent_alpha": 0.08997567660738809
+        "exponent_alpha": 0.0899756766073881
       },
       "hero": {
         "compute_flops_no_lm_head": 2.6108941613772703e+24,
-        "prediction": 2.0387845986743045,
+        "prediction": 2.038784598674304,
         "sensitivity": {
           "kind": "leave-one-rung-out range; not a confidence interval",
           "low": 2.037846888716931,
@@ -1292,7 +1292,7 @@
             },
             {
               "omitted_rung": "d1024",
-              "prediction": 2.0387919354158877
+              "prediction": 2.0387919354158868
             },
             {
               "omitted_rung": "d1536",
@@ -1307,5 +1307,5 @@
       }
     }
   ],
-  "terminal_prediction": 2.0387845986743045
+  "terminal_prediction": 2.038784598674304
 }

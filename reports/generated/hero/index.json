@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "method_id": "marin-matched-progress-v1",
-  "generated_from_data_as_of": "2026-08-30T05:55:48.243340+00:00",
-  "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+  "generated_from_data_as_of": "2026-08-30T05:59:04.711002+00:00",
+  "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
   "baseline_applicability": "supported",
   "reports": [
     {
@@ -16,10 +16,10 @@
         "2026-08-20 20:00"
       ],
       "window_evidence_as_of": "2026-08-20T11:57:12.453431+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -33,7 +33,7 @@
         },
         "grad_norm": 1.5312464237213135,
         "throughput": 2467424.3691458087,
-        "mfu": 20.99220999104002,
+        "mfu": 20.992209991040017,
         "drop_fraction": 0.10431976345452396,
         "progress_pct": 0.18449664446727876
       },
@@ -50,10 +50,10 @@
         "2026-08-21 08:00"
       ],
       "window_evidence_as_of": "2026-08-20T23:57:51.307637+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -67,7 +67,7 @@
         },
         "grad_norm": 1.2012490034103394,
         "throughput": 2464588.661491469,
-        "mfu": 20.9680845218676,
+        "mfu": 20.968084521867596,
         "drop_fraction": 0.038477072887348404,
         "progress_pct": 0.4253672636328927
       },
@@ -84,10 +84,10 @@
         "2026-08-21 20:00"
       ],
       "window_evidence_as_of": "2026-08-21T09:29:39.595503+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -101,7 +101,7 @@
         },
         "grad_norm": 0.6450486779212952,
         "throughput": 2462652.4573503057,
-        "mfu": 20.951611796532998,
+        "mfu": 20.951611796533,
         "drop_fraction": 0.05384617575416059,
         "progress_pct": 0.7815482855905559
       },
@@ -118,10 +118,10 @@
         "2026-08-22 08:00"
       ],
       "window_evidence_as_of": "2026-08-21T23:57:00.138818+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -135,7 +135,7 @@
         },
         "grad_norm": 0.3180880844593048,
         "throughput": 2478240.714658184,
-        "mfu": 21.084232668278165,
+        "mfu": 21.084232668278155,
         "drop_fraction": 0.05509751848876476,
         "progress_pct": 1.0890426930360204
       },
@@ -152,10 +152,10 @@
         "2026-08-22 20:00"
       ],
       "window_evidence_as_of": "2026-08-22T11:59:16.099478+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -168,7 +168,7 @@
           "count": 187
         },
         "grad_norm": 0.29758816957473755,
-        "throughput": 2468557.138438727,
+        "throughput": 2468557.1384387244,
         "mfu": 21.001847299954377,
         "drop_fraction": 0.045667161092613685,
         "progress_pct": 1.5682214779718693
@@ -186,10 +186,10 @@
         "2026-08-23 08:00"
       ],
       "window_evidence_as_of": "2026-08-22T22:42:01.534094+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -202,8 +202,8 @@
           "count": 151
         },
         "grad_norm": 0.26899200677871704,
-        "throughput": 2470836.5041767894,
-        "mfu": 21.021239555627222,
+        "throughput": 2470836.50417679,
+        "mfu": 21.02123955562721,
         "drop_fraction": 0.03870258914927641,
         "progress_pct": 1.955151940674079
       },
@@ -220,10 +220,10 @@
         "2026-08-23 20:00"
       ],
       "window_evidence_as_of": "2026-08-23T11:57:51.134511+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -236,8 +236,8 @@
           "count": 175
         },
         "grad_norm": 0.2690145969390869,
-        "throughput": 2465772.052826747,
-        "mfu": 20.978152510059,
+        "throughput": 2465772.0528267473,
+        "mfu": 20.978152510058997,
         "drop_fraction": 0.03666905793502475,
         "progress_pct": 2.4035812848653815
       },
@@ -254,10 +254,10 @@
         "2026-08-24 08:00"
       ],
       "window_evidence_as_of": "2026-08-23T23:58:28.579604+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -271,7 +271,7 @@
         },
         "grad_norm": 0.2401491105556488,
         "throughput": 2476772.998530395,
-        "mfu": 21.071745718101663,
+        "mfu": 21.07174571810166,
         "drop_fraction": 0.03404333950443701,
         "progress_pct": 2.8981347901735037
       },
@@ -288,10 +288,10 @@
         "2026-08-24 20:00"
       ],
       "window_evidence_as_of": "2026-08-24T11:58:14.412266+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -304,8 +304,8 @@
           "count": 169
         },
         "grad_norm": 0.27028530836105347,
-        "throughput": 2472417.289730541,
-        "mfu": 21.034688471310346,
+        "throughput": 2472417.289730542,
+        "mfu": 21.034688471310353,
         "drop_fraction": 0.03266749299611106,
         "progress_pct": 3.331189413992533
       },
@@ -322,10 +322,10 @@
         "2026-08-25 08:00"
       ],
       "window_evidence_as_of": "2026-08-24T23:57:03.938640+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -338,8 +338,8 @@
           "count": 212
         },
         "grad_norm": 0.2530217170715332,
-        "throughput": 2476818.1999712624,
-        "mfu": 21.07213028029958,
+        "throughput": 2476818.1999712633,
+        "mfu": 21.072130280299582,
         "drop_fraction": 0.031630975222497276,
         "progress_pct": 3.8744295338128536
       },
@@ -356,10 +356,10 @@
         "2026-08-25 20:00"
       ],
       "window_evidence_as_of": "2026-08-25T11:57:38.330316+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -372,8 +372,8 @@
           "count": 220
         },
         "grad_norm": 0.2609269917011261,
-        "throughput": 2483572.5943860025,
-        "mfu": 21.129594925493798,
+        "throughput": 2483572.594386002,
+        "mfu": 21.12959492549379,
         "drop_fraction": 0.031890452641880875,
         "progress_pct": 4.438169280796205
       },
@@ -390,10 +390,10 @@
         "2026-08-26 08:00"
       ],
       "window_evidence_as_of": "2026-08-25T23:58:56.968349+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -406,7 +406,7 @@
           "count": 217
         },
         "grad_norm": 0.2621549665927887,
-        "throughput": 2462663.428624429,
+        "throughput": 2462663.4286244293,
         "mfu": 20.9517051373029,
         "drop_fraction": 0.031938288643053085,
         "progress_pct": 4.994221667593421
@@ -424,10 +424,10 @@
         "2026-08-26 20:00"
       ],
       "window_evidence_as_of": "2026-08-26T11:56:41.977634+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -441,7 +441,7 @@
         },
         "grad_norm": 0.2795501947402954,
         "throughput": 2484886.9548074454,
-        "mfu": 21.14077716488313,
+        "mfu": 21.140777164883122,
         "drop_fraction": 0.03221813679644556,
         "progress_pct": 5.560523867972151
       },
@@ -455,12 +455,12 @@
         "left_fraction": 0.05,
         "right_fraction": 0.1,
         "interpolation_weight": 0.07617917699121846,
-        "prediction": 2.3870686047953553,
+        "prediction": 2.387068604795356,
         "sensitivity_low": 2.380594213007096,
-        "sensitivity_high": 2.4077135871718043,
+        "sensitivity_high": 2.4077135871718047,
         "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
         "actual": 2.3051211833953857,
-        "residual": -0.08194742139996958,
+        "residual": -0.08194742139997047,
         "observed_at": "2026-08-26T08:09:00.812234+00:00"
       }
     },
@@ -475,10 +475,10 @@
         "2026-08-27 08:00"
       ],
       "window_evidence_as_of": "2026-08-26T23:59:13.142879+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -491,8 +491,8 @@
           "count": 222
         },
         "grad_norm": 0.27840283513069153,
-        "throughput": 2482624.8337190226,
-        "mfu": 21.121531622240706,
+        "throughput": 2482624.833719023,
+        "mfu": 21.12153162224071,
         "drop_fraction": 0.032564275418267105,
         "progress_pct": 6.129388521746261
       },
@@ -509,10 +509,10 @@
         "2026-08-27 20:00"
       ],
       "window_evidence_as_of": "2026-08-27T11:58:40.648376+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -525,8 +525,8 @@
           "count": 220
         },
         "grad_norm": 0.2993229031562805,
-        "throughput": 2483833.054063347,
-        "mfu": 21.13181084923573,
+        "throughput": 2483833.0540633467,
+        "mfu": 21.131810849235727,
         "drop_fraction": 0.03300770473751155,
         "progress_pct": 6.693128268729613
       },
@@ -540,12 +540,12 @@
         "left_fraction": 0.05,
         "right_fraction": 0.1,
         "interpolation_weight": 0.22992638071395066,
-        "prediction": 2.3769289929676627,
-        "sensitivity_low": 2.3705954298883887,
-        "sensitivity_high": 2.396090306971993,
+        "prediction": 2.3769289929676636,
+        "sensitivity_low": 2.370595429888389,
+        "sensitivity_high": 2.3960903069719937,
         "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
         "actual": 2.301569938659668,
-        "residual": -0.07535905430799472,
+        "residual": -0.07535905430799561,
         "observed_at": "2026-08-27T00:26:56.656023+00:00"
       }
     },
@@ -560,10 +560,10 @@
         "2026-08-28 08:00"
       ],
       "window_evidence_as_of": "2026-08-27T23:58:03.109114+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -576,8 +576,8 @@
           "count": 208
         },
         "grad_norm": 0.3105524778366089,
-        "throughput": 2487246.924532023,
-        "mfu": 21.160855178479128,
+        "throughput": 2487246.9245320223,
+        "mfu": 21.16085517847912,
         "drop_fraction": 0.033164052800698715,
         "progress_pct": 7.226118574968418
       },
@@ -591,12 +591,12 @@
         "left_fraction": 0.05,
         "right_fraction": 0.1,
         "interpolation_weight": 0.38367358443668287,
-        "prediction": 2.3667893811399696,
-        "sensitivity_low": 2.3605966467696815,
-        "sensitivity_high": 2.384467026772182,
+        "prediction": 2.3667893811399705,
+        "sensitivity_low": 2.360596646769682,
+        "sensitivity_high": 2.3844670267721826,
         "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
         "actual": 2.294292449951172,
-        "residual": -0.07249693118879774,
+        "residual": -0.07249693118879863,
         "observed_at": "2026-08-27T16:47:07.988352+00:00"
       }
     },
@@ -611,10 +611,10 @@
         "2026-08-28 20:00"
       ],
       "window_evidence_as_of": "2026-08-28T11:58:21.637370+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -627,7 +627,7 @@
           "count": 221
         },
         "grad_norm": 0.3127141296863556,
-        "throughput": 2490225.0545992893,
+        "throughput": 2490225.054599288,
         "mfu": 21.186192340798836,
         "drop_fraction": 0.033819954616553856,
         "progress_pct": 7.792420775347149
@@ -642,12 +642,12 @@
         "left_fraction": 0.05,
         "right_fraction": 0.1,
         "interpolation_weight": 0.5374207881594153,
-        "prediction": 2.356649769312277,
-        "sensitivity_low": 2.3505978636509743,
+        "prediction": 2.356649769312278,
+        "sensitivity_low": 2.350597863650975,
         "sensitivity_high": 2.3728437465723715,
         "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
         "actual": 2.2855653762817383,
-        "residual": -0.0710843930305387,
+        "residual": -0.0710843930305396,
         "observed_at": "2026-08-28T09:44:31.446628+00:00"
       }
     },
@@ -662,10 +662,10 @@
         "2026-08-29 08:00"
       ],
       "window_evidence_as_of": "2026-08-28T23:58:08.045568+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -678,8 +678,8 @@
           "count": 221
         },
         "grad_norm": 0.31855928897857666,
-        "throughput": 2493789.5827203966,
-        "mfu": 21.216518426482757,
+        "throughput": 2493789.5827203984,
+        "mfu": 21.216518426482764,
         "drop_fraction": 0.033532982071240745,
         "progress_pct": 8.358722975725879
       },
@@ -696,10 +696,10 @@
         "2026-08-29 20:00"
       ],
       "window_evidence_as_of": "2026-08-29T11:59:15.834541+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -713,7 +713,7 @@
         },
         "grad_norm": 0.40751194953918457,
         "throughput": 2493520.307931366,
-        "mfu": 21.214227506044693,
+        "mfu": 21.214227506044697,
         "drop_fraction": 0.03380621760857828,
         "progress_pct": 8.92502517610461
       },
@@ -727,12 +727,12 @@
         "left_fraction": 0.05,
         "right_fraction": 0.1,
         "interpolation_weight": 0.6911679918821475,
-        "prediction": 2.3465101574845844,
-        "sensitivity_low": 2.340599080532267,
-        "sensitivity_high": 2.3612204663725604,
+        "prediction": 2.3465101574845852,
+        "sensitivity_low": 2.3405990805322676,
+        "sensitivity_high": 2.361220466372561,
         "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
         "actual": 2.2781243324279785,
-        "residual": -0.06838582505660584,
+        "residual": -0.06838582505660673,
         "observed_at": "2026-08-29T02:03:08.249123+00:00"
       }
     },
@@ -747,10 +747,10 @@
         "2026-08-30 08:00"
       ],
       "window_evidence_as_of": "2026-08-29T23:56:57.055757+00:00",
-      "dataset_as_of": "2026-08-30T05:55:48.243340+00:00",
+      "dataset_as_of": "2026-08-30T05:59:04.711002+00:00",
       "method_id": "marin-matched-progress-v1",
       "report_revision": "hero-window-v2",
-      "baseline_sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "baseline_sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "baseline_applicability": "supported",
       "stats": {
         "train_ce": {
@@ -763,8 +763,8 @@
           "count": 220
         },
         "grad_norm": 0.369752436876297,
-        "throughput": 2495560.1029696884,
-        "mfu": 21.231581556008138,
+        "throughput": 2495560.1029696874,
+        "mfu": 21.23158155600812,
         "drop_fraction": 0.033917992008906425,
         "progress_pct": 9.488764923087961
       },
@@ -778,12 +778,12 @@
         "left_fraction": 0.05,
         "right_fraction": 0.1,
         "interpolation_weight": 0.8449151956048797,
-        "prediction": 2.3363705456568917,
+        "prediction": 2.3363705456568926,
         "sensitivity_low": 2.3306002974135605,
-        "sensitivity_high": 2.3495971861727494,
+        "sensitivity_high": 2.34959718617275,
         "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
         "actual": 2.2787857055664062,
-        "residual": -0.05758484009048548,
+        "residual": -0.05758484009048637,
         "observed_at": "2026-08-29T18:20:49.369997+00:00"
       }
     }

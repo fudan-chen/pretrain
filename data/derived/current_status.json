@@ -1,17 +1,17 @@
 {
   "schema_version": "1.0",
   "method_id": "marin-matched-progress-v1",
-  "data_as_of": "2026-08-30T05:55:48.243340+00:00",
+  "data_as_of": "2026-08-30T05:59:04.711002+00:00",
   "run": {
     "id": "hero-12d8b6f0-dee637",
     "state": "running",
     "created_at": "2026-08-20T02:04:58Z",
-    "heartbeat_at": "2026-08-30T05:58:14Z",
+    "heartbeat_at": "2026-08-30T05:59:59Z",
     "freshness_threshold_hours": 18,
-    "step": 38130,
+    "step": 38140,
     "total_steps": 390251,
-    "progress_pct": 9.770634796579637,
-    "tokens_trained": 1758714263384.3347,
+    "progress_pct": 9.773197249975016,
+    "tokens_trained": 1759175504995.503,
     "recipe_regime_id": "hero-4k-harrier-18t-v1",
     "mixture_stage": 0
   },
@@ -28,34 +28,34 @@
   },
   "latest": {
     "train_ce": {
-      "step": 38130,
-      "value": 1.2682338953018188,
-      "observed_at": "2026-08-30T05:55:48.243340+00:00"
+      "step": 38140,
+      "value": 1.2576382160186768,
+      "observed_at": "2026-08-30T05:59:04.711002+00:00"
     },
     "grad_norm": {
-      "step": 38130,
-      "value": 0.25966712832450867,
-      "observed_at": "2026-08-30T05:55:48.243340+00:00"
+      "step": 38140,
+      "value": 0.32929182052612305,
+      "observed_at": "2026-08-30T05:59:04.711002+00:00"
     },
     "learning_rate": {
-      "step": 38130,
-      "value": 0.0030135316774249077,
-      "observed_at": "2026-08-30T05:55:48.243340+00:00"
+      "step": 38140,
+      "value": 0.00301345088519156,
+      "observed_at": "2026-08-30T05:59:04.711002+00:00"
     },
     "throughput": {
-      "step": 38130,
-      "value": 2505095.864051889,
-      "observed_at": "2026-08-30T05:55:48.243340+00:00"
+      "step": 38140,
+      "value": 2502006.1562297205,
+      "observed_at": "2026-08-30T05:59:04.711002+00:00"
     },
     "mfu": {
-      "step": 38130,
-      "value": 21.31270935127719,
-      "observed_at": "2026-08-30T05:55:48.243340+00:00"
+      "step": 38140,
+      "value": 21.286422914203378,
+      "observed_at": "2026-08-30T05:59:04.711002+00:00"
     },
     "drop_fraction": {
-      "step": 38130,
-      "value": 0.033680728608460136,
-      "observed_at": "2026-08-30T05:55:48.243340+00:00"
+      "step": 38140,
+      "value": 0.03247944017251333,
+      "observed_at": "2026-08-30T05:59:04.711002+00:00"
     },
     "paloma_macro": {
       "step": 35999,
@@ -159,12 +159,12 @@
     "left_fraction": 0.05,
     "right_fraction": 0.1,
     "interpolation_weight": 0.8449151956048797,
-    "prediction": 2.3363705456568917,
+    "prediction": 2.3363705456568926,
     "sensitivity_low": 2.3306002974135605,
-    "sensitivity_high": 2.3495971861727494,
+    "sensitivity_high": 2.34959718617275,
     "uncertainty_note": "leave-one-rung-out sensitivity range; not a confidence interval",
     "actual": 2.2787857055664062,
-    "residual": -0.05758484009048548,
+    "residual": -0.05758484009048637,
     "direction": "better_than_point_prediction",
     "significance": "not_assessed",
     "caveat": "The sensitivity envelope is not a confidence interval; statistical significance is not established."
@@ -3997,8 +3997,8 @@
         1.2656830549240112
       ],
       [
-        38130,
-        1.2682338953018188
+        38140,
+        1.2576382160186768
       ]
     ],
     "grad_norm": [
@@ -7819,8 +7819,8 @@
         0.286943644285202
       ],
       [
-        38130,
-        0.25966712832450867
+        38140,
+        0.32929182052612305
       ]
     ],
     "learning_rate": [
@@ -11641,8 +11641,8 @@
         0.0030136124696582556
       ],
       [
-        38130,
-        0.0030135316774249077
+        38140,
+        0.00301345088519156
       ]
     ],
     "throughput": [
@@ -15463,8 +15463,8 @@
         2503062.43761172
       ],
       [
-        38130,
-        2505095.864051889
+        38140,
+        2502006.1562297205
       ]
     ],
     "mfu": [
@@ -19285,8 +19285,8 @@
         21.295409483703885
       ],
       [
-        38130,
-        21.31270935127719
+        38140,
+        21.286422914203378
       ]
     ],
     "drop_fraction": [
@@ -23107,8 +23107,8 @@
         0.03339977472117453
       ],
       [
-        38130,
-        0.033680728608460136
+        38140,
+        0.03247944017251333
       ]
     ],
     "paloma_macro": [
@@ -31180,13 +31180,13 @@
     "matched_progress": [
       [
         19513,
-        2.3920926134624465,
-        2.3855484433960297,
-        2.4134727287894737
+        2.3920926134624474,
+        2.38554844339603,
+        2.4134727287894746
       ],
       [
         39025,
-        2.326142719206298,
+        2.326142719206299,
         2.3205145248817205,
         2.3378727834352
       ]
@@ -31194,27 +31194,27 @@
     "paloma_residual": [
       [
         20999,
-        -0.08194742139996958
+        -0.08194742139997047
       ],
       [
         23999,
-        -0.07535905430799472
+        -0.07535905430799561
       ],
       [
         26999,
-        -0.07249693118879774
+        -0.07249693118879863
       ],
       [
         29999,
-        -0.0710843930305387
+        -0.0710843930305396
       ],
       [
         32999,
-        -0.06838582505660584
+        -0.06838582505660673
       ],
       [
         35999,
-        -0.05758484009048548
+        -0.05758484009048637
       ]
     ]
   },
@@ -31229,7 +31229,7 @@
   "artifacts": {
     "dense": {
       "path": "data/hero/hero-12d8b6f0-dee637/dense.jsonl",
-      "sha256": "46781951fe2152ea7e2b4a10507980fc980f6253e98d7c7d1079df259edbd2c5",
+      "sha256": "99b4ee4f21fd27046b3f4a47dd5999dd5aaa48cc7967844eac42d951bcb33e4b",
       "provider": "wandb sampledHistory",
       "sampling": "server sampled; complete_history=false"
     },
@@ -31247,13 +31247,13 @@
     },
     "meta": {
       "path": "data/hero/hero-12d8b6f0-dee637/meta.json",
-      "sha256": "39d92454deed1a07cfca84388bdd772fddad87b724ade57c59a614fafa11c349",
+      "sha256": "8b21c4a7555cb25620aae17620141668ea86e291be520cd455d8142cd6c56c94",
       "provider": "wandb run metadata",
       "sampling": null
     },
     "baseline": {
       "path": "data/baselines/matched_progress_v1.json",
-      "sha256": "13a513b7daff75c646b8d76cdc48fa32a85e4d5320a81d3071d8336938a8a9f3",
+      "sha256": "35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86",
       "provider": "generated matched-progress baseline",
       "sampling": "deterministic output from pinned grid and method"
     },

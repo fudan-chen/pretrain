@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "data_as_of": "2026-08-30T06:45:11.944277+00:00",
+  "data_as_of": "2026-08-30T06:48:27.674715+00:00",
   "method_id": "marin-matched-progress-v1",
   "derived_artifacts": [
     "current_status.json",
@@ -12,7 +12,7 @@
     {
       "id": "dense",
       "path": "../artifacts/data/hero/hero-12d8b6f0-dee637/dense.jsonl",
-      "sha256": "e5151e34a0f82f3d4fa15c8f1bdb32b1d75484ecff8d0e23906667b34d83102f",
+      "sha256": "95a706452db7913fdd7619249b5861b9d4c746a5592f00ac3d9a9e423826735c",
       "provider": "wandb sampledHistory",
       "sampling": "server sampled; complete_history=false"
     },
@@ -33,7 +33,7 @@
     {
       "id": "meta",
       "path": "../artifacts/data/hero/hero-12d8b6f0-dee637/meta.json",
-      "sha256": "ec33064551f556fcdb7f395861f14497df2402b8c840dd0b8117675230b224c6",
+      "sha256": "a361eb0f4c300b3960236ef2b5588c949decc4c675212c4961b5b0aaeb3fd1c6",
       "provider": "wandb run metadata",
       "sampling": null
     },

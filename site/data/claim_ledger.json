@@ -1,22 +1,22 @@
 {
   "schema_version": "1.0",
-  "generated_from_data_as_of": "2026-08-30T15:44:49.088257+00:00",
+  "generated_from_data_as_of": "2026-08-31T02:33:51.554826+00:00",
   "run_id": "hero-12d8b6f0-dee637",
   "claims": [
     {
       "id": "hero.run.progress",
       "kind": "DERIVED",
       "support": "supported",
-      "statement": "Hero 当前证据截止 step 39,930，约为计划训练的 10.23%。",
-      "as_of": "2026-08-30T15:44:49.088257+00:00",
-      "value": 10.231876407747833,
+      "statement": "Hero 当前证据截止 step 41,920，约为计划训练的 10.74%。",
+      "as_of": "2026-08-31T02:33:51.554826+00:00",
+      "value": 10.741804633428229,
       "unit": "percent",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/dense.jsonl",
-          "sha256": "dbb36a6c0ce8e903be10c5d708c0d3414e5d1a43953557871b20d1e4e85dfc8b",
+          "sha256": "3ac2460ae2fd82163f4856443608e02b872cc3c3959bf707719c4183c3a67121",
           "metric_key": "_step",
-          "step": 39930
+          "step": 41920
         }
       ],
       "derivation": {
@@ -35,11 +35,11 @@
       "kind": "OBSERVED",
       "support": "supported",
       "statement": "Run config 记录 LR schedule=linear，设备=GB200，replicas=176，每 replica 设备数=4。",
-      "as_of": "2026-08-30T15:45:59Z",
+      "as_of": "2026-08-31T02:34:59Z",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "e8f8bd28f42c1dded285d230ad0f1b131f61b039852e431d06328afd8321161e"
+          "sha256": "b1b3acc5d2ea1ee8e1994cda22a7b3f422f18e7c786734bd885a582a1346fe10"
         }
       ],
       "facts": {
@@ -57,13 +57,13 @@
       "kind": "DERIVED",
       "support": "supported",
       "statement": "Run config 对应 704 个 configured GB200 device slots。",
-      "as_of": "2026-08-30T15:45:59Z",
+      "as_of": "2026-08-31T02:34:59Z",
       "value": 704,
       "unit": "configured device slots",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "e8f8bd28f42c1dded285d230ad0f1b131f61b039852e431d06328afd8321161e"
+          "sha256": "b1b3acc5d2ea1ee8e1994cda22a7b3f422f18e7c786734bd885a582a1346fe10"
         }
       ],
       "derivation": {
@@ -83,13 +83,13 @@
       "kind": "DERIVED",
       "support": "supported",
       "statement": "Matched-progress baseline 适用性检查结果为 supported；只有 supported 时才生成 residual。",
-      "as_of": "2026-08-30T15:45:59Z",
+      "as_of": "2026-08-31T02:34:59Z",
       "value": "supported",
       "unit": "applicability status",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "e8f8bd28f42c1dded285d230ad0f1b131f61b039852e431d06328afd8321161e"
+          "sha256": "b1b3acc5d2ea1ee8e1994cda22a7b3f422f18e7c786734bd885a582a1346fe10"
         },
         {
           "artifact": "data/baselines/matched_progress_v1.json",
@@ -273,13 +273,13 @@
       "kind": "DERIVED",
       "support": "supported",
       "statement": "当前尚未到达 ladder 叙述中的约 25% grad-norm 参考区。",
-      "as_of": "2026-08-30T15:44:49.088257+00:00",
+      "as_of": "2026-08-31T02:33:51.554826+00:00",
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/dense.jsonl",
-          "sha256": "dbb36a6c0ce8e903be10c5d708c0d3414e5d1a43953557871b20d1e4e85dfc8b",
+          "sha256": "3ac2460ae2fd82163f4856443608e02b872cc3c3959bf707719c4183c3a67121",
           "metric_key": "_step",
-          "step": 39930
+          "step": 41920
         },
         {
           "artifact": "data/snapshots/2026-08-28/github_issues.json",

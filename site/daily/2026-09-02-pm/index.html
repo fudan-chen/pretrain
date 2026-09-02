@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Marin 训练学习系统的可复现学习材料。">
   <meta name="color-scheme" content="dark light">
-  <title>Hero Run v2 日报 · 2026-08-21-am · Marin 学习系统</title>
+  <title>Hero Run v2 日报 · 2026-09-02-pm · Marin 学习系统</title>
   <link rel="stylesheet" href="../../assets/styles.css">
   <script defer src="../../assets/site.js"></script>
 </head>
@@ -35,18 +35,18 @@
       </details>
     </div>
   </header>
-  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../daily/">← 返回日报索引</a></p><article class="markdown-doc"><h1 id="hero-run-v2-日报-2026-08-21-am">Hero Run v2 日报 · 2026-08-21-am</h1>
+  <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../daily/">← 返回日报索引</a></p><article class="markdown-doc"><h1 id="hero-run-v2-日报-2026-09-02-pm">Hero Run v2 日报 · 2026-09-02-pm</h1>
 <blockquote><p>本日报由 v2 可审计分析管道生成。旧版 <code>reports/daily/</code> 保留用于方法对比。</p></blockquote>
-<ul><li>数据窗口：2026-08-20 20:00 → 2026-08-21 08:00（北京时间）</li><li>Run：<code>hero-12d8b6f0-dee637</code></li><li>方法：<code>marin-matched-progress-v1</code></li><li>本窗口证据截止：2026-08-20T23:57:51.307637+00:00</li><li>整份数据集截止：2026-09-02T15:40:22.076506+00:00</li><li>Baseline SHA-256：<code>35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86</code></li><li>Baseline applicability：<code>supported</code></li></ul>
+<ul><li>数据窗口：2026-09-02 08:00 → 2026-09-02 20:00（北京时间）</li><li>Run：<code>hero-12d8b6f0-dee637</code></li><li>方法：<code>marin-matched-progress-v1</code></li><li>本窗口证据截止：2026-09-02T11:58:21.171336+00:00</li><li>整份数据集截止：2026-09-02T15:40:22.076506+00:00</li><li>Baseline SHA-256：<code>35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86</code></li><li>Baseline applicability：<code>supported</code></li></ul>
 <h2 id="本窗口事实">本窗口事实</h2>
-<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">证据等级</th><th scope="col">指标</th><th scope="col">结果</th></tr></thead><tbody><tr><td>OBSERVED</td><td><code>train/cross_entropy_loss</code></td><td>step 730 的 4.7593 → step 1,660 的 2.0715</td></tr><tr><td>DERIVED</td><td><code>grad/norm/total</code> 最大值</td><td>1.2012</td></tr><tr><td>DERIVED</td><td><code>throughput/tokens_per_second</code> 均值</td><td>2.4646e+06 tok/s</td></tr><tr><td>DERIVED</td><td><code>throughput/mfu</code> 均值</td><td>20.968%</td></tr><tr><td>DERIVED</td><td><code>moe/drop_fraction</code> 最大值</td><td>0.038477</td></tr></tbody></table></div>
+<div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">证据等级</th><th scope="col">指标</th><th scope="col">结果</th></tr></thead><tbody><tr><td>OBSERVED</td><td><code>train/cross_entropy_loss</code></td><td>step 50,200 的 1.2375 → step 52,340 的 1.2440</td></tr><tr><td>DERIVED</td><td><code>grad/norm/total</code> 最大值</td><td>0.37098</td></tr><tr><td>DERIVED</td><td><code>throughput/tokens_per_second</code> 均值</td><td>2.4843e+06 tok/s</td></tr><tr><td>DERIVED</td><td><code>throughput/mfu</code> 均值</td><td>21.136%</td></tr><tr><td>DERIVED</td><td><code>moe/drop_fraction</code> 最大值</td><td>0.035042</td></tr></tbody></table></div>
 <h2 id="matched-progress-比较">Matched-progress 比较</h2>
-<ul><li>本窗口没有可比较的新 Paloma eval，或进度尚未达到 5%；Train CE 不用于替代 Paloma。</li></ul>
+<ul><li><strong>OBSERVED</strong>：step 50,999 的 <code>eval_dropless/paloma/macro_loss</code> = <strong>2.25654</strong>。</li><li><strong>DERIVED</strong>：同进度点预测 = <strong>2.30224</strong>；residual = actual − prediction = <strong>-0.04570</strong>，即实测低于点预测。</li><li><strong>LIMIT</strong>：leave-one-rung-out sensitivity range; not a confidence interval，因此不能写成“显著领先”或“确定偏离”。</li></ul>
 <h2 id="里程碑与解释边界">里程碑与解释边界</h2>
-<ul><li><strong>DERIVED</strong>：窗口末进度约 <strong>0.43%</strong>。</li><li>尚未到达约 25% 的 grad-norm 经验参考区。</li><li>尚未到达 80% datamix 阶段边界。</li></ul>
+<ul><li><strong>DERIVED</strong>：窗口末进度约 <strong>13.41%</strong>。</li><li>尚未到达约 25% 的 grad-norm 经验参考区。</li><li>尚未到达 80% datamix 阶段边界。</li></ul>
 <h2 id="证据与局限">证据与局限</h2>
 <ul><li>W&amp;B history 由公开 GraphQL <code>sampledHistory</code> 获得，当前标记为 server-sampled，不声称是完整逐步历史。</li><li>代码、issue、Hugging Face 与官网证据由 <code>main</code> 的不可变 snapshot 管道单独保存；本日报不重复实现简化抓取器。</li><li>证据优先级：run config &gt; pinned source &gt; issue narrative &gt; secondary summary。</li></ul>
-<p><a href="../2026-08-20-pm/">← 2026-08-20-pm</a> · <a href="../2026-08-21-pm/">2026-08-21-pm →</a></p>
+<p><a href="../2026-09-02-am/">← 2026-09-02-am</a></p>
 <p>*自动生成 · v2 输出；旧版日报未被覆盖。*</p></article></section></main>
   <footer class="site-footer">
     <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-09-02T15:40:22.076506+00:00</time>。</p>

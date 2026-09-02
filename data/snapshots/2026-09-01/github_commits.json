@@ -1,0 +1,98 @@
+{
+  "commit_count": 8,
+  "commits": [
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-01T22:14:34Z",
+      "committed_at": "2026-09-01T22:14:34Z",
+      "message": "[loom] Announce Slack actions before waits (#8839)\n\nRequire Marin Slack sessions to announce actions such as opening a pull\nrequest or issue, or starting a run or deployment, in the source thread\nbefore entering a wait or long-running monitor. Announcements include\nthe action identifier and link when available, and Loom status updates\ndo not replace the thread message.\n\nThis keeps the requester informed when a session begins CI or review\nmonitoring immediately after creating a pull request.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "8622834b2d3edce6a67a2cc4aed763ec8e44958c",
+      "url": "https://github.com/marin-community/marin/commit/8622834b2d3edce6a67a2cc4aed763ec8e44958c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-01T22:05:34Z",
+      "committed_at": "2026-09-01T22:05:34Z",
+      "message": "[grafana] Refine evaluation regression alerts (#8835)\n\nTrigger `eval_regressed` when the latest Paloma macro loss, observed\nwithin 30 minutes, exceeds the value from two evaluations earlier or\nrises more than 2% from the preceding evaluation. Both comparisons use\nsamples with the same `execution_uid` and retain the latest three\nsamples from the existing 24-hour bounded query.\n\nThis removes alerts for an isolated increase of 2% or less when the new\nvalue remains below the value from two evaluations earlier. The Grafana\ntest suite passes 262 tests.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "09b510afa8850f7e3273b9dd256898c19ed657c5",
+      "url": "https://github.com/marin-community/marin/commit/09b510afa8850f7e3273b9dd256898c19ed657c5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-01T21:54:33Z",
+      "committed_at": "2026-09-01T21:54:33Z",
+      "message": "[cleanup] Delete unused eval and optimizer code, drop a shuffle copy (#8831)\n\nFour independent cleanups.\n\nzephyr's `ScatterWriter._flush` handed the output sink `buf.getvalue()`,\nwhich\ncopies the whole compressed Parquet chunk before fsspec copies it again\ninto its\nown write buffer. `buf.getbuffer()` passes a view instead, removing one\nfull copy\nof every scatter chunk from the peak RSS that `zephyr/memory_budget.py`\nsizes the\nflush threshold against; chunks routinely run to hundreds of megabytes.\n\n`run_save_logprobs_on_pod` and `run_trace_labeled_eval_on_pod` were the\nlast\nusers of the `*_on_pod` fray submission pattern that the lazy\nArtifactStep\nmigration (#6649) replaced with `remote(fn, resources=...)`, and nothing\nhas\ncalled them since. Deleting them also removes their wrapper configs, the\nHF hub\ntimeout constants, and the `job_failure_max_retries` field whose\nvalidation\nsuggested it still controlled retries. Neither evaluation module imports\nfray any\nmore.\n\nlevanter accepted five configuration knobs that no implementation reads,\nso\nsetting any of them silently did nothing: `nesterov` on\n`scale_by_adopt`,\n`lax_map_scanned_layers` and `lax_map_batch_size` on `scale_by_soap`\n(copied from\nkron, which does use them), and\n`Gpt2HyenaConfig.gradient_checkpointing_block_size`.\n`HessianOptConfig` goes with them: an abstract `OptimizerConfig` holding\none more\nignored knob, with no subclass since Sophia was deleted in #2290.\n\niris spelled the archivable-file-type rule for task-output capture\n(`S_ISDIR or S_ISREG or S_ISLNK`) four times across the inventory pass,\nthe tar\nwriter, and the empty-archive check, so changing which types are\narchived meant\nediting four places or letting the passes disagree about which entries\nare\nskipped. They now share `_is_archivable`. The inventory's if/else\ncollapsed with\nit: both arms appended the same entry, and the byte accounting the\nelse-arm\nguarded is a no-op for non-regular files, whose recorded size is already\nzero.\n\n---------\n\nCo-authored-by: nightshift <nightshift@marin.local>",
+      "sha": "b78d9abb3f662cf29421ca6a2b284b8259a3e77d",
+      "url": "https://github.com/marin-community/marin/commit/b78d9abb3f662cf29421ca6a2b284b8259a3e77d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-01T21:47:01Z",
+      "committed_at": "2026-09-01T21:47:01Z",
+      "message": "[codehealth] Persist review feedback for lint refinement (#8747)\n\nPersist a weekly 30-day view of GitHub review state and lint telemetry\nin the existing `context` PostgreSQL database. Hydration batches commit\nwith their sync checkpoints, edited pull requests and review events\nretain version history, and a failed window resumes for at most three\nattempts before abandonment. Exploration fails closed unless the newest\nsync completed. The collector reconciles every paginated connection,\ndetects mutation during collection, and enforces GraphQL and REST\nbudgets.\n\nLater syncs perform the bounded activity scan, edited-comment seed\nqueries, fingerprint rechecks, and Finelog query. Repository-wide\ncomment seeds are compared with compact fingerprints of the stored event\nidentity, body, and update timestamp. A matching event can reuse its\nstored pull request after the pull-request fingerprint passes both scan\nobservations. New or edited events and changed pull requests still\ntrigger hydration. Hydrated PRs, child records, telemetry rows, and\nreuse checkpoints use bounded multi-row database writes.\n\nA production cold sync scanned 750 candidates and persisted 364\nreview-active PRs, 440 lint invocations, and 3,757 findings in 63.1\nminutes. The original warm policy reused 164 of 364 PRs and took 46.6\nminutes because every in-window seed forced hydration. The corrected\nproduction run reused 350 of 357 relevant PRs, hydrated seven, and\ncompleted in 247 seconds. GraphQL points fell from 355 to 206 and REST\nrequests from 249 to 56 relative to the original warm run. The [cache\nsmoke\nreport](https://loom.oa.dev/s/1xthg02m/artifacts/codehealth-cache-smoke)\nrecords the exact windows and denominators.\n\nThe weekly Loom agent receives bounded commands for pull requests,\ncomments, source context, catalog rules, production rule activity, sync\nstatus, and code-only rule probes. Probes hide the human comment and\nrecord their context, rule, catalog, model, effort, output, and timing\nidentities. The agent edits normal rule YAML and opens a regular pull\nrequest from a template when evidence supports a change. Its Markdown\nreport is a versioned Loom artifact with a typed channel result; no\nfixed report renderer or corpus archive constrains the investigation.\n\nThe 63 lint rules move from lane Markdown files to ordered,\nindependently editable YAML while preserving production prompt text. The\n[accepted\ndesign](https://loom.oa.dev/s/1xthg02m/artifacts/codehealth-refinement-data-design)\nrecords the storage and tool boundaries, and [Claude Fable's completion\nreview](https://loom.oa.dev/s/1xthg02m/artifacts/pr-8747-completion-review)\ncovers the implementation. The [production E2E\nreport](https://loom.oa.dev/s/1xthg02m/artifacts/codehealth-refinement-report)\nanalyzes 1,002 substantive human-review bodies across 219 PRs.\n\nThe unchanged 81-case catalog benchmark scored 81/81. A provisional\n20-case live-context set scored 1/17 positive recall and 3/3 negative\nspecificity. Several provisional positives mapped a human concern to the\nnearest rule even though the exact current rule should not fire; other\nmisses exposed limits in the local source-window prompt. Three new rules\nhave evidence across at least three PRs: consumer policy in shared\nlayers, duplicate config authority, and redundant exception wrappers. No\nrule has enough representative current-catalog exposure for retirement.\n\nThe first live probe attempt also found a model-output boundary defect:\nLuna returned negative decisions with explanatory fields that the schema\nallowed and validation rejected. Negative results now canonicalize to\nnull confidence and finding while preserving raw output; all 16 failed\nattempts completed under versioned retry keys. The incident record is\n[Echo #302](https://echo.oa.dev/wiki/302).\n\nThe branch passes 1,582 safe tests with 3 skipped and 5 expected\nfailures. The 40-test codehealth suite and targeted Pyrefly checks pass.\nProduction migration `m0014` is applied, three complete sync windows and\n36 probe-attempt rows are stored, and the reports and typed result are\npublished. Slack delivery still needs an explicit `marin-eng` Loom\nbinding; the versioned artifacts and durable result do not depend on\nthat route.\n\nPart of #8738",
+      "sha": "c4685c008869c03fa2edfebbda403501c6604ab5",
+      "url": "https://github.com/marin-community/marin/commit/c4685c008869c03fa2edfebbda403501c6604ab5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-01T21:41:31Z",
+      "committed_at": "2026-09-01T21:41:31Z",
+      "message": "[grug] Raise hero EP64 throughput (#8753)\n\nThree changes increase Grug hero training throughput at EP64 without\nchanging the model function.\n\n- The layer carry moves to pinned host under a new `offload_carry` remat\nmode, and the latency-hiding scheduler turns on only in that mode.\nAgainst the no-offload arm, this gives +0.44 MFU and lowers peak HBM\nfrom 137.95 to 116.50 GiB.\n- The QuACK gate/up interleave packs each gate/up pair of 16-bit values\ninto one `uint32`. The equivalent XLA stack-and-reshape reaches\napproximately 1.9 TB/s; the packed elementwise form reaches 7.13 TB/s.\nAgainst the stack-and-reshape arm, this gives +0.22 MFU. It carries a\nhand-written VJP because `bitcast_convert_type` has no AD rule.\n- The FA4 forward tile becomes 128x64 at the hero shape with\n`d_model=6144`. Against the 64x64 forward tile, this gives +0.28 MFU.\nOnly the hero EP recipe selects it through\n`attention_implementation=gpu_fa4_cute_wide`. The backward tile stays\n64x64. The wide implementation requires SM100 with head dimension 128\nand raises an error for other configurations.\n\nEvidence comes from one GB200 NVL72 rack at EP64. Each one-change\nablation restores the production hero checkpoint. The score is the\nmedian of `throughput/mfu` over restore steps +5 to +19.\n\nThe offload has one known hazard. When the offload, scheduler, and a\ncollective overlap limit above 1 are all enabled, the reloaded residual\nraces its backward consumer and corrupts training. No pair of the three\ndoes (#8317). To prevent an inherited\n`--xla_gpu_experimental_parallel_collective_overlap_limit` from\nbypassing the safe setting, offload replaces any supplied value with 1.\n\nThis branch is based on #8684 for the required checkpoint-restore work.\nPart of #8317.",
+      "sha": "0ce232855ff0499c1d26a9754749c8215582c905",
+      "url": "https://github.com/marin-community/marin/commit/0ce232855ff0499c1d26a9754749c8215582c905",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-01T16:47:18Z",
+      "committed_at": "2026-09-01T16:47:18Z",
+      "message": "[dependencies] Advance external runtimes (#8832)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`cf66d0b14975`](https://github.com/marin-community/evalchemy/commit/cf66d0b14975379bf7fc5c4a7cfff1400c636f1c)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`c78c98f52eb5`](https://github.com/marin-community/harbor/commit/c78c98f52eb5a4becaf15b5a0c6cc096d240bb14)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`7836835b117d`](https://github.com/marin-community/MarinSkyRL/commit/7836835b117df64e2ba309d4eeff5e67254bf8a4)\n|\n\n## Upstream commits\n\n### harbor (`da38231dcc60` → `c78c98f52eb5`)\n\n-\n[`c78c98f52eb5`](https://github.com/marin-community/harbor/commit/c78c98f52eb5a4becaf15b5a0c6cc096d240bb14):\n[artifacts] Promote terminal results before completion hooks (#107)\n\n### MarinSkyRL (`185bc58eb668` → `7836835b117d`)\n\n-\n[`b9c4ce3cba0d`](https://github.com/marin-community/MarinSkyRL/commit/b9c4ce3cba0d1883f4271683dc8a1685b90870f2):\n[RL] Mask unaligned behavior logprobs before training (#482)\n-\n[`7836835b117d`](https://github.com/marin-community/MarinSkyRL/commit/7836835b117df64e2ba309d4eeff5e67254bf8a4):\n[RL] Make passthrough classifications terminal (#483)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "268de5fc6a4aba3589afc25b637a7a2bfdef998d",
+      "url": "https://github.com/marin-community/marin/commit/268de5fc6a4aba3589afc25b637a7a2bfdef998d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-01T02:12:29Z",
+      "committed_at": "2026-09-01T02:12:29Z",
+      "message": "[grafana] Treat nonterminal nightly statuses as running (#8825)\n\nTreat every reported GitHub workflow status other than `completed` as an\nactive nightly. GitHub can report `requested`, `waiting`, and `pending`\nin addition to `queued` and `in_progress`; those states otherwise appear\nas failures.\n\nRows without a lifecycle status keep the prior health-based fallback.\nThis is a follow-up to #8812.\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "77fb82b4781f8bbad8ff7666a1757cda7ce389fd",
+      "url": "https://github.com/marin-community/marin/commit/77fb82b4781f8bbad8ff7666a1757cda7ce389fd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-01T00:43:43Z",
+      "committed_at": "2026-09-01T00:43:43Z",
+      "message": "[grafana] Show active nightlies as running (#8812)\n\nShow queued and in-progress GitHub Actions runs as Running before\ncompleted-run and quality-gate logic. Carry lifecycle status through the\nbackend projection, Grafana target N, and panel data parsing. The daily\nheader now reports categorical counts, and the cells, tooltips, and\nlegend name every operator state.\n\nValidation passed: `uv run --with pytest --with pytest-timeout --with\npytest-xdist pytest infra/grafana/tests/test_nightly.py` (5 tests); `npm\nrun test:ci` (13 tests); `npm run typecheck`; `npm run lint`; `npm run\nbuild`; `./infra/pre-commit.py --changed-files --fix`; and branch\nadvisory lint (no findings). `uv run --no-project infra/ci/run_tests.py`\ncompleted successfully but selected no packages for these Grafana paths.\n\nFixes #8810\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "f2d98e8093f534671b76b5b14e2684a95042713b",
+      "url": "https://github.com/marin-community/marin/commit/f2d98e8093f534671b76b5b14e2684a95042713b",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-02T00:00:00Z",
+    "start": "2026-09-01T00:00:00Z"
+  }
+}

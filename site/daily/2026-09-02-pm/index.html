@@ -37,7 +37,7 @@
   </header>
   <main id="main"><section class="section-shell document-shell"><p class="document-back"><a href="../../daily/">← 返回日报索引</a></p><article class="markdown-doc"><h1 id="hero-run-v2-日报-2026-09-02-pm">Hero Run v2 日报 · 2026-09-02-pm</h1>
 <blockquote><p>本日报由 v2 可审计分析管道生成。旧版 <code>reports/daily/</code> 保留用于方法对比。</p></blockquote>
-<ul><li>数据窗口：2026-09-02 08:00 → 2026-09-02 20:00（北京时间）</li><li>Run：<code>hero-12d8b6f0-dee637</code></li><li>方法：<code>marin-matched-progress-v1</code></li><li>本窗口证据截止：2026-09-02T11:58:21.171336+00:00</li><li>整份数据集截止：2026-09-02T22:26:34.927209+00:00</li><li>Baseline SHA-256：<code>35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86</code></li><li>Baseline applicability：<code>supported</code></li></ul>
+<ul><li>数据窗口：2026-09-02 08:00 → 2026-09-02 20:00（北京时间）</li><li>Run：<code>hero-12d8b6f0-dee637</code></li><li>方法：<code>marin-matched-progress-v1</code></li><li>本窗口证据截止：2026-09-02T11:58:21.171336+00:00</li><li>整份数据集截止：2026-09-03T15:31:28.898312+00:00</li><li>Baseline SHA-256：<code>35f7603aeaf09e75308934c0a41014e1bc9863d82cc8bae272b3d655a1711e86</code></li><li>Baseline applicability：<code>supported</code></li></ul>
 <h2 id="本窗口事实">本窗口事实</h2>
 <div class="table-scroll" tabindex="0"><table><thead><tr><th scope="col">证据等级</th><th scope="col">指标</th><th scope="col">结果</th></tr></thead><tbody><tr><td>OBSERVED</td><td><code>train/cross_entropy_loss</code></td><td>step 50,200 的 1.2375 → step 52,340 的 1.2440</td></tr><tr><td>DERIVED</td><td><code>grad/norm/total</code> 最大值</td><td>0.37098</td></tr><tr><td>DERIVED</td><td><code>throughput/tokens_per_second</code> 均值</td><td>2.4843e+06 tok/s</td></tr><tr><td>DERIVED</td><td><code>throughput/mfu</code> 均值</td><td>21.136%</td></tr><tr><td>DERIVED</td><td><code>moe/drop_fraction</code> 最大值</td><td>0.035042</td></tr></tbody></table></div>
 <h2 id="matched-progress-比较">Matched-progress 比较</h2>
@@ -46,10 +46,10 @@
 <ul><li><strong>DERIVED</strong>：窗口末进度约 <strong>13.41%</strong>。</li><li>尚未到达约 25% 的 grad-norm 经验参考区。</li><li>尚未到达 80% datamix 阶段边界。</li></ul>
 <h2 id="证据与局限">证据与局限</h2>
 <ul><li>W&amp;B history 由公开 GraphQL <code>sampledHistory</code> 获得，当前标记为 server-sampled，不声称是完整逐步历史。</li><li>代码、issue、Hugging Face 与官网证据由 <code>main</code> 的不可变 snapshot 管道单独保存；本日报不重复实现简化抓取器。</li><li>证据优先级：run config &gt; pinned source &gt; issue narrative &gt; secondary summary。</li></ul>
-<p><a href="../2026-09-02-am/">← 2026-09-02-am</a></p>
+<p><a href="../2026-09-02-am/">← 2026-09-02-am</a> · <a href="../2026-09-03-am/">2026-09-03-am →</a></p>
 <p>*自动生成 · v2 输出；旧版日报未被覆盖。*</p></article></section></main>
   <footer class="site-footer">
-    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-09-02T22:26:34.927209+00:00</time>。</p>
+    <p>独立公开资料分析，不代表 Marin 官方结论。页面数据截止 <time>2026-09-03T15:31:28.898312+00:00</time>。</p>
     <p><a href="../../data/catalog.json">机器可读数据目录</a> · <a href="https://github.com/fudan-chen/pretrain">GitHub 仓库</a></p>
   </footer>
 </body>

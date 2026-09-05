@@ -1,0 +1,48 @@
+{
+  "dataset_count": 0,
+  "datasets": [],
+  "model_count": 0,
+  "models": [],
+  "observation_end": "2026-09-05T06:57:37Z",
+  "source": "marin-community",
+  "spillover_dataset_count": 1,
+  "spillover_datasets": [
+    {
+      "created_at": "2026-07-10T00:40:16.000Z",
+      "downloads": 1409,
+      "gated": false,
+      "id": "marin-community/grug-moe-mix-swarm",
+      "kind": "dataset",
+      "last_modified": "2026-09-05T04:09:53.000Z",
+      "likes": 1,
+      "pipeline_tag": null,
+      "private": false,
+      "sha": "9cdd208e42f926f2b23c204085c9dc45f63c6c92",
+      "tags": [
+        "task_categories:text-generation",
+        "license:apache-2.0",
+        "size_categories:1K<n<10K",
+        "format:parquet",
+        "modality:tabular",
+        "modality:text",
+        "library:datasets",
+        "library:pandas",
+        "library:polars",
+        "library:mlcroissant",
+        "region:us",
+        "data-mixing",
+        "pretraining",
+        "scaling-laws",
+        "marin"
+      ],
+      "updated_in_target_window": false,
+      "url": "https://huggingface.co/datasets/marin-community/grug-moe-mix-swarm"
+    }
+  ],
+  "spillover_model_count": 0,
+  "spillover_models": [],
+  "window": {
+    "end": "2026-09-05T00:00:00Z",
+    "start": "2026-09-04T00:00:00Z"
+  }
+}

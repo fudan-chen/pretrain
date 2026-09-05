@@ -1,0 +1,296 @@
+{
+  "commit_count": 26,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T22:41:11Z",
+      "committed_at": "2026-09-04T22:41:11Z",
+      "message": "Treat Marina applet requests as permission to publish (#8926)\n\nA request to build or update a Marina applet now authorizes publishing\nit, including schema migrations and data loading needed for the\nrequested behavior. The skill previously required a separate explicit\nrequest for each external write, leaving a validated applet unpublished\nuntil the user confirmed again.\n\nRequests for local-only work, drafts, or review before publication still\nlimit that authorization. Rollback, archive, and unrelated data\nmutations remain scoped to the user's authorization.",
+      "sha": "0908920c86db7eb549094bd33d0e81c0c3ec4846",
+      "url": "https://github.com/marin-community/marin/commit/0908920c86db7eb549094bd33d0e81c0c3ec4846",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T22:21:29Z",
+      "committed_at": "2026-09-04T22:21:29Z",
+      "message": "[iac] Let Marina deployments manage scheduler jobs (#8924)\n\nGrant project-level `roles/cloudscheduler.admin` on `hai-gcp-models` to\n`marin-cd-cloud-run-deploy@hai-gcp-models.iam.gserviceaccount.com`.\nMarina's Pulumi program creates, updates, and deletes Scheduler triggers\nas app-declared runners change. [Merged-main rollout\n33920055992](https://github.com/marin-community/marin/actions/runs/33920055992)\nfailed on missing `cloudscheduler.jobs.create` and required a manual\nowner recovery.\n\nCloud Scheduler Admin is Google's narrowest predefined role containing\nthe create, update, and delete permissions needed to reconcile the\ntrigger lifecycle. The grant can manage every Scheduler job in the\nproject; Google does not provide resource-level IAM for individual\nScheduler jobs. The current jobs and application stack are converged, so\napplying this change should add only the IAM binding and let CI manage\nlater runner changes.\n\nA reviewer should run the `review-grant` workflow, then apply the\n`marin` Pulumi stack. The failure and recovery are recorded in\nhttps://marina.oa.dev/echo/wiki/339.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "147caa8f6ccc31ff15acb8d20a195e8fdbb43f7f",
+      "url": "https://github.com/marin-community/marin/commit/147caa8f6ccc31ff15acb8d20a195e8fdbb43f7f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-04T21:42:36Z",
+      "committed_at": "2026-09-04T21:42:36Z",
+      "message": "[grafana] Split inference overview from diagnostics (#8921)\n\nSplit inference telemetry into linked overview and diagnostics\ndashboards. The overview shows progress, response speed, queueing, cache\npressure, and telemetry health. Diagnostics adds engine comparisons,\nlatency stages and tails, and output lengths. Diagnostics retains the\nexisting `marin-inference` UID and all original panel IDs, so old panel\nlinks still work. Links between the two views retain the selected serve\nand time range.\n\nSeparate request counts from tokens per engine iteration, and fleet\nthroughput from per-request token latency. Show finished-request rates\nby outcome without treating them as arrival demand. Missing observations\nremain missing. The descriptions explain why draining requests alone\ncannot distinguish an intentional RL batch barrier from upstream\nstarvation.\n\nRead existing Finelog records only: no new telemetry, vLLM changes, or\nGPU experiments. Extend the shared bounded query and reuse panel\nfragments. Expand histogram statistics in one pass to avoid repeating\nthe aggregation in Finelog's query plan.\n\nAll 256 Grafana tests pass. Candidate queries complete against both the\nhistorical Snowball run and a recent run with per-engine telemetry. The\nreal Grafana Infinity datasource accepts every panel target, and browser\npreviews render both dashboards with those query results. The 136\nexisting non-freshness rows match the historical baseline within\nfloating-point tolerance. Historical latency panels show no samples\nwhere stored histograms cannot be attributed to individual engines.\nThese checks do not deploy the dashboards.\n\n---------\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "60bb19f829df0f92b5a1164bc4b9cf6b51510f65",
+      "url": "https://github.com/marin-community/marin/commit/60bb19f829df0f92b5a1164bc4b9cf6b51510f65",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T21:13:11Z",
+      "committed_at": "2026-09-04T21:13:11Z",
+      "message": "[marina] Publish dynamic applets (#8916)\n\nAdd `marina publish` and lifecycle commands for applets stored in\nPostgres.\nMarina's existing IAP policy gates both the publishing API and applet\nrequests.\nEach applet receives a stable UUID. Each successful publish allocates\nits next\nrevision and atomically selects it as current. Automatic retention keeps\nthe\ncurrent revision and the four highest-numbered alternatives. Files are\ndeduplicated across applets by digest and media type. Only the recorded\nowner\nor a user ID in `MARINA_APPLET_OPERATORS` can update, roll back, or\narchive an\napplet. Archive removes its routes and entry from Marina's app list but\npreserves its schema and retained revisions; v1 has no restore\noperation.\n\nGive each applet a Postgres role that can write its own schema and\nselect from\nschemas owned by checked-in and dynamic Marina apps. Browser-submitted\nSQL\npermits one statement with a 10-second timeout. Postgres bounds `SELECT`\nand\nread-only `WITH` results to 10,000 rows and a 5 MiB serialized JSON\npayload\nbefore transferring them; data-modifying `WITH` and mutation `RETURNING`\nstatements are rejected. The CLI also loads JSON, JSONL, CSV, and\nParquet tables\nas DDL and DML through the same query endpoint.\n\nAn applet may ship a Python ASGI backend and a migration that runs in\nthe\npublish transaction before activation. Any IAP-authorized caller can\ncreate a\nPython applet; only its owner or an operator can upload later revisions.\nThe `AppletServices` object passed to the backend supplies an engine\nconfigured\nfor the applet's restricted database role. Uploaded Python remains\ntrusted: it\ncan create other clients from Marina's process environment and access\nCloud Run\nfilesystem, network, and service credentials. The separate\napplets.marina.oa.dev origin exposes only `/a/*` routes and keeps\nuploaded\nJavaScript off Marina's main origin; it is not a process sandbox.\n\n`marina publish DIR --local` starts disposable pgvector Postgres,\ninstalls\n`marina.provision_applet(uuid)` and the `marina.applets` registry\ntables,\npublishes through a loopback Marina process, and serves the immutable\nrevision\nuntil Ctrl-C. The `marina-applet` repository skill uses this command as\nits\ndefault validation path. Local mode does not enable IAP and removes its\ndatabase container on exit.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "12b7fe148f50378cb12c94588bb8448e44c014a4",
+      "url": "https://github.com/marin-community/marin/commit/12b7fe148f50378cb12c94588bb8448e44c014a4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-04T21:02:13Z",
+      "committed_at": "2026-09-04T21:02:13Z",
+      "message": "[iris] Set Kueue defaults for CoreWeave clusters (#8899)\n\nSet the IaC defaults for the Kueue controller-manager container to an 8\nGiB memory request and limit, and set its Kubernetes API client to 1000\nQPS/2000 burst. The four existing CoreWeave cluster configs load these\ndefaults through `KueueProvisioningSpec`: RNO2A and West04 gain the\nsettings, while East02 and East08 render the same Kueue Helm values\nafter their duplicate overrides are removed.\n\nEast08 had 10,466 Kueue Workload objects when its 2 GiB manager\nOOM-killed in the incident documented by #7877. After memory was raised,\nthe 100 QPS/200 burst client throttled API requests long enough for the\nmanager to miss its 10-second leader-election renewal. East02 had 6,893\nWorkloads present when its 2 GiB manager OOM-killed on 2026-09-04; #8895\napplied the same memory and client-rate values to that cluster.\n\nThe direct Kueue manifest-builder and installer defaults remain\nunchanged. IaC passes the new values from `KueueProvisioningSpec` when\nit renders a managed CoreWeave cluster.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "fe984fd8aae55cbc3dc9e633751b3bee9ea96282",
+      "url": "https://github.com/marin-community/marin/commit/fe984fd8aae55cbc3dc9e633751b3bee9ea96282",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T20:24:23Z",
+      "committed_at": "2026-09-04T20:24:23Z",
+      "message": "[finelog] Fail closed on object-storage errors (#8917)\n\nObject-backed Finelog now fails closed when durable catalog state cannot\nbe interpreted or updated. Boot recovery rejects malformed live object\nreferences, direct queries reject incomplete active schemas, legacy\neviction changes the live view only after its catalog mutation succeeds,\nand scheduler and staging-cleanup errors are reported. Kubernetes passes\nthe configured object-cache limit into each server.\n\nThe object-store provider owns validated object locations for storage\nand querying. Durable state transitions carry explicit queue, lease,\nmutation, garbage-collection, migration, and work results, reducing\nambiguous state at recovery, registration, compaction, and maintenance\nboundaries. Tests use shared fixtures and logical or condition-based\nsynchronization.\n\nCatalog migration 0006 and the reserved protobuf slots remain unchanged\nbecause their intermediate forms reached live catalogs before #8748\nmerged.\n\nFixes #8909\nFixes #8837\nFixes #8882\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "08d0a04fb125d19651905c1b1c77e920f6b78398",
+      "url": "https://github.com/marin-community/marin/commit/08d0a04fb125d19651905c1b1c77e920f6b78398",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-04T20:11:35Z",
+      "committed_at": "2026-09-04T20:11:35Z",
+      "message": "Fix vLLM dashboard time-series framing (#8919)\n\nOrder vLLM overview time-series rows by timestamp before their series\ndimensions. Infinity's long-to-wide conversion requires globally\nascending timestamps. The previous series-major response made Grafana\ndraw legitimate zero-valued waiting and prompt-rate series as shark\nteeth in other lines.\n\nAdd an in-flight request series computed as running plus waiting from\nthe gauges already collected for the overview. For the historical\n`grug-megatron-snowball-r5-final-2` window, the generated query returned\nall 40 token-rate rows and 84 saturation rows in nondecreasing timestamp\norder, including 21 in-flight points.\n\nIn-flight counts requests accepted by vLLM. It does not estimate active\nprefill and decode counts or include prompts still held upstream by\nMarinSkyRL.\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "21828d6529060fd1c379b25b6469269a5d281490",
+      "url": "https://github.com/marin-community/marin/commit/21828d6529060fd1c379b25b6469269a5d281490",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-09-04T20:01:49Z",
+      "committed_at": "2026-09-04T20:01:49Z",
+      "message": "[grafana] Add the reinforcement-learning run view (#8562)\n\nAdd a dashboard for RL monitoring.",
+      "sha": "51be6349045d6cb6a3dac715b3bbdb954e8f626e",
+      "url": "https://github.com/marin-community/marin/commit/51be6349045d6cb6a3dac715b3bbdb954e8f626e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-04T18:40:27Z",
+      "committed_at": "2026-09-04T18:40:27Z",
+      "message": "[codehealth] Run one bounded pull-request review (#8915)\n\nLaunch one correctness review per trusted pull request and stop\nlaunching a\nseparate lint-catalog session. The `agentic-lint` label already records\nthe\nrequired local catalog pass. In the two reported examples, local passes\nat the\nauthors' initial commits emitted 13 findings for #8913 and 36 for #8914.\nThe\nlater CI reruns at subsequent heads posted another 6 and 10 findings.\nRemoving\nthe rerun trades that extra stochastic sample for half as many Loom\nsessions\nper pull request.\n\nDefine the review standard in `review-pr`: changed behavior must match\nthe pull\nrequest's claims, follow scoped repository and testing policy, preserve\ninterfaces and invariants, avoid concrete maintainability obstacles, and\nleave\na description suitable for the squash-merge commit. The workflow no\nlonger\nprescribes review-process topology. This removes the orchestration\nfan-out that\nleft #8914's correctness session running without a completion marker.\n\nThe review profile requires a typed Loom result and archives idle\nsessions\nafter the platform's 15-minute safety window instead of retaining them\nfor one\nhour.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "3b5206531054979e78f34adc9183e2aa03c9d5ea",
+      "url": "https://github.com/marin-community/marin/commit/3b5206531054979e78f34adc9183e2aa03c9d5ea",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-04T18:32:26Z",
+      "committed_at": "2026-09-04T18:32:26Z",
+      "message": "[nightshift] Fix CLI worker task_outputs drift and delete dead code (#8904)\n\n`iris cluster create-slice` and `iris cluster worker-restart` each\nrebuilt the\nbase worker config inline instead of calling `build_base_worker_config`,\nthe\nhelper the controller uses for autoscaled workers. Both inline copies\nhad\ndrifted by omitting `task_outputs`, so workers created or restarted from\nthe CLI\nran with `task_outputs=None` and silently captured no per-attempt output\narchives, unlike autoscaler-provisioned workers in the same cluster.\nBoth call\nsites now go through the helper, which leaves it as the only place\ndeciding what\nthe controller ships to a worker. The other fields are unchanged: the\nCLI\nresolves the controller address from `config.controller_address()`\nbefore\nfalling back to provider discovery, and no cluster config sets\n`defaults.worker.storage_prefix` or `auth_token`.\n\nLevanter defined the stalled-training exit code 124 twice, as\n`STALLED_TRAINING_EXIT_CODE` in the progress watchdog and `EXIT_STALL`\nin\n`recovery/types.py`, with a comment asserting the two must agree and\nnothing\nenforcing it. Had the watchdog's copy drifted, `classify_returncode`\nwould map a\nstalled child to `FaultClass.HARD`, so the supervisor would propagate\nthe\nfailure instead of warm-restarting from the host snapshot. The watchdog\nnow\nimports `EXIT_STALL` from the recovery module that already owns the\ntrainer/supervisor exit-code contract.\n\n`marin/export/hf_upload.py` lost its only caller in #6649, which removed\nthe\n`upload_dir_to_hf` ExecutorStep wrapper during the lazy-artifact\nmigration.\nWhat remained was reachable only from the module's own `__main__` block,\nwhich\npushes a scratch file to a personal Hugging Face repo. Checkpoint export\nruns\nthrough `marin/export/levanter_checkpoint.py`. The `InferenceBackend`\nProtocol\nin `marin/inference/backend.py` goes with it: it has no implementers or\nannotations anywhere, since the concrete backends are selected by class.\n\nIn the Zephyr worker, `_finish_active_shard` copied counters into\n`last_counters` and dropped the shard from `_active_shards` nine lines\nlater, so\nthe copy could never be read again, and the task thread rebuilt\n`traceback.format_exc()` character by character through `\"\".join(...)`.\nThe\n`shard_subprocess` docstring justified its separation from\n`zephyr.runners` via\nan `__init__ -> execution -> runners` import chain; there is no\n`zephyr.execution` module and `zephyr/__init__.py` has had no imports\nsince\n#7075. It now states the invariant that still holds, that the `-m`\ntarget is a\nleaf module nothing imports.\n\n---------\n\nCo-authored-by: Nightshift Scout <nightshift@marin.local>",
+      "sha": "943e081ce319fef424b6d55075674e18d4890676",
+      "url": "https://github.com/marin-community/marin/commit/943e081ce319fef424b6d55075674e18d4890676",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-04T18:29:19Z",
+      "committed_at": "2026-09-04T18:29:19Z",
+      "message": "[grug] Keep the hero README operational (#8763)\n\nThe hero README had accreted a chronolog — superseded pooled-wave gates,\nthe EP ablation ladder table, and the full transport A/B — alongside the\nlaunch instructions ([review\nthread](https://github.com/marin-community/marin/pull/8684#discussion_r3884351715)).\nThe results sections compress to one \"Why this recipe\" paragraph stating\nthe selection evidence, and the experiment record (per-run W&B links\nincluded) stays with the logbook and issues the Result Record section\nalready names. Launch, sweep, and control documentation is unchanged.",
+      "sha": "e1822accc84772fbb93e5686123ad3bfdd5d6ebd",
+      "url": "https://github.com/marin-community/marin/commit/e1822accc84772fbb93e5686123ad3bfdd5d6ebd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-04T18:27:02Z",
+      "committed_at": "2026-09-04T18:27:02Z",
+      "message": "[infra] Grant Loom namespaced pod connection access (#8906)\n\nDeclare the `marin-loom-session-connect` Role and RoleBinding in the\nIris namespace of `cw-us-east-02a`, `cw-us-east-08a`, `cw-rno2a`, and\n`cw-us-west-04a`. The bindings select the CoreWeave Managed Auth\nusernames from `provisioning.coreweave.loom_session_rbac` and add only\n`create` on `pods/exec` and `pods/portforward`. CoreWeave CKS Viewer\ncontinues to provide pod discovery and `get` on `pods/log`. No live\nRoleBinding is applied by this branch; operators must preview and update\nthe four stacks.\n\nLoom session `7k2y48a3` resolved `cw-us-east-08a` through\n`/home/app/.kube/coreweave-iris`, then exhausted Iris's 90-second\ncontroller connection retry with `cannot create resource\n\"pods/portforward\" in namespace \"iris\"`. Iris reaches the controller\nthrough `kubectl port-forward`; direct interactive `kubectl exec`\nrequires the other added subresource. The evidence and federated\nfallback are recorded in [Echo wiki\n336](https://marina.oa.dev/echo/wiki/336).\n\nCoreWeave API tokens are user-scoped. The replacement token's Managed\nAuth username is `cwtoken-umHabiNiEWJbDFZqyTwbP-ops-loom-token`; the\nfour cluster configs bind it alongside\n`cwtoken-uhBSRqWXRtyV7WWciRtYr-loom-token` during rotation. The uploaded\nkubeconfig is stored in the `loom-coreweave-iris-kubeconfig` Google\nSecret Manager secret in `hai-gcp-models`. The runbook in\n`infra/pulumi/README.md` retains the repeatable token and secret-version\nrotation procedure. Credential materialization at `.kube/coreweave-iris`\nwith mode `0600` is owned by #8325. Remove the old binding and revoke\nthe old token only after the replacement succeeds from a new Loom\nsession.\n\nBoth connection subresources cover every pod in their namespace.\nKubernetes RBAC cannot constrain exec commands or port-forward targets\nby container, label, or port. Further isolation requires separate\nnamespaces or an authorization layer outside these Role rules.\n\nThe aggregated IaC preview also shows the pending Kueue update from\n#8895 on `cw-us-east-02a`. Its separate `marin` stack preview contains\nthe pending Marin Dev grant from #8878 and stale grants removed by #8908\nbecause this PR branch predates that removal. Do not apply the `marin`\nstack from this branch. Preview the CoreWeave stacks from current `main`\nafter merge and update them only when each diff contains the three Loom\nRBAC creates, plus any separately reviewed change.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "74228442fd64a5c6ee7dd031ac0870ca9c8cfdf7",
+      "url": "https://github.com/marin-community/marin/commit/74228442fd64a5c6ee7dd031ac0870ca9c8cfdf7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T18:22:23Z",
+      "committed_at": "2026-09-04T18:22:23Z",
+      "message": "[marina] Move scheduled work into app-declared runners (#8913)\n\nMarina app manifests can now declare scheduled jobs, including their\nrunner, cadence, command, capacity, timeout, and secrets. The deployment\ngroups compatible declarations into Cloud Run jobs, runs app migrations\nthrough the hourly runner before updating the service, and removes the\ndedicated migration resource.\n\nEcho now runs hourly and processes all six configured repository turns\nin one execution. EvalDash uses a separate 1-vCPU, 1-GiB runner every\nten minutes; its Rescan action queues that runner, while web requests\nserve a generation-checked PostgreSQL snapshot. Marina keeps one warm\ninstance for latency but moves the service to request-based CPU\nallocation.\n\nThe production preview creates two jobs and two scheduler triggers,\nupdates the Marina service and IAM wiring, replaces the migration\ncommand, and deletes the old migration and Echo-sync resources. It\nreports four creates, three updates, three deletes, and one replacement,\nplus pre-existing local-path database grant differences.\n\nValidated by the 1,531-test affected-repository run, the 183-test Marina\nsuite, focused runner and catalog tests, EvalDash frontend type\nchecking, Pyrefly, and the required pre-commit checks.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "c49bff2830661f26462070417b5b5956ebd0fe79",
+      "url": "https://github.com/marin-community/marin/commit/c49bff2830661f26462070417b5b5956ebd0fe79",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T18:15:54Z",
+      "committed_at": "2026-09-04T18:15:54Z",
+      "message": "[finelog] Add object-backed table storage (#8748)\n\nStore versioned Finelog tables as immutable Parquet objects selected by\na conditionally updated table catalog. Canonical object IDs resolve\nthrough an object-store interface, and the local cache mirrors the\n`_finelog/tables/<table>/...` layout so an empty local store can recover\nfrom HEAD and immutable catalogs.\n\nDurable table state has one authority and one write path. Every mutation\n— flush, compaction, index backfill, registration, activation, abort,\nretire, forward cursor, tombstone — commits through a private per-table\ncontroller that allocates a monotonic revision and carries a writer\nfence; the compensating generation decrements are gone. Commits validate\nthe fence recorded in HEAD, so a stale server cannot advance a table\nanother process has claimed, and an ambiguous CAS resolves by re-reading\nHEAD and comparing revision, fence, and state hash — commits roll\nforward or fence, never back. Dropping a table publishes a durable\ntombstone revision instead of deleting HEAD. Ingest is local-first: a\nflush stages its sealed Parquet into the verified cache layout (pinned\nagainst eviction) and commits the revision to the local catalog, which\nacknowledges the write; uploading the staged objects and the fenced HEAD\nswap run on the publication path, attempted immediately and retried by\nmaintenance, so a sustained remote outage delays publication without\nblocking ingest. The trade-off is explicit: between local ack and\npublication the tail exists only on that node's disk, so a fence steal\nor node loss can drop acknowledged-but-unpublished rows. Recovery is\nmetadata-only: bootstrap loads state, claims the fence, and seeds\nsequence numbers without downloading data or adopting cached files;\nSQLite is a projection for object-backed tables and remains the\nauthority only for legacy tables. The published high-water mark carries\nthe legacy allocator watermark, publishes clamp it monotone across\nrevisions (retirement deletes the legacy rows the aggregate is computed\nfrom), and recovery seeds the allocator past it, so a recovered writer\nnever reissues a sequence number.\n\nFixes #8737\nFixes #8784\n\nIncident record: [migrated log tail queries time out after\nrestart](https://echo.oa.dev/wiki/337)\n\nRelated review debt: #8909",
+      "sha": "b0d9607913b3f5aa260643b1af3594e6e7ebab75",
+      "url": "https://github.com/marin-community/marin/commit/b0d9607913b3f5aa260643b1af3594e6e7ebab75",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T17:44:30Z",
+      "committed_at": "2026-09-04T17:44:30Z",
+      "message": "[eval] Keep runs with extra fields (#8898)\n\nFixes #8885",
+      "sha": "67ad0fadf274ce276c29165deb1e8bb64d678ea5",
+      "url": "https://github.com/marin-community/marin/commit/67ad0fadf274ce276c29165deb1e8bb64d678ea5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-04T16:30:06Z",
+      "committed_at": "2026-09-04T16:30:06Z",
+      "message": "[dependencies] Advance external runtimes (#8910)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`cf66d0b14975`](https://github.com/marin-community/evalchemy/commit/cf66d0b14975379bf7fc5c4a7cfff1400c636f1c)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`05d47b73cd34`](https://github.com/marin-community/harbor/commit/05d47b73cd34ac9f481445ce68ce716e465655ba)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`8e33e01707b7`](https://github.com/marin-community/MarinSkyRL/commit/8e33e01707b7225ecde1d6b8ad172a3dd4dc8661)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`fcd6dfdc32ee` → `8e33e01707b7`)\n\n-\n[`c1307fb13314`](https://github.com/marin-community/MarinSkyRL/commit/c1307fb133146c8284c2fb2e8111ec215a5423bf):\n[iris] Stage validation data on every node (#512)\n-\n[`9761d60e47c7`](https://github.com/marin-community/MarinSkyRL/commit/9761d60e47c77801ea4248f58b2771327632f1ad):\n[eval] Ignore behavior logprobs during evaluation (#513)\n-\n[`8e33e01707b7`](https://github.com/marin-community/MarinSkyRL/commit/8e33e01707b7225ecde1d6b8ad172a3dd4dc8661):\n[eval] Restore global Harbor concurrency during evaluation (#514)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "b51262b432b9edad777c40531a043491ada8434f",
+      "url": "https://github.com/marin-community/marin/commit/b51262b432b9edad777c40531a043491ada8434f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T15:55:57Z",
+      "committed_at": "2026-09-04T15:55:57Z",
+      "message": "[iam] Remove a departed user's managed cloud access (#8908)\n\nRemove a departed user from 28 repository-managed GCP IAM grants,\nincluding project roles, KMS, IAP, Artifact Registry, bucket, and\nservice-account bindings. Delete the unreferenced encrypted principal.\n\nRemove the corresponding stale job-scheduling priority entries from\nthree production CoreWeave cluster configurations.\n\nDocument that access-control commit and pull-request prose must omit\nuser-identifying information.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "d216e872d07fe5ace152d83460ef7e2d80d2bd40",
+      "url": "https://github.com/marin-community/marin/commit/d216e872d07fe5ace152d83460ef7e2d80d2bd40",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-04T15:32:16Z",
+      "committed_at": "2026-09-04T15:32:16Z",
+      "message": "[marina] Let callers select accelerator dependencies (#8905)\n\nDepend on the base `marin-core` package so workspace-wide syncs inherit\nthe accelerator extra chosen by the caller. This prevents GPU jobs from\ncombining `marin-core[cpu]` and `marin-core[gpu]` while preserving the\nintentional CPU/GPU conflict guard.\n\nThe reported `uv sync --all-packages --no-dev --extra gpu --dry-run` now\nresolves all 545 locked packages.\n\nFixes #8903\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "c77f8790d70e9bf23f4826c1d2cc906e3063fe17",
+      "url": "https://github.com/marin-community/marin/commit/c77f8790d70e9bf23f4826c1d2cc906e3063fe17",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-04T15:25:50Z",
+      "committed_at": "2026-09-04T15:25:50Z",
+      "message": "[grug] Recommend dev versions for ordinary runs (#8881)\n\nRecommend `dev` versions for ordinary Grug experiments, diagnostics,\nablations, profiles, and sweeps. These versions rebuild per invocation\nand write under `users/<username>/grug/...`.\n\nReserve calendar versions for coordinated major production runs that\nneed shared, citable checkpoint roots. The EP diagnostic and ablation\nexamples now use `dev`; the production hero trigger remains\ncalendar-versioned.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "fe32ab4049483a012ca7faa20a1982e16c099c9e",
+      "url": "https://github.com/marin-community/marin/commit/fe32ab4049483a012ca7faa20a1982e16c099c9e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-04T11:28:07Z",
+      "committed_at": "2026-09-04T11:28:07Z",
+      "message": "[dependencies] Advance external runtimes (#8902)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`cf66d0b14975`](https://github.com/marin-community/evalchemy/commit/cf66d0b14975379bf7fc5c4a7cfff1400c636f1c)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`05d47b73cd34`](https://github.com/marin-community/harbor/commit/05d47b73cd34ac9f481445ce68ce716e465655ba)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`fcd6dfdc32ee`](https://github.com/marin-community/MarinSkyRL/commit/fcd6dfdc32ee2c78dd0a075891f2c59b19d81879)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`39e928407184` → `fcd6dfdc32ee`)\n\n-\n[`fcd6dfdc32ee`](https://github.com/marin-community/MarinSkyRL/commit/fcd6dfdc32ee2c78dd0a075891f2c59b19d81879):\n[eval] Make Harbor fixed evaluation reproducible (#511)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "922781dc5d32f28f3e47f37b17be8ac7269e013d",
+      "url": "https://github.com/marin-community/marin/commit/922781dc5d32f28f3e47f37b17be8ac7269e013d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-04T04:34:58Z",
+      "committed_at": "2026-09-04T04:34:58Z",
+      "message": "[grug] Record hero launch source provenance (#8858)\n\nBefore submitting each hero coordinator, comment on issue #8506 with the\nfull `HEAD` commit, dirty-tree state, run ID, coordinator job name, and\n11-rack target. Abort before Iris submission if the permanent GitHub\nrecord cannot be written.\n\nIris continues to capture its standard short base commit, tree-content\nhash, and dirty bit in `MARIN_PROVENANCE`. The existing run ID remains\nthe checkpoint and output lineage across resumptions.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "b838ce1c0d2fa741335bab1ad812aae8d85e0bd5",
+      "url": "https://github.com/marin-community/marin/commit/b838ce1c0d2fa741335bab1ad812aae8d85e0bd5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-04T04:19:10Z",
+      "committed_at": "2026-09-04T04:19:10Z",
+      "message": "[iris] Raise cw-us-east-02a Kueue headroom (#8895)\n\nRaise cw-us-east-02a's Kueue manager memory request and limit from 2 GiB\nto 8 GiB, and increase its Kubernetes API client limits from 100 QPS/200\nburst to 1000/2000.\n\nDuring startup resync with 6,893 Workloads present on 2026-09-04, the\nmanager OOM-killed eight times and left its fail-closed admission\nwebhook with no ready endpoint. During the same outage, Finelog counted\n`/muchanem/hero-quality-bucket` task samples falling from 1,039 distinct\ntasks per minute to five. After the webhook endpoint became ready, the\ntotal Workload count rose again as task dispatch recovered, leaving the\n2 GiB configuration exposed to recurrence.\n\nShip the memory and client-rate changes together. After the memory\nincrease let startup resync progress further on cw-us-east-08a, Kueue\nhit the unchanged 100/200 client limiter, delayed its 10-second leader\nrenewal, and caused another webhook outage\n([#7877](https://github.com/marin-community/marin/pull/7877)).\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Mark Muchane <muchanem@gmail.com>",
+      "sha": "6e79468d018f0f428db163b81d7d7617cc7fa6d0",
+      "url": "https://github.com/marin-community/marin/commit/6e79468d018f0f428db163b81d7d7617cc7fa6d0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T03:12:51Z",
+      "committed_at": "2026-09-04T03:12:51Z",
+      "message": "[marina] Shared service for Echo, EvalDash, and TaskTrove (#8867)\n\nMarina is one IAP-gated Cloud Run service hosting Marin's small internal\nweb apps. Each app is a directory under `infra/marina/apps/` with an\n`app.toml` and a Vue frontend served at `/<name>/`; a Python app adds\n`create_api(services)`, mounted at `/<name>/api/` behind the kernel's\nauthentication, and `migrate(engine)`, run against the app's own schema\nof the shared `marina` database at the end of every deploy. Echo,\nEvalDash, and TaskTrove are ported; `infra/echo` and `infra/evaldash`\nare removed. The shared kit under `infra/marina/web` gives every app the\nsame tokens, top bar with app switcher and identity chip, and Markdown\nrendering.\n\nApp data moves out of the repository to a data root, `gs://marin-marina`\nin production and `infra/marina/.data` locally, served at\n`/<app>/data/`. Journeys are browser walks that double as tests: a\nPlaywright DSL (visit, sees, click, fill, offers, reads, api, shoot,\nwidths) against an in-process kernel, with screenshots and optional\nvideo, run by `marina journey`. Each app ships journeys; page errors and\nfailed API calls fail the walk.\n\nDeployment is one stack: the `marina` database on `marin-metadata`, the\nbucket, the service (4 CPU, 4 GiB, one warm instance, up to four), a\n`marina-migrate` job executed after each image change, and Echo's sync\nas a scheduled job on the same image and service account, so there is a\nsingle database user and no grant migrations. `marina.oa.dev`,\n`echo.oa.dev`, and `evaldash.oa.dev` all map to the service. The two old\nhosts redirect into their app on `marina.oa.dev` rather than serving it\nat their own root, so the apps sit in one URL space: serving on the\nalias too would put every page at two origins, and a root-relative link\nfrom one app to another would pick up the alias's prefix — `/evaldash/`\non `echo.oa.dev` became `/echo/evaldash/`. Every API route keeps its\npath, method, and response model, and a vanity host still serves them:\n`echo.oa.dev/api/...` is routed straight to the mounted API rather than\nredirected, because requests and curl drop the Authorization header\nacross a cross-origin redirect and the retry would come back as IAP's\nsign-in page with status 200. Only pages redirect. An app may not be\nnamed for a route the kernel answers itself (`api`, `healthz`); startup\nrefuses rather than let the app silently lose those paths. IAM is one\ntarget in the `marin` stack. `marina migrate --reader\neng-all@openathena.ai` grants the Cloud SQL group login people query\nwith USAGE and SELECT on every schema, which is what Echo's\n`m0003_openathena_grants.py` did before it was deleted. The codehealth\nworkbench keeps its `context` database and Loom login, now declared by\nthis stack, and creates its tables with `refinement_tools.py\ninit-schema` instead of an Echo migration.\n\nThe rollout ran before merge rather than after, so this lands against\ninfrastructure that is already in its final state. Marina is live and\nserving all three hosts; Echo's 12 tables and EvalDash's 8 were copied\nout of the `context` and `evals` databases into the `marina` schemas,\nroughly 216k rows and 2.2 GB, and matched the source counts at copy\ntime. The copy took 79 minutes, almost all of it pgvector index\nmaintenance on `chunks` and `repository_file_chunks`. A second additive\npass after the domains moved added no rows, so no writes were lost in\nthe switch. The `marin-echo` and `marin-evaldash` stacks are destroyed\nand removed, and the `marin` stack is applied. The source tables in\n`evals` and `context` are left intact.\n\nVerified locally: 169 kernel and app tests against a throwaway pgvector\ncontainer, 9 journeys across the three apps with screenshots, pyrefly,\nand lint. Echo's search benchmark, whose 80 graded queries move with the\napp, scores the deployed service at MRR@10 0.834, nDCG@10 0.832, hit\nrate 0.965, judgment recall 0.805, and no-answer accuracy 0.714 on the\ndev split -- the range `benchmarks/README.md` records for the July\nranking work, over a corpus that has grown since. Collect serially:\nconcurrent queries scale Cloud Run out and each new instance loads the\nONNX models on its first search.\n\nDropped: Echo's grant migration chain, EvalDash's dark-mode toggle (it\nfollows the system now). EvalDash's ingest loops start on the first\nrequest because lifespan events do not propagate through a Starlette\nmount, which is also why the service holds CPU between requests; moving\ningest into a scheduled job would let it fall back to request-based CPU.\nThe two apps keep separate migration ledgers, and only EvalDash's runner\nlocks and rejects unknown migration names; a shared one is a follow-up.\nEcho keeps its own `marked`/DOMPurify renderer rather than the kit's\n`Prose`, which refuses `v-html` because it draws text a model wrote: of\n332 wiki entries, 17 use tables and 6 use nested lists, neither of which\nthe kit's subset renderer draws. EvalDash still rejects 39 eval runs\nwhose serve config carries fields its record schema forbids, unchanged\nfrom before the port and tracked in #8885.\n\nhttps://claude.ai/code/session_01X99FW86Cjf3XhEUMHGWeVX\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "d665b1a463b34a21d5230f83b5efb7bce5e99038",
+      "url": "https://github.com/marin-community/marin/commit/d665b1a463b34a21d5230f83b5efb7bce5e99038",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-04T02:44:16Z",
+      "committed_at": "2026-09-04T02:44:16Z",
+      "message": "[dependencies] Advance external runtimes (#8897)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`cf66d0b14975`](https://github.com/marin-community/evalchemy/commit/cf66d0b14975379bf7fc5c4a7cfff1400c636f1c)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`05d47b73cd34`](https://github.com/marin-community/harbor/commit/05d47b73cd34ac9f481445ce68ce716e465655ba)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`39e928407184`](https://github.com/marin-community/MarinSkyRL/commit/39e92840718446c823365b506fe1be36327b8e1f)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`18c9fa283c43` → `39e928407184`)\n\n-\n[`39e928407184`](https://github.com/marin-community/MarinSkyRL/commit/39e92840718446c823365b506fe1be36327b8e1f):\n[metrics] Export embedded vLLM observability (#502)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "357a067ab589bb7d39190bceeb5090e78c526321",
+      "url": "https://github.com/marin-community/marin/commit/357a067ab589bb7d39190bceeb5090e78c526321",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-04T02:35:50Z",
+      "committed_at": "2026-09-04T02:35:50Z",
+      "message": "[iris] Isolate XLA autotune caches by process (#8896)\n\nGive each multigpu process its own node-local XLA per-fusion autotune\ndirectory. The hero continuation failed while saving checkpoint step\n58,181 because three ranks sharing `/cache/xla/per-fusion-autotune` lost\ntheir temporary `.textproto` files during XLA cache insertion. The other\nranks then aborted through JAX fate sharing, and Iris retried the\n176-task gang.\n\nThis reapplies [commit\n61742bfa](https://github.com/marin-community/marin/commit/61742bfa2a512daff91cbd91e9e769197151dfde),\ndeveloped during [MoK EP64\ndebugging](https://github.com/marin-community/marin/issues/8244#issuecomment-5290127992),\nto the current FineStore-backed cache implementation. Disabling the\ncache previously left a rack compiling for fifteen minutes without\nreaching a step, so the cache remains enabled and writers are isolated\nby global process index.\n\nThe JAX-init test file passes all 27 cases, including separate paths for\na node's local leader and sibling rank. The broader affected-test\nselection passes 524 tests with 5 skips.\n\nPart of #8244\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "489fc0537cd9682861505dfca03dee0c12704a46",
+      "url": "https://github.com/marin-community/marin/commit/489fc0537cd9682861505dfca03dee0c12704a46",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-04T02:06:28Z",
+      "committed_at": "2026-09-04T02:06:28Z",
+      "message": "[grafana] Read embedded vLLM telemetry (#8872)\n\nThe existing `/v1/vllm/overview` path and inference dashboard read\nstandalone serving rows with `service=vllm` and trainer-embedded rows\nwith `service=marinskyrl, metric_source=vllm`. Requiring both embedded\nlabels excludes Ray metrics from the same trainer process. Embedded data\nkeeps the requested 15-second bins. Standalone data stays at its\n60-second scrape floor so sparse counter deltas are not presented as\ndenser samples.\n\nFor embedded rows, the producer's physical-engine UUID is the stable\n`engine` label; local placement remains `engine_index`. Gauges,\nhistograms, and freshness use that UUID across step changes. A live\nengine can no longer hide a stopped peer that shares its trainer\nresource. Standalone freshness remains keyed by its existing resource\nidentity. Embedded histograms require `engine_index`, which rejects\nlegacy actor-local identities. Iteration occupancy joins saturation and\ntime-resolved TPOT joins latency without changing the nine-section,\nten-column API contract.\n\nOne 77-line test follows the checked-in dashboard target through the\nHTTP route, generated SQL, DuckDB, and JSON. It covers 77 of 83\nexecutable lines in `vllm_observability.py` (93%) and checks\nrepresentative rate, outcome, TPOT, saturation, and stopped-versus-live\nfreshness values. The stopped/live case failed before the fix as one\nshared fresh resource. The complete Grafana suite passes 244 tests.\n\nThe final SQL ran through Finelog for a 150-second embedded window and a\nstandalone control. Both returned the ordered ten-column schema. The\nstandalone control retained one resource freshness row, all nine\nsections, and 22 non-null latency rows. The historical embedded run\npredates the companion producer's corrected stable identity, so a new\ninstrumented run is still required for that runtime proof.\n\nCompanion MarinSkyRL producer:\nhttps://github.com/marin-community/MarinSkyRL/pull/502. The separate\n`rl_runs.json` dashboard must map its selected run to the API identity\nfield and value; that wiring is outside this change.\n\nPart of #8562.\n\n---------\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>",
+      "sha": "73594995975f6fdbd09be1a987bb29b9a9c8fd35",
+      "url": "https://github.com/marin-community/marin/commit/73594995975f6fdbd09be1a987bb29b9a9c8fd35",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-05T00:00:00Z",
+    "start": "2026-09-04T00:00:00Z"
+  }
+}

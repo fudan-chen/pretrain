@@ -1,0 +1,32 @@
+{
+  "commit_count": 2,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-05T21:40:28Z",
+      "committed_at": "2026-09-05T21:40:28Z",
+      "message": "[marina] Rebuild applets before publishing (#8927)\n\nRun a declared applet `build_command` before every normal publish,\nincluding when `dist/index.html` already exists. `--no-build` remains\nthe explicit path for reusing a prebuilt bundle, so normal publishes do\nnot silently reuse stale Vue or Vite output.\n\nDocument Vue and Vite applets in the Marina README and `marina-applet`\nskill. The guidance uses Vite `base: \"./\"`, Vue Router\n`createWebHashHistory()`, and relative backend calls so one `dist/`\nworks below both current and revision URLs. JavaScript dependencies must\nbe bundled because the applet policy sets `script-src 'self'`.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "784ef384819bf719fecc863ef096c1b01bfbc1f6",
+      "url": "https://github.com/marin-community/marin/commit/784ef384819bf719fecc863ef096c1b01bfbc1f6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-05T21:39:18Z",
+      "committed_at": "2026-09-05T21:39:18Z",
+      "message": "[finelog] Remove object hashing and prune unfiltered limits (#8923)\n\nStop SHA-256 verification and content-derived naming in Finelog's object\npersistence path. Cache hits perform metadata I/O only, downloads check\nbyte length, remote pointer swaps use the provider version or ETag, and\nlocal pointer swaps compare exact bytes under the file lock. Immutable\nobjects receive UUID names. Migration checkpoints use immutable catalog\nmetadata without reading source files. The removed protobuf field number\nremains reserved, and readers ignore the field in older JSON catalogs.\n\nAn unfiltered `LIMIT` pushed to a table scan now uses catalog row counts\nto present the smallest segment prefix that can satisfy the request.\nFilters, absent limits, and missing row counts retain all candidate\nsegments.\n\nOn `bento-cat`, a debug build read one copied 30.5 MB production\n`levanter.metrics` L3 shard through 402 local hardlinks. Cache lookup\nfell from 337.881 seconds to 9 milliseconds. The pre-change `perf\nrecord` profile spent over 90% of samples in the SHA-256 pipeline; the\nnew profile contains no SHA frames. The first `SELECT * FROM\n\"levanter.metrics\" LIMIT 100` fell from 142 to 73 milliseconds, and 150\npost-change runs had a 51.81 millisecond median. Fourteen\ntraining-dashboard queries were also measured over 15-minute and default\nthree-hour windows. Ordinary-panel medians were 35.08 to 63.36\nmilliseconds and 35.48 to 61.77 milliseconds; execution health took\n110.29 and 132.34 milliseconds. Remaining CPU for the wide limit query\nis dominated by Zstandard decompression. The benchmark and operational\nrecord is at https://echo.oa.dev/wiki/338.\n\nFollow-up to #8917 and #8909.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "7c14862a7cec04650c08c151e53890c8548bbb85",
+      "url": "https://github.com/marin-community/marin/commit/7c14862a7cec04650c08c151e53890c8548bbb85",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-06T00:00:00Z",
+    "start": "2026-09-05T00:00:00Z"
+  }
+}

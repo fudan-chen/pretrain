@@ -1,0 +1,21 @@
+{
+  "commit_count": 1,
+  "commits": [
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-07T18:37:00Z",
+      "committed_at": "2026-09-07T18:37:00Z",
+      "message": "[marina] Validate applets against runtime constraints (#8944)\n\n`marina publish --dry-run` validated archive layout but did not import a\ndeclared backend, and packaged HTML could retain inline JavaScript that\nMarina's\n`script-src 'self'` policy blocks. Running an applet backend from source\ncould\nalso create `server/__pycache__` files that the next package build\nrejected.\n\nAdd `marina validate` to package the applet and import its backend in\nthe\ncurrent Marina Python environment with the isolated module layout used\nafter\nupload. Its report lists completed checks and leaves factory execution,\nmigration execution, and browser behavior under `not_checked`;\npackage-only dry\nruns also list backend imports there for Python applets. Package\nvalidation\nrejects executable inline `<script>` elements in uploaded HTML, and\nlocal\npackage builds omit bytecode while retaining the existing allowlist of\n`applet.toml`, `dist/`, and Python files under `server/`.\n\nOnly installed `lib/*` packages declared by\n`infra/marina/pyproject.toml`\nsupply shared Marin helpers; imports from checked-in Marina apps are\nunsupported. The docs use\n`marin.evaluation.archive.sample_from_archive_row` as\nthe eval-reader example, add static HTML, Vue, and Python backend\nstarters, and\nshow how a second publish can update a running `--local` stack without\nreplacing\nPostgres.\n\nFixes #8935\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "1234cbe4bfbcdc24c1bcfb20741f557c1eec567e",
+      "url": "https://github.com/marin-community/marin/commit/1234cbe4bfbcdc24c1bcfb20741f557c1eec567e",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-08T00:00:00Z",
+    "start": "2026-09-07T00:00:00Z"
+  }
+}

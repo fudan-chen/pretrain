@@ -1,0 +1,131 @@
+{
+  "commit_count": 11,
+  "commits": [
+    {
+      "author": "ethantsliu",
+      "author_name": "Ethan Liu",
+      "authored_at": "2026-09-08T23:10:22Z",
+      "committed_at": "2026-09-08T23:10:22Z",
+      "message": "[levanter] Check accelerator before mesh validation (#8973)\n\nFail accelerator-required runs before mesh validation when JAX falls\nback to CPU. A TPU worker that restarts without its accelerator now\nreports the missing accelerator instead of a secondary mesh-shape error.\nThe platform-dependent default for requiring an accelerator is\nunchanged.\n\nFixes #3433",
+      "sha": "1867ac8a54c36d236bb18b4a0478d69b29e907db",
+      "url": "https://github.com/marin-community/marin/commit/1867ac8a54c36d236bb18b4a0478d69b29e907db",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-08T22:41:05Z",
+      "committed_at": "2026-09-08T22:41:05Z",
+      "message": "[grug] Add automatic DualPipeV MoE training (#8739)\n\nAdd model-specific pipeline training for Grug MoE with JaxPP\nequation-level ZeroBubble and DualPipeV schedules. The pipeline variant\nimports unchanged attention, normalization, dense MLP, and Hugging Face\nconfig classes from `experiments/grug/moe/model.py`. Its MoE, block, and\ntransformer definitions remain local because pipeline staging changes\ntheir call surfaces. Parameters and Adam state are initialized on their\nowning stages, and DualPipeV maps two logical stages to each physical\nrank without materializing the full training state. Both schedules use\nthe same MPMD state and autodiff path. The loop in\n`experiments/grug/moe_pipeline/train.py` initializes fresh parameters\nand synthetic data with AdamW at learning rate 1e-4, beta1 0.9, beta2\n0.95, and weight decay 0.1; checkpoint save and restore are not\nimplemented.\n\nThe locked root `pipeline` extra replaces the standard GPU environment\nwith JaxPP and its CUDA dependencies. It requires NCCL 2.31.2 because\nNCCL 2.30.7 hangs the grouped-transfer path on current JaxPP. Normal\nFray dispatch selects this environment explicitly; the obsolete\nside-install path is removed.\n\nThe Snowball 67B-A2B DualPipeV batch-256, 32-microbatch configuration\nreaches 603,327 tokens/s and 19.46% median analytic MFU on 64 H100s. A\nmatched DualPipeV run at batch 128 and 16 microbatches reaches 543,490\ntokens/s and 17.53%. Each median covers ten post-warmup steps. Peak\nmemory is 59.153 GB/device for both, and loss differs by 4.0e-5 after 14\nsynthetic-data steps. Command buffers remain disabled for both\nconfigurations because JAX 0.11.0 with JaxPP 0.11.0 can deadlock during\nmulti-communicator initialization and execution (#7655).\n\nAdding the microbatch axis requires an explicit output sharding tree for\nthe transformed JaxPP step. [Echo incident\n312](https://echo.oa.dev/wiki/312) records the partition-spec mismatch\nand resolution.\n\nPart of #7024",
+      "sha": "20d35b9019c1f54846436ffce0525c453e04ff47",
+      "url": "https://github.com/marin-community/marin/commit/20d35b9019c1f54846436ffce0525c453e04ff47",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-08T21:59:59Z",
+      "committed_at": "2026-09-08T21:59:59Z",
+      "message": "[grug] Initialize the step counter on the training mesh (#8911)\n\nInitialize the train state's step counter with replicated sharding on\nthe active mesh. `_init_state` supplies the exemplar used for both fresh\ntraining and checkpoint restoration, so a restored counter receives the\nexemplar's sharding. Previously, `_init_state` produced the counter\nunder GSPMD sharding while `train_step` returned it under\n`NamedSharding`. JIT cache keys include input shardings; at the hero\nshape, this mismatch caused the second training step to compile another\nexecutable. Every other state leaf already has matching sharding across\na step.\n\nEach GpuExecutable owns a CollectiveMemoryCache, so each train-step\nexecutable registers an NCCL symmetric window over the same\ncollective-memory arena at the same base address. NCCL 2.30.7 accepts\nthe duplicate after NCCL commit 52f6d00 removed deduplication from\nsymMemoryObtain; ncclDevrFindWindow then resolves an address to the last\nwindow registered at that address. Measured at the hero shape (d6144, 48\nlayers, EP64, ragged all-to-all, one rack), the implicit step sharding\nproduced two train-step compilations and two 20,293,761,024-byte window\nregistrations per rank: 128 of each across 64 ranks. Explicit\ninitialization produced one compilation and one registration per rank,\nor 64 of each. Eleven racks without explicit step sharding registered\n1408 windows across 704 ranks. The per-leaf sharding diff across a step\nreports no drift with explicit initialization.\n\nIssue #8861 manifests as the first ragged train step after a\ncapacity-limited evaluation failing with `ncclGroupEnd(): invalid\nargument`. That evaluator stays disabled for ragged runs under #8859;\nrunning it between ragged train steps under this change has not been\ntested. A 12-layer run registers one window despite the same sharding\nmismatch, which is unexplained. The #8870 hang was observed with two\nexecutables per rank on every attempt; whether one executable removes it\nis not yet known.\n\nFixes #8861",
+      "sha": "277a8ba5af36a957a62e98e7f89a1299d1c3e191",
+      "url": "https://github.com/marin-community/marin/commit/277a8ba5af36a957a62e98e7f89a1299d1c3e191",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-08T20:48:28Z",
+      "committed_at": "2026-09-08T20:48:28Z",
+      "message": "[marina] Generate searchable MCP tools from application APIs (#8943)\n\nExpose checked-in Marina application APIs at the authenticated\nStreamable HTTP\nendpoint `/api/marina/mcp/`. An MCP client initially sees `find_tool`\nand\n`call_tool`. FastMCP's BM25 transform searches app-namespaced operations\nsuch as\n`evaldash_read_logs`, and its OpenAPI provider derives their schemas and\nexecutes\ncalls against each mounted ASGI application.\n\nApplications opt in per FastAPI operation with typed `x-marina` risk\nmetadata.\nUnmarked routes are excluded. The `read`, `write`, `external_write`, and\n`destructive` values map to standard MCP annotations and remain\navailable at\n`_meta.marina.risk`. Echo registers 19 existing operations and EvalDash\nregisters\nfive reads. Existing HTTP paths, authentication, and the EvalDash\nbackground\nlifecycle remain unchanged.\n\nFastMCP replaces the custom operation-schema builder and catalog\nendpoint.\nMarin's direct MCP requirement is `mcp>=2` with no upper bound; the lock\nresolves\nto 2.2.0, and the Iris babysitter uses the MCP 2 `MCPServer` API. Agent\nUI, page\ncontext, and agent execution remain outside this change.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "a7c49b77d109229258464e8a7c0438dc3c88bfb7",
+      "url": "https://github.com/marin-community/marin/commit/a7c49b77d109229258464e8a7c0438dc3c88bfb7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-08T19:52:08Z",
+      "committed_at": "2026-09-08T19:52:08Z",
+      "message": "[eval] Score verified agent timeouts (#8947)\n\nCount an `AgentTimeoutError` as a valid Harbor evaluation sample when\nthe verifier produced a reward. Unverified timeouts and other exceptions\nremain infrastructure attrition.\n\nOT-TBLite rejected a 100-trial evaluation with 100 verifier results\nbecause 30 trials ended in score-bearing agent timeouts. The new\nregression test covers the aggregate score and completion gate.\n\nPart of #8151\n\n---------\n\nCo-authored-by: Benjamin Feuer <penfever@gmail.com>",
+      "sha": "c086efc6349dc48440252a1d5f17758685b642f2",
+      "url": "https://github.com/marin-community/marin/commit/c086efc6349dc48440252a1d5f17758685b642f2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-08T19:28:23Z",
+      "committed_at": "2026-09-08T19:28:23Z",
+      "message": "[levanter] Stabilize recovery crash injection (#8965)\n\nUse `SIGKILL` instead of `os.abort()` for the fake trainer's crash case.\nIt models fatal signal recovery without invoking CI core-dump handling,\nwhich can keep the aborting child alive until the supervisor deadman\noverrides its crash classification. Crash and sticky injectors get 30\nseconds for CI scheduling delays; the deliberate hang retains its\n3-second deadman deadline.\n\nThe crash test failed independently on `main` in Actions runs\n[33964429305](https://github.com/marin-community/marin/actions/runs/33964429305)\nand\n[34032323471](https://github.com/marin-community/marin/actions/runs/34032323471).\nAn initial timeout-only fix reproduced the failure after 30 seconds in\n[run\n34267493371](https://github.com/marin-community/marin/actions/runs/34267493371),\nwhere the aborting child survived SIGTERM and the supervisor killed it\nwith SIGKILL. The incident record is [Echo\n364](https://marina.oa.dev/echo/wiki/364).\n\nFixes #8964\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "ba2215662fe41aaf49dff773591cbd7b618e4db8",
+      "url": "https://github.com/marin-community/marin/commit/ba2215662fe41aaf49dff773591cbd7b618e4db8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-08T19:22:44Z",
+      "committed_at": "2026-09-08T19:22:44Z",
+      "message": "[inference] Pass local model paths to vLLM (#8946)\n\nConvert `file://` cache results to decoded filesystem paths before\nstarting vLLM. Transformers 5 treats file URIs as Hugging Face\nrepository IDs, so pinned Hugging Face evaluations failed after the\ncache download and before endpoint registration.\n\nCo-authored-by: Benjamin Feuer <penfever@gmail.com>",
+      "sha": "a3d06980dfa4fa64d429e3f72566944260c7e78f",
+      "url": "https://github.com/marin-community/marin/commit/a3d06980dfa4fa64d429e3f72566944260c7e78f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-08T19:21:42Z",
+      "committed_at": "2026-09-08T19:21:42Z",
+      "message": "Cut recursive object listings and unread worker bookkeeping (#8952)\n\nFour independent cleanups, each removing work that ran but was never\nused.\n\nLevanter checkpoint discovery globbed `<root>/*` to find step\ndirectories. fsspec\nimplements glob via `find`, and object stores serve `find` with an\nundelimited\nprefix listing, so every discovery enumerated every object under the\nroot — all\ntensorstore chunks of every saved step — and discarded everything below\nthe first\nlevel. This runs at each job start (trainer resume,\n`latest_checkpoint_path`,\ntemporary-checkpoint discovery), so a root holding a few dozen\nlarge-model\ncheckpoints cost hundreds of paged list round trips.\n`_discover_checkpoint_paths_single`\nnow issues one delimited `ls`, and `is_checkpoint_path` reuses it\ninstead of its\nown `<root>/*/metadata.json` glob. Results are unchanged: old and new\noutput match\nfor local paths, `file://`, `memory://`, leaf checkpoint directories,\nand missing\nroots. `is_checkpoint_path` had no coverage, so this adds a test for the\npredicate.\n\nThe datakit `normalize_to_parquet` entry point walked its input files\nand then\nissued one `StoragePath.size()` per file to pick a shard count. Each is\na separate\nobject-metadata round trip — the rigging filesystem factory sets a\nzero-second\nGCS/S3 listing expiry, so none were cached — and sources such as\ncommon_corpus\nhave ~10k shards. `_discover_files` now walks with `detail=True` and\nreturns\n`{path: size}`, taking sizes from the list responses it already issues,\nmatching\n`processing/tokenize/_core.glob_with_sizes`.\n\n`Autoscaler.get_vm` and `get_init_log` lost their last caller when the\ncontroller's\n`GetWorkerStatus` handler stopped reporting VM state in #6730. Below\nthem,\n`WorkerRegistry.vm_info` / `init_log`, the `TrackedWorker.bootstrap_log`\ncopy taken\nat every worker registration, and `RemoteWorkerHandle.bootstrap_log`\nwith its four\nimplementations were all unread, including a per-worker in-memory\naccumulation of\nevery bootstrap output line. Bootstrap output still reaches the worker\nlog through\nthe existing per-line `logger.info`.\n`GetWorkerStatusResponse.bootstrap_logs`\nremains declared in the proto and is still never set, so `iris cluster\nvm logs` and\nthe dashboard bootstrap-log panel stay empty as before; removing a CLI\ncommand or\nreserving proto fields is a separate wire decision.\n\nIn the Zephyr coordinator, `_InFlightEntry.attempt` was written on every\ndispatch\nand never read — stale-report rejection uses\n`run.task_attempts[shard_idx]`, and the\nattempt the worker echoes back travels on `PullTask`.\n`_record_shard_failure` and\nthe finished/unknown-execution branch of `report_error` each open-coded\n\"zero the\nworker's counter snapshot, keep its generation watermark\"; both now call\n`_clear_worker_inflight_counters`, which already documents that\ninvariant for\n`report_result`.\n\n---------\n\nCo-authored-by: nightshift <nightshift@marin.local>\nCo-authored-by: nightshift-agent <nightshift@marin.invalid>",
+      "sha": "303c580baab87844441783f6007c6c7c3f40eaba",
+      "url": "https://github.com/marin-community/marin/commit/303c580baab87844441783f6007c6c7c3f40eaba",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-08T19:19:43Z",
+      "committed_at": "2026-09-08T19:19:43Z",
+      "message": "[cleanup] Delete dead decode-loop profiling, eval module, config fields (#8957)\n\nThree unrelated dead-code deletions in levanter, marin, and iris.\n\nThe inference decode loop in `levanter/inference/engine.py` carried\nleftover\nprofiling scaffolding: a \"fake submit\" probe that ran `jax.tree.flatten`\nover\n`(gen_state, model, sampler)` on every decode iteration and discarded\nthe\nresult, so that the per-iteration log could report how long the flatten\ntook.\nThe same loop detokenized the full sequence of every finished slot on\nevery\ndrain to build a `logger.debug` message. Finished slots stay finished\nuntil they\nare released, so that ran repeatedly even with debug logging off; it is\nnow\nguarded by `logger.isEnabledFor`. Both are host work in a loop that\ntracks host\ntime as its bottleneck. Also removed: a commented-out per-token debug\nprinter, a\n`hasattr(fins, \"sum\")` guard on what is always a numpy array, an\nunbalanced\nparen in the decode-iteration log string, and `_ingest_outputs`, whose\nbody was\na `None` check that `_extract_outputs` already performs plus a forward\ncall.\n\n`marin/evaluation/save_logprobs.py` lost its only caller when #8831\nretired the\n`*_on_pod` fray submission pattern and removed\n`run_save_logprobs_on_pod`. The\nmodule has no draccus wrapper, no `__main__` block, and no entry-point\nregistration, so nothing could reach it. Its shared imports\n`load_eval_model`\nand `with_pack` keep other callers.\n\n`CoreweaveSliceConfig.gpu_class` and `.infiniband` were added by the\npydantic\nconfig migration in #6652 and have never been read. The CoreWeave\nNodePool\nmanifest builder constructs `spec` from `instance_type` and scheduling\nlabels\nonly, so `infiniband: true` in `ci-coreweave-gpu-smoke.yaml` was\naccepted and\nignored. `_Config` sets `extra=\"forbid\"`, so dropping the field also\nrequired\ndropping that YAML key; all nine shipped `lib/iris/config/*.yaml` files\nstill\nload through `load_config()`.\n\n---------\n\nCo-authored-by: Nightshift Scout <nightshift@marin.local>",
+      "sha": "0b0900057cfdef686906398ee016f8dbaa53d6a8",
+      "url": "https://github.com/marin-community/marin/commit/0b0900057cfdef686906398ee016f8dbaa53d6a8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-08T16:46:01Z",
+      "committed_at": "2026-09-08T16:46:01Z",
+      "message": "[dependencies] Advance external runtimes (#8958)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`cf66d0b14975`](https://github.com/marin-community/evalchemy/commit/cf66d0b14975379bf7fc5c4a7cfff1400c636f1c)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`280541674a8e`](https://github.com/marin-community/harbor/commit/280541674a8e684b5bd8e3d19e8c149981a2e186)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`93d84333acdf`](https://github.com/marin-community/MarinSkyRL/commit/93d84333acdf27275d258f0f25dad24129f0cf6e)\n|\n\n## Upstream commits\n\n### harbor (`2aaab18221a4` → `280541674a8e`)\n\n-\n[`7c97988da51a`](https://github.com/marin-community/harbor/commit/7c97988da51abfcd1384d811fd39a26b322ff490):\n[Pi] Refresh upstream provider setup (#114)\n-\n[`0b5723c673de`](https://github.com/marin-community/harbor/commit/0b5723c673de1f792017bf71c08ce582fc2ae853):\n[OpenCode] Refresh upstream provider setup (#115)\n-\n[`280541674a8e`](https://github.com/marin-community/harbor/commit/280541674a8e684b5bd8e3d19e8c149981a2e186):\n[Pi] Preserve literal rollout evidence (#116)\n\n### MarinSkyRL (`939f082dd94e` → `93d84333acdf`)\n\n-\n[`3cc40be80ddf`](https://github.com/marin-community/MarinSkyRL/commit/3cc40be80ddfe73106532209ca16bc047e006d0d):\n[RL] Enforce behavior-logprob probability parity (#525)\n-\n[`50307a5bbf8b`](https://github.com/marin-community/MarinSkyRL/commit/50307a5bbf8bf8b7b5d9e6368f8f79777a02af83):\n[SkyRL Gym] Mask synthetic terminal EOS (#526)\n-\n[`aadc476207b5`](https://github.com/marin-community/MarinSkyRL/commit/aadc476207b54d65de27d0837bee51f9681fc244):\n[RL] Declare trajectory-runner evidence capabilities (#527)\n-\n[`93d84333acdf`](https://github.com/marin-community/MarinSkyRL/commit/93d84333acdf27275d258f0f25dad24129f0cf6e):\n[RL] Enable exact Pi rollout evidence (#528)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "c7cf159173b34b3b5315aee616e31900cf9f62fc",
+      "url": "https://github.com/marin-community/marin/commit/c7cf159173b34b3b5315aee616e31900cf9f62fc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-08T11:29:13Z",
+      "committed_at": "2026-09-08T11:29:13Z",
+      "message": "[dependencies] Advance external runtimes (#8956)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`cf66d0b14975`](https://github.com/marin-community/evalchemy/commit/cf66d0b14975379bf7fc5c4a7cfff1400c636f1c)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`2aaab18221a4`](https://github.com/marin-community/harbor/commit/2aaab18221a49e7c0725e86d597c845045ae0e93)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`939f082dd94e`](https://github.com/marin-community/MarinSkyRL/commit/939f082dd94eae5df13fdf99b3fc25ced6722316)\n|\n\n## Upstream commits\n\n### harbor (`05d47b73cd34` → `2aaab18221a4`)\n\n-\n[`2aaab18221a4`](https://github.com/marin-community/harbor/commit/2aaab18221a49e7c0725e86d597c845045ae0e93):\n[llms] Preserve generated token IDs across turns (#111)\n\n### MarinSkyRL (`f15b3d0675fa` → `939f082dd94e`)\n\n-\n[`863c2027e9f5`](https://github.com/marin-community/MarinSkyRL/commit/863c2027e9f5974dcb41c9b86c32137c1bea3e79):\n[RL] Restore gradients through the KL regularization loss (#517)\n-\n[`38f0d4e8d60b`](https://github.com/marin-community/MarinSkyRL/commit/38f0d4e8d60b2ef233d76d7668e91e7b021a8c32):\n[RL] Align TIS logprobs with temperature-scaled training (#519)\n-\n[`939f082dd94e`](https://github.com/marin-community/MarinSkyRL/commit/939f082dd94eae5df13fdf99b3fc25ced6722316):\n[RL] Preserve full-TITO token history (#521)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "5e2436d0f61462983003bd8b6eaef8235ecab78c",
+      "url": "https://github.com/marin-community/marin/commit/5e2436d0f61462983003bd8b6eaef8235ecab78c",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-09T00:00:00Z",
+    "start": "2026-09-08T00:00:00Z"
+  }
+}

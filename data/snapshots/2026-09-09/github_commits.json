@@ -1,0 +1,197 @@
+{
+  "commit_count": 17,
+  "commits": [
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-09T22:49:08Z",
+      "committed_at": "2026-09-09T22:49:08Z",
+      "message": "Use the PJRT wheel built with NCCL 2.30.7 headers (#9062)\n\nBump the ARM64 GPU PJRT wheel from XLA `3a8f3392723e` to\n[`b040736f2c4a`](https://github.com/marin-community/xla/releases/tag/marin-xla-pjrt-20260909-b040736f2c4a),\nadopting the NCCL 2.30.7 build-header default from\n[marin-community/xla#22](https://github.com/marin-community/xla/pull/22).\nThis aligns compiled NCCL headers with the 2.30.7 runtime in Marin's GPU\ntraining lock. JAX stays at 0.11.1, and all other data in `uv.lock` is\nunchanged.\n\nThe release passed ragged all-to-all correctness checks on two GB200\nGPUs with NCCL runtime 2.31.2, including confirmation that XLA's ragged\nall-to-all device kernel executed. Marin's four-GB200 ragged-EP gate\nalso passed with the locked NCCL 2.30.7 runtime, checking forward\noutputs, gradients, and dropped assignments against a dense reference\nacross four seeds.\n\nAt hero scale on 2026-09-09 (11 racks, 704 GPUs, restoring\n`step-81716`), the `3a8f3392723e` wheel hung four of four attempts on\none rack's expert-parallel domain (rack indices 7, 9, 1, 2 after 43, 0,\n0, 0 steps), with the #8870 signature: one rack at half CPU, every\ncross-rack AllReduce one member exactly three operations behind. A\npre-merge build of this change (`b183c591142c`, the same source) then\nran 225 clean steps including a 5.4 TB checkpoint, tracking the\npooled-wave control step for step at −0.0064 nats with drops 1e-4 vs\n3.4e-2 and MFU 23.3% vs 21.5%. Evidence is on\nmarin-community/marin#8506; the mechanism is the 2.29.7 compat shim's\nper-rack LSA cliques without bounded barriers.\n\n`trigger_hero.sh` relaunches the hero as\n`hero-ragged_a2a-nccl2307-ep-step81k` from the same `step-81716`\nhandoff, so the first 200 steps replay the validated window against the\ncontrol and the lineage stays on main commits.\n\nPart of #8870.",
+      "sha": "04fb3484560711bafcc98b2975d551363ee95067",
+      "url": "https://github.com/marin-community/marin/commit/04fb3484560711bafcc98b2975d551363ee95067",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-09T22:48:40Z",
+      "committed_at": "2026-09-09T22:48:40Z",
+      "message": "Fix two dataset loaders and drop the no-op prepare_workdir hook (#9040)\n\n`AudioTextUrlDataSource.resolve_audio_pointer` handles the three\nHuggingFace\nAudio encodings. Its `_load_audio_file` helper took a `file_name`\nargument but\nopened the enclosing `audio_pointer` instead, so the `{\"path\": ...}`\nencoding\nhanded a dict to `open_url` and raised `AttributeError: 'dict' object\nhas no\nattribute 'startswith'` inside rigging's filesystem guard. The\nbare-string\nencoding worked because the two values coincide there. The helper now\nopens its\nargument.\n\n`load_datasets` in `marin/transform/huggingface/dataset_to_eval.py`\nbuilds one\ndataset per (subset, split) pair, then required `len(datasets) ==\nlen(subsets)`. Any config naming more than one split raised \"Not all\nsubsets\nsucceeded\" even when every pair loaded, so the two- and three-split\nconfigs in\n`experiments/datasets/eval.py` could not be converted. The check now\nrecords the\npairs whose `load_dataset` call raised and names them in the error, and\nrejects\nan empty `splits` list, which converts nothing. Single-split configs\nbehave as\nbefore.\n\n`ContainerRuntime.prepare_workdir` has been empty in both\n`DockerRuntime` and\n`ProcessRuntime` since #3696 moved task workdirs onto the already-tmpfs\n`cache_dir`. The protocol still described it as \"Docker: mounts a\nper-task tmpfs\nfor quota enforcement\" and `TaskAttempt._setup` read\n`resources.disk_bytes` only\nto pass it in, under a comment claiming staged files had to land on that\ntmpfs.\nNo quota is enforced. Remove the protocol method, both empty\nimplementations,\nthe call site, and a test that asserted nothing.\n\nEach loader fix carries a regression test that fails against the\nprevious code.\n\n---------\n\nCo-authored-by: Nightshift Agent <nightshift@marin.local>",
+      "sha": "1e6484d40f94aa76d00edf5ed5660e34fe574b60",
+      "url": "https://github.com/marin-community/marin/commit/1e6484d40f94aa76d00edf5ed5660e34fe574b60",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-09T22:47:29Z",
+      "committed_at": "2026-09-09T22:47:29Z",
+      "message": "Split Ruff import configuration by package (#9028)\n\nRun root and Marin package files under separate Ruff configurations. The\nroot\nconfiguration keeps `experiments` local and groups Marin imports\nconsistently;\n`lib/marin/pyproject.toml` extends the root rules while treating Marin\nas\nfirst-party.\n\n`infra/pre-commit.py` excludes `lib/marin` from the generic Python pass\nand\ninvokes its package configuration separately. This prevents Ruff from\nmoving\nindividual Marin imports across the `experiments` boundary. The affected\nsource\nchanges are import-only reorganizations.",
+      "sha": "f989a369875ce8c82d913656284d50ca68fd610f",
+      "url": "https://github.com/marin-community/marin/commit/f989a369875ce8c82d913656284d50ca68fd610f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-09T22:44:27Z",
+      "committed_at": "2026-09-09T22:44:27Z",
+      "message": "[loom] Lower Marina session reasoning effort (#9064)\n\nRun new sessions launched through Marina's embedded agent panel at low\nreasoning effort. This favors response latency for bounded, read-only\npage questions.\n\nExisting sessions retain the effort recorded in their launch snapshot.\nThe production Loom deployment must be applied after merge for new\nsessions to inherit the setting.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "59a16e4413fcc88cc028339268958c931c54ec2b",
+      "url": "https://github.com/marin-community/marin/commit/59a16e4413fcc88cc028339268958c931c54ec2b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-09T22:19:23Z",
+      "committed_at": "2026-09-09T22:19:23Z",
+      "message": "[marina] Add the embedded agent panel (#9055)\n\nAdd a shared Ask Marina panel for checked-in applications. An opted-in\napp selects its Loom profile, repository, and starter questions in\n`app.toml`, then publishes a versioned page context of at most 16 KiB.\nThe panel launches an ACP session in one request, streams its transcript\nand tool activity, and restores the same conversation after refresh.\n\nLoom remains the durable session store. The browser keeps only a\n20-entry mapping from the signed-in Loom user, Loom origin, app, and\npage context to a Loom session ID; drafts remain in session storage.\nChanging users, Loom origins, or page contexts rebinds the panel to the\ncorresponding session.\n\nGenerate a read-only FastMCP projection from the same registered OpenAPI\noperations as the full Marina MCP endpoint. The deployed `marina`\nprofile receives only this MCP group. The full group remains available\nfor separately configured workflows.\n\nPlantt is the first integration. It supplies the chart ID, revision,\nselection, and save/conflict state without sending the chart document.\nIts scripted Loom journey covers launch inputs, paged transcript\nhistory, live tool activity, the final answer, page-context changes,\nphone/tablet/desktop layouts, and restoration without a duplicate launch\nor prompt.\n\nUse the exact-origin credentialed browser API added in\nmarin-community/loom#350.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "5b5ba27747eb640ad4a61a7d7cdd7ed8d55aec0a",
+      "url": "https://github.com/marin-community/marin/commit/5b5ba27747eb640ad4a61a7d7cdd7ed8d55aec0a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-09T21:02:54Z",
+      "committed_at": "2026-09-09T21:02:54Z",
+      "message": "[dependencies] Advance external runtimes (#9057)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`4b7f15e4614c`](https://github.com/marin-community/evalchemy/commit/4b7f15e4614c462209e0f6c588e64d291a3dbfc9)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`58582afbce9f`](https://github.com/marin-community/harbor/commit/58582afbce9fb671cbd5dbcff466e3b5d378b442)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`93d84333acdf`](https://github.com/marin-community/MarinSkyRL/commit/93d84333acdf27275d258f0f25dad24129f0cf6e)\n|\n\n## Upstream commits\n\n### evalchemy (`cf66d0b14975` → `4b7f15e4614c`)\n\n-\n[`4b7f15e4614c`](https://github.com/marin-community/evalchemy/commit/4b7f15e4614c462209e0f6c588e64d291a3dbfc9):\n[eval] Prevent answer extraction from reading continuations (#97)\n\n### harbor (`4b4f756eaaaf` → `58582afbce9f`)\n\n-\n[`58582afbce9f`](https://github.com/marin-community/harbor/commit/58582afbce9fb671cbd5dbcff466e3b5d378b442):\n[opencode] Preserve task prompts in ATIF trajectories (#118)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "23345539807b53d21efadad4d184302bf4149191",
+      "url": "https://github.com/marin-community/marin/commit/23345539807b53d21efadad4d184302bf4149191",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-09T18:55:36Z",
+      "committed_at": "2026-09-09T18:55:36Z",
+      "message": "[grug] Return the EP hero to the ragged all-to-all transport (#9043)\n\nRestore `ragged_all_to_all` as the hero's MoE backend with fp32 weights\non device, reverting the pooled-wave fallback from #8884. The\ndiagnostics, soak, and benchmarks follow the hero.\n\nThe fallback was taken after two ragged hero attempts hung silently on\none rack at 11 racks (#8870). Since then, one train-step executable per\nrank removed the duplicate symmetric-window registration (#8911), the\nPJRT wheel moved to the balanced ragged device kernel with 128-thread\nCTAs (#8976), and QuACK 0.6.4 replaces the grouped-GEMM scheduler that\nleft outputs unwritten under contention (#8959, merge first). The hang's\nroot cause is still open. The strongest lead is a fabric fault on\nspecific NVL72 domains, which the 2026-09-05 NVLink fault on the\npooled-wave hero also fits. The redeployment is a 200-step trial against\nthe pooled-wave run on the same batches, with rollback to the\npooled-wave commit.\n\nThe live hero's checkpoints carry a pinned-host fp32 master, which\nrestores into device mode in process. The reverse migration is refused,\nso a rollback resumes the pooled-wave run's own tree.\n\n`trigger_hero.sh` launches `hero-ragged_a2a-ep-step81k` from the\ncheckpoint forced on `hero-wd-gate-router-p02-step58k` at step 81716\n(3.77T tokens on the pooled-wave transport); its metadata is marked\nnon-temporary so the old run's hourly save keeps it while the old run\ntrains the 200-step control window.\n\nPart of #8870.",
+      "sha": "9ccc1bd5e4de935039a578b4544d7f29b7199cef",
+      "url": "https://github.com/marin-community/marin/commit/9ccc1bd5e4de935039a578b4544d7f29b7199cef",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-09T18:54:42Z",
+      "committed_at": "2026-09-09T18:54:42Z",
+      "message": "Upgrade QuACK to 0.6.4 to fix GEMM scheduling corruption (#8959)\n\nUpgrade QuACK from 0.6.1 to 0.6.4 to include the [Cluster Launch Control\nscheduling\nfix](https://github.com/Dao-AILab/quack/commit/58cb592a1a6ef85a69e37d0b4eb50217b59d20ca).\nThe old scheduler can leave grouped matrix-multiplication outputs\nunwritten under GPU contention; [GB200 experiments reproduced this\ncorruption](https://github.com/marin-community/marin/issues/8870#issuecomment-5548861875).\nIts connection to the training hangs in #8870 remains unproved.\n\nQuACK 0.6.4 requires CUTLASS DSL 4.6.2 and changes the gated epilogue\nAPI and batch-axis convention. Adapt the JAX launchers to those APIs\nwhile preserving public tensor shapes, physical storage, tile geometry,\nand CLC settings.\n\nLint and type checks passed, along with 1,529 safe tests and 28 selected\nGB200 kernel and attention cases. The full-rack validation is the ragged\nall-to-all hero redeployment's 200-step trial window, which compares the\nnew run against the pooled-wave control on the same batches; MFU and\nloss-trajectory effects are unmeasured before it. Review material loss\ndifferences as possible consequences of control corruption, rather than\nautomatically rejecting the upgrade.\n\nPart of #8870.",
+      "sha": "02e82a5f66e08d57f4c46bdc8c423e7e12df7c20",
+      "url": "https://github.com/marin-community/marin/commit/02e82a5f66e08d57f4c46bdc8c423e7e12df7c20",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-09T15:38:53Z",
+      "committed_at": "2026-09-09T15:38:53Z",
+      "message": "[docs] Document local and clustered tutorial launches (#8967)\n\nStart the checked-in tiny-model launcher walkthrough with a local CPU\nrun, then show coordinator submission through Iris for GCP and CoreWeave\naccelerators. Explain coordinator resources, child accelerator jobs,\nplacement selection, log commands, and which shell variables reach\nsubmitted jobs.",
+      "sha": "e8bf28d191d9289eb315a0bdf6239608e1edc250",
+      "url": "https://github.com/marin-community/marin/commit/e8bf28d191d9289eb315a0bdf6239608e1edc250",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-09T14:39:52Z",
+      "committed_at": "2026-09-09T14:39:52Z",
+      "message": "[rigging] Anchor relative local storage roots (#8966)\n\nResolve relative `MARIN_PREFIX` and `DataConfig.root` values against the\nprocess working directory before deriving artifact paths. This prevents\ndependency reads from applying the prefix twice during local tutorial\nruns.\n\nDocument local prefix resolution and show how to keep tutorial W&B runs\nlocal or give them an explicit run ID.",
+      "sha": "0b0baeb3b1958aea978ae9b4710bc1477847207c",
+      "url": "https://github.com/marin-community/marin/commit/0b0baeb3b1958aea978ae9b4710bc1477847207c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-09T07:32:31Z",
+      "committed_at": "2026-09-09T07:32:31Z",
+      "message": "Preserve XLA cross-entropy tiles and TPU accuracy (#8960)\n\nKeep the requested XLA cross-entropy batch tile when the row count is\nirregular. Pad forward and backward batch tiles independently, then\nslice the outputs so dummy rows receive zero cotangents. Each pass adds\nfewer rows than its tile size, including when the two tile sizes are\nrelatively prime. For 8519 rows, a requested 256-row batch tile\npreviously shrank to seven rows (the largest divisor of 8519 no greater\nthan 256) and required 1217 GEMMs per vocabulary pass; padding uses 34\ntiles.\n\nRequest JAX's HIGHEST accuracy for TPU exponentials and logarithms in\nforward logsumexp and backward softmax probabilities. The [TPU accuracy\ninvestigation](https://marina.oa.dev/echo/wiki/373) traced roughly 1e-4\nabsolute differences in per-row loss and logsumexp between\nvocabulary-blocked and full-vocabulary evaluation to default TPU\nlogarithms, including a divisible-row control. Select the accurate math\nat compilation so CPU and GPU retain their existing math.\n\nThe [H100 investigation](https://marina.oa.dev/echo/wiki/362) measured\nisolated forward-plus-backward time dropping from 6.357 to 0.241\nseconds, with before/after loss, logsumexp, input gradients, and weight\ngradients matching at unchanged 1e-5 absolute-plus-relative tolerances.\nFor packed Snowball 67B on 32 H100s with PP4/EP8, 34 microbatches, and\ncapacity factor 16 held fixed, the whole-model benchmark improved from\n402.712 to 83.247 seconds per warm scoring-and-update iteration.\nWhole-model numerical parity remains unresolved; the timing result does\nnot establish it.",
+      "sha": "efe79892065589b154d969effd49eee3bd286284",
+      "url": "https://github.com/marin-community/marin/commit/efe79892065589b154d969effd49eee3bd286284",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-09T07:32:03Z",
+      "committed_at": "2026-09-09T07:32:03Z",
+      "message": "Drain FA4 copies before reusing padding-tile storage (#8961)\n\nMake FA4/CuTe attention return stable zero outputs for entirely padded\nquery tiles. These tiles skip the key loop that normally waits for\nasynchronous query and key copies, allowing a pending query copy to\noverwrite output in shared storage. Drain the copies and synchronize the\nthread block before the output epilogue reuses that storage.\n\nThe 8520-token BF16 regression failed for both causal and sliding-window\nattention before the fix and passed afterward on H100. It checks exact\nrepeated outputs, zero padding outputs and gradients, and valid outputs\nand gradients against dense attention over the 40 valid prefix tokens.\nThe before/after evidence is recorded in [the incident\nreport](https://marina.oa.dev/echo/wiki/358).",
+      "sha": "5bd45c5ae8d9421c6b791bae1aad99cc3760590d",
+      "url": "https://github.com/marin-community/marin/commit/5bd45c5ae8d9421c6b791bae1aad99cc3760590d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-09T04:52:36Z",
+      "committed_at": "2026-09-09T04:52:36Z",
+      "message": "[dependencies] Advance external runtimes (#9025)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`cf66d0b14975`](https://github.com/marin-community/evalchemy/commit/cf66d0b14975379bf7fc5c4a7cfff1400c636f1c)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`4b4f756eaaaf`](https://github.com/marin-community/harbor/commit/4b4f756eaaafa3f5632efa5cbfc356ec748d9b0e)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`93d84333acdf`](https://github.com/marin-community/MarinSkyRL/commit/93d84333acdf27275d258f0f25dad24129f0cf6e)\n|\n\n## Upstream commits\n\n### harbor (`280541674a8e` → `4b4f756eaaaf`)\n\n-\n[`4b4f756eaaaf`](https://github.com/marin-community/harbor/commit/4b4f756eaaafa3f5632efa5cbfc356ec748d9b0e):\n[llms] Preserve chat-template boundaries across TITO turns (#117)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "39f7f54cfedeb3132e538e7156b178088485bbe9",
+      "url": "https://github.com/marin-community/marin/commit/39f7f54cfedeb3132e538e7156b178088485bbe9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-09T03:57:56Z",
+      "committed_at": "2026-09-09T03:57:56Z",
+      "message": "Bump the ARM64 PJRT wheel to XLA 3a8f339 (#8976)\n\nBump the ARM64 GPU PJRT wheel from XLA `e94a45d2a446` to\n[`3a8f3392723e`](https://github.com/marin-community/xla/releases/tag/marin-xla-pjrt-20260908-3a8f3392723e).\nThis adopts `(128, 1)` launch bounds for the ragged all-to-all device\nkernel and restores the pinned JAX release's CUDA targets, including\nHopper.\n\nThe promoted wheel passed ragged all-to-all correctness checks and was\nconfirmed to execute the device kernel on two GB200 GPUs. JAX remains\npinned to `0.11.1`.\n\nAddresses #8852",
+      "sha": "770b675fbf56de17d7c39f00f35fc2cb90ada236",
+      "url": "https://github.com/marin-community/marin/commit/770b675fbf56de17d7c39f00f35fc2cb90ada236",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-09T02:37:40Z",
+      "committed_at": "2026-09-09T02:37:40Z",
+      "message": "[loom] Register Marina's remote MCP server (#8971)\n\nRegister Marina’s authenticated Streamable HTTP endpoint as a remote MCP\nserver in Loom’s deployment config, and add an interactive marina\nprofile that selects the marina group. The ACP provider discovers\nfind_tool and call_tool from FastMCP through tools/list, so the\ndeployment does not duplicate the server’s inventory. The declaration\nexplicitly selects IAP authentication with the public OAuth audience. At\nACP process start, Loom mints a short-lived IAP token from its VM\nservice account and places it in the remote server’s authorization\nheader. The deployment manifest stores no bearer token.\n\nExisting profile declarations list named built-in MCP groups instead of\nusing mcpAccess: all. Explicit selection keeps later remote\nregistrations out of GitHub, Slack, ferry, review, code-health, and ops\nsessions unless the corresponding profile adds their group.\n\nThe marina profile tells the model to treat page and API content as\nuntrusted data and to call mutating operations only when the user\nexplicitly requests them. This is guidance, not API authorization. ACP\ndoes not expose a header-refresh callback. Loom remints the token when\nthe ACP process starts or recovers, so a continuously active process may\nneed recovery after token expiry.\n\nThis configuration requires the remote-MCP deployment contract, native\nACP HTTP descriptors, and explicit IAP authentication added by\nmarin-community/loom#348, plus protocol-native tool discovery from\nmarin-community/loom#349. Older Loom binaries reject the manifest.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "6331d51cafae893e3f69049e4532361cb5de9624",
+      "url": "https://github.com/marin-community/marin/commit/6331d51cafae893e3f69049e4532361cb5de9624",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ethantsliu",
+      "author_name": "Ethan Liu",
+      "authored_at": "2026-09-09T00:58:40Z",
+      "committed_at": "2026-09-09T00:58:40Z",
+      "message": "[eval] Load GSM8K from openai/gsm8k (#8979)\n\nUse `openai/gsm8k` as the default `dataset_path` for Levanter's built-in\n`gsm8k` and `gsm8k_cot` task specs. Caller-supplied `dataset_path`\nvalues still pass through unchanged.\n\nWhen `dataset_path` is unset, Levanter's pinned lm-eval task definitions\ndefault to the bare `gsm8k` identifier. With `datasets==4.8.5` and\n`huggingface-hub==1.21.0`, dataset loading rejects that identifier\nbefore evaluation begins.\n\nFixes #7004",
+      "sha": "162c7feb6c7d2e8a0142cf0759a56b7e892acf63",
+      "url": "https://github.com/marin-community/marin/commit/162c7feb6c7d2e8a0142cf0759a56b7e892acf63",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-09T00:43:27Z",
+      "committed_at": "2026-09-09T00:43:27Z",
+      "message": "[marina] Add shared Plantt planning charts (#8980)\n\nAdd Plantt as a checked-in Marina application at `/plantt/`. Charts live\nin\nthe app-owned Postgres schema and use stable UUID routes. Optimistic\nrevisions\nprevent stale edits from overwriting newer saves, and compressed Plantt\nlinks\nremain supported as an import path.\n\nThe Vue interface renders workstreams, tasks, dependencies, milestones,\nannotations, and accelerator-capacity lanes. It supports autosave, short\nshare\nlinks, JSON import and export, library filtering, and explicit conflict\nrecovery. The production bundle is 137.6 kB (50.6 kB gzip).\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "51378a51d6125b0487f3d85de32bff20e21474c1",
+      "url": "https://github.com/marin-community/marin/commit/51378a51d6125b0487f3d85de32bff20e21474c1",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-10T00:00:00Z",
+    "start": "2026-09-09T00:00:00Z"
+  }
+}

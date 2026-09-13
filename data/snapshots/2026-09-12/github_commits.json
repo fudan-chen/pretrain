@@ -1,0 +1,65 @@
+{
+  "commit_count": 5,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-12T03:18:07Z",
+      "committed_at": "2026-09-12T03:18:07Z",
+      "message": "[post-training] Read TaskTrove Clean directly (#9125)\n\nAllow SkyRL experiments to select TaskTrove Clean rows by exact source,\ntags,\nmodes, limit, and seed. The resolved source names one packed Parquet\nobject,\nrelease identity, and manifest-pinned verifier. MarinSkyRL#549 validates\nand\nrecords selection membership before GPU allocation, caches that object\nonce per\nnode, and extracts task archives only when a rollout batch constructs\nits\nHarbor trials. Harbor remains unchanged and receives concrete task\ndirectories.\n\nReplace the smoke's intermediate 2,685-object artifact with a direct\ndependency\non `tasktrove/clean`. An rno2a run using Qwen3-0.6B staged one Parquet\nfile,\ncompleted 16 Harbor trials and one FSDP update, saved `global_step_1`,\nand\nverified the portable policy export and terminal manifest. All outputs\nused a\none-day lifecycle prefix. The one-turn smoke produced zero reward by\ndesign; it\nvalidates selection, deferred extraction, rollout, training,\ncheckpointing, and\nexport rather than model quality.\n\nMarinSkyRL#549 must land first; this change then needs its dependency\npin\nupdated to the merged commit.\n\nPart of #9122\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "e9a1f53d6ad0783edaacfe9465b644f559d2d784",
+      "url": "https://github.com/marin-community/marin/commit/e9a1f53d6ad0783edaacfe9465b644f559d2d784",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-12T01:56:08Z",
+      "committed_at": "2026-09-12T01:56:08Z",
+      "message": "[tasktrove] Publish clean releases to Hugging Face (#9124)\n\nPublish built TaskTrove releases to a configurable Hugging Face dataset\nrepository, defaulting to `open-athena/task-trove`. The command streams\nrelease objects into local staging, uploads retained task shards as the\n`train` split, keeps the rejection ledger and manifest as downloadable\nmetadata, and replaces stale Parquet shards on repeat publication. Its\ngenerated dataset card documents provenance, cleanup stages, row and\narchive schemas, loading, licensing, and the full release report.\n\nValidate the local release before creating the destination repository.\nClear prior Harbor reward files before every verifier result so an\ninvalid-task or infrastructure-error rerun cannot expose a stale score.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "9f826da0f834c81dbdd8869c7a7f2fab838da534",
+      "url": "https://github.com/marin-community/marin/commit/9f826da0f834c81dbdd8869c7a7f2fab838da534",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-12T00:25:00Z",
+      "committed_at": "2026-09-12T00:25:00Z",
+      "message": "[tasktrove] Add the TaskTrove conversion pipeline (#9061)\n\nConvert `open-thoughts/TaskTrove` revision `0292300` into Harbor tasks\nwith an explicit grader contract in `tests/verifier.toml`. The verifier\ncovers deterministic answers, structured outputs, instruction-following\nconstraints, repository tests, judge rubrics, and a fail-closed script\nfallback. Conversion permits small deterministic repairs and rejects\nrows that need answer-recovery heuristics, repository reconstruction,\nreplacement tests, or a new subjective contract.\n\nRelease `2026.09.10.9` processed 1,739,326 input rows and retained\n1,449,686 tasks across 43 sources, 19 converters, 12 verifier modes, and\n39 Docker environments. The pipeline writes 64 intermediate shards and\none final Parquet file; the final file has 66 row groups and is\n3,837,032,177 bytes. Every rejected row is recorded in the release\nledger with its source policy or row-level reason.\n\nThe canonical release root is\n`s3://marin-us-east-02a/marin/tasktrove/clean/2026.09.10.9/`. It\ncontains `tasks/part-00000.parquet`, `manifest.json`, `ledger.parquet`,\nand `report.md`. Marina serves the cleanup report, source audit, and\npaginated Parquet browser at https://marina.oa.dev/tasktrove/ without\nexposing object-store credentials.\n\n`tasks/part-00000.parquet` has one retained task per row. Its regular\nselector columns are `source`, `family`, `template_id`, `converter`,\n`mode`, `dockerfile_id`, `language`, `tags`, and `has_solution`; `path`\nis the stable task identifier. The packed payloads are `task_binary` and\noptional `solution_binary`. Consumers can select source or family\ncohorts from this single canonical object without a second\nHive-partitioned copy.\n\nHistorical local-Docker and Daytona studies informed the converters but\ndo not validate this release byte-for-byte. A later 100-task review of\nrelease `.7` covered every converter, 12 verifier modes, and 23\nenvironments; it escalated 24 rows, then confirmed 17 defects and\ncleared seven. Release `.9` applies the narrow confirmed fixes: 11 exact\nrows are excluded, one uniformly broken 1,272-row prompt-injection\nsource is dropped, and two numeric graders regain their stated\ntolerances. Suspect and merely weak tasks remain, and no near-dedup pass\nwas applied.\n\nThe `.9` pipeline completed successfully on Iris from clean launch\ncommit `b76d03131c`; the manifest and sampled generated Dockerfile\nrecord that same verifier ref. After merging current `main`, the\nrepository test lane passes with 1,794 tests, 4 skips, and 5 expected\nfailures; TaskTrove's frontend build, four backend tests, lint,\nformatting, and type checks pass. Production revision `marina-00055-lkm`\nserves image\n`sha256:8b549ddaeba89c6548ef38698e461e87ccbd36ffa6c1d5e9aca4b198851ad488`;\nan authenticated check confirmed the landing page, `.9` manifest,\nexact-source filter, and Parquet-backed row detail.\n\nPart of #9083.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "0c8d8e231194981f8aafe6b0ba3d8894891abff1",
+      "url": "https://github.com/marin-community/marin/commit/0c8d8e231194981f8aafe6b0ba3d8894891abff1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-12T00:02:33Z",
+      "committed_at": "2026-09-12T00:02:33Z",
+      "message": "[sft] Preserve chat prefixes across content representations (#9067)\n\nRender normalized Harmony conversations with the same template exported\nfor inference. Keep assistant reasoning, prose, and parallel tool calls\nin one turn, emit tool calls inside `<tool_call>` tags, and resolve API\ntool reply IDs to function names. Structured tool definitions serialize\nas JSON.\n\nEquivalent content represented as strings, text mappings, or lists of\ntext parts now produces identical text and token prefixes, including\ntool replies. Join text parts before trimming so spaces between parts\nsurvive. Stored Datakit text omits BOS because the text tokenizer\nsupplies it; the trace evaluation path also keeps inline calls in one\nassistant turn while retaining separate prose and tool loss labels.\n\nRe-export tokenizer artifacts to deploy the template changes. Keep\nvLLM's `chat_template_content_format=string` pin until those artifacts\nare deployed. The skipped vLLM Hermes parser test is removed; local\ntests cover rendering and token parity, not vLLM parser integration.\n\nFixes #9103",
+      "sha": "825bdf6433bab8caddc4795eda83d13c3ae6bd56",
+      "url": "https://github.com/marin-community/marin/commit/825bdf6433bab8caddc4795eda83d13c3ae6bd56",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-12T00:00:24Z",
+      "committed_at": "2026-09-12T00:00:24Z",
+      "message": "[skills] Add the deploy-hero-change playbook (#8873)\n\nAdd `.agents/skills/deploy-hero-change/SKILL.md`, the playbook for\nswapping the live hero to deploy a significant code change. It encodes\nwhat the 2026-09-02 ragged all-to-all deployment (#8506, #8870) settled\non: agree the handoff checkpoint, run id (`hero-<change>-step<N>k`),\ngate, and clock with the user; land the code and the `trigger_hero.sh`\nchange on main and launch main's script from a pristine worktree with\n`--initialize-from-checkpoint` (#8868) so the old run's tree and W&B\nhistory are never written; rehearse fail-closed runbook scripts with an\nindependent review; compare the new run against the old on the same\nbatches over 200 steps from a W&B report; and roll back by relaunching\nthe old commit. It also records the startup costs to expect at hero\nshape, why monitoring must read finelog rather than W&B, and the NCCL\nRAS plus `iris.task` recipe that localized this deployment's silent hang\nto one rack.",
+      "sha": "3c33d2e47c86cc0fd9da9df2b475a9e5f8687253",
+      "url": "https://github.com/marin-community/marin/commit/3c33d2e47c86cc0fd9da9df2b475a9e5f8687253",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-13T00:00:00Z",
+    "start": "2026-09-12T00:00:00Z"
+  }
+}

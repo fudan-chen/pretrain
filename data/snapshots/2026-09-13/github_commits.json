@@ -1,0 +1,32 @@
+{
+  "commit_count": 2,
+  "commits": [
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-13T23:38:43Z",
+      "committed_at": "2026-09-13T23:38:43Z",
+      "message": "[evaldash] Add sort direction and last-updated column (#9104)\n\nPanel headers sort in both directions. Benchmark columns rank by\ninterval lower bound, and missing values stay at the bottom. Model names\ndefault to ascending order; coverage, benchmark, and timestamp columns\ndefault to descending order.\n\nThe panel response includes `last_updated`, the maximum `created_at`\namong the cells included in each row. The table displays it, and cell\ntooltips show each result's timestamp.\n\nFixes #8145\nFixes #8142",
+      "sha": "6e49afc97b3ebd21c3af39127c85bf7b9d9a52b8",
+      "url": "https://github.com/marin-community/marin/commit/6e49afc97b3ebd21c3af39127c85bf7b9d9a52b8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-13T21:41:04Z",
+      "committed_at": "2026-09-13T21:41:04Z",
+      "message": "[iris] Bound federation heartbeats per peer (#9134)\n\nGive each federation peer an independent capability-heartbeat loop and\ncap\n`ListBackends` at 10 seconds. On September 12, a half-open US-EAST-02A\nrequest\nheld Marin's shared heartbeat loop for 32 hours. This prevented fresh\n`ListPeers` observations, kept every peer reachable with stale\navailability,\nand stopped queued H100 jobs from promotion.\n\nPer-peer sync loops continued mirroring jobs and are unchanged. On a\ntimeout,\n`FederationPeer.probe` retains the peer's last-known backends for\nreporting,\nmarks the peer unreachable, and excludes it from scheduling.\n\nIncident: https://echo.oa.dev/wiki/422\n\nFixes #9133\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "c4b31c1b1fc030bfbcf3359acbbcbb8a9b9de816",
+      "url": "https://github.com/marin-community/marin/commit/c4b31c1b1fc030bfbcf3359acbbcbb8a9b9de816",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-14T00:00:00Z",
+    "start": "2026-09-13T00:00:00Z"
+  }
+}

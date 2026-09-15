@@ -1,0 +1,252 @@
+{
+  "commit_count": 22,
+  "commits": [
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-14T23:41:45Z",
+      "committed_at": "2026-09-14T23:41:45Z",
+      "message": "[grug] Switch the hero mixture after checkpoint 108000 (#9162)\n\nSwitch the shared Harrier data schedule to the mixture evaluated in\n#9126 after 108000/390251 of training, rounded up to a mixture block,\nand use its cooldown weights around 80%. The hero switches at steps\n108000 and 312192; smaller ladder runs use the same relative schedule.\n\nThe trigger is configured to restore permanent step-108000 from the NCCL\n2.30.7 hero under `hero-mix-996f4891-step108k`. Wait for that checkpoint\nto finish writing and stop the old job before using the trigger. The\npre-switch Harrier weight schedule is retained to preserve resumed\ndata-loader offsets. The selected weights and swarm revision are checked\nin.\n\nPart of #9126.",
+      "sha": "6092fab41c51da57a11dc8a1210758bc105983e0",
+      "url": "https://github.com/marin-community/marin/commit/6092fab41c51da57a11dc8a1210758bc105983e0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-14T23:21:33Z",
+      "committed_at": "2026-09-14T23:21:33Z",
+      "message": "[sft] Add GLM-5.3 compaction and format-following datasets (#9161)\n\nRegister `open-athena/agenttrove-glm53-compactions` and\n`open-athena/wildchat-glm53-format-completions` as SFT chat sources.\nRecover their original prompts from pinned AgentTrove and WildChat\nrevisions, check the referenced histories and prompts against their\nrecorded hashes, and pair them with the GLM-5.3 answers. Both datasets\nuse their train split and pass through chat normalization.",
+      "sha": "b6e40312403507b6b2602dfc4fe4836ce4c9592f",
+      "url": "https://github.com/marin-community/marin/commit/b6e40312403507b6b2602dfc4fe4836ce4c9592f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "DoraemonXia",
+      "author_name": "Yunpeng Xia",
+      "authored_at": "2026-09-14T22:47:56Z",
+      "committed_at": "2026-09-14T22:47:56Z",
+      "message": "[fray] Preserve application errors in operation recovery (#8767)\n\nConvert only a missing Iris operation returned while polling into\nActorUnavailableError. ConnectError exceptions serialized by the actor\nremain unchanged, so memory-store recovery does not mask application\nfailures.\n\nFollow-up to #8752.\n\n<!--\nSee .agents/skills/writing-style/pull-requests.md for the prose rules.\n\nLead with what changes, then why. Keep the measured results,\nconstraints, and\ncaveats a future reader needs; length follows useful content rather than\na fixed\nlimit. Do not add Summary/Changes/Testing headings, an implementation\ninventory,\ncheckboxes, attribution, or validation narration. If an issue exists,\nend with\n\"Fixes #NNNN\" or \"Part of #NNNN\".\n\nExample:\n\nNormalize DAPO loss over all response tokens instead of normalizing each\nexample separately. Per-example normalization over-weights short\nresponses,\nhurting math tasks where correct answers need longer derivations.\n\nFixes #1234\n-->\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "caa8643e80ba9b36f43ff7fc3c9a7be4c427e3d2",
+      "url": "https://github.com/marin-community/marin/commit/caa8643e80ba9b36f43ff7fc3c9a7be4c427e3d2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-14T22:40:37Z",
+      "committed_at": "2026-09-14T22:40:37Z",
+      "message": "[inference] Separate the Snowball checkpoint oracle (#9143)\n\nKeep exact native-checkpoint outputs in a separate bit-exact,\nruntime-sensitive golden while the Levanter and vLLM controls retain the\ntolerance-based cross-backend reference. Levanter uses reference\nattention through 4096 tokens and FlashAttention 4 for 16K and 32K; the\n0.075/0.125 bounds are unchanged.\n\nThe checkpoint, Levanter, vLLM PP=1, and vLLM PP=2 controls passed on\nthe recorded H100/CUDA 13.2 runtime from #9102. The exact 64-prompt\nfixture has SHA-256\n`478638689607ac051f7d975853fda53e8d36c13798fa9a5eeeb1c7bcf5f08a87`. No\naccelerator run was repeated after extracting this branch, and current\nmain still uses CUDA 13.0 serving pins.\n\nFixes #8828\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "e61a4d1cf77ae1655f405602cece8fc7ff69851e",
+      "url": "https://github.com/marin-community/marin/commit/e61a4d1cf77ae1655f405602cece8fc7ff69851e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-14T21:28:04Z",
+      "committed_at": "2026-09-14T21:28:04Z",
+      "message": "[iris] Split controller request handling by resource (#8914)\n\nKeep the ControllerService and EndpointService wire APIs unchanged while\nmoving authorization, persistence orchestration, federation routing, and\nresponse construction into controller-owned job, task, attempt, worker,\naccount, backend, and endpoint modules. Connect adapters assemble\ndependencies and delegate to these operations. Operations consume the\nexisting protobuf requests without parallel native request types.\n\nRemove the unused generic ResourceService experiment. It had no\nproduction clients and duplicated ControllerService before the\ncontroller ownership boundaries were settled. The branch changes no\ncontroller database schema or worker protocol.",
+      "sha": "d3d126ac54972ed0611e7ae2051dfc43ab4ad13b",
+      "url": "https://github.com/marin-community/marin/commit/d3d126ac54972ed0611e7ae2051dfc43ab4ad13b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-14T21:25:16Z",
+      "committed_at": "2026-09-14T21:25:16Z",
+      "message": "[post-training] Repair the Iceball smoke workflow (#9142)\n\nLog Iceball RL to the console, keep checkpoint export in regional\nstorage, and serve evaluation with a 4096-token context while training\nstays at 512. The existing tasks, sample counts, prompts, scoring, step\ncounts, and current-main GB200/CUDA 13.0 placement remain unchanged.\n\nAn earlier H100/CUDA 13.2 run exercised these settings at its recorded\nrevision. The 4096-token setting completed generation; end-to-end\nscoring was blocked by the then-current Evalchemy defects. This\nextracted branch received no repeated accelerator run.\n\nExtracted from #9102.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "05fd0477fd84e3ca699cc4744a1b3a300ab9a0bb",
+      "url": "https://github.com/marin-community/marin/commit/05fd0477fd84e3ca699cc4744a1b3a300ab9a0bb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-14T19:47:54Z",
+      "committed_at": "2026-09-14T19:47:54Z",
+      "message": "[training] Use canonical temporary storage paths (#9157)\n\nBuild generic lifecycle-managed paths by asking rigging for the\ntemporary root, then appending the artifact category and source object\nkey with `StoragePath`. SkyRL paths no longer repeat the source bucket\ninside the destination bucket.\n\nRemove the expired data-local hero migration path added when temporary\ncheckpoints moved from `marin-us-east-02a` to `hero-checkpoints`. Keep\nLevanter's current bucket-qualified checkpoint key so active hero\nrecovery points remain visible in `hero-checkpoints` throughout their\nTTL.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "4ce1b8429645493507096ee131d7b56836febfac",
+      "url": "https://github.com/marin-community/marin/commit/4ce1b8429645493507096ee131d7b56836febfac",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-14T18:56:35Z",
+      "committed_at": "2026-09-14T18:56:35Z",
+      "message": "[evals] Add publication and recovery policies (#9113)\n\nAdd file-backed Evalchemy policies for MMLU-Pro, GPQA Diamond, CruxEval,\nFinanceBench, IFBench, and MRCR with the zero-shot, generation, context,\nand token limits used for publication evaluation. These remain separate\nfrom the shorter general chat suite.\n\nAdd file-backed Harbor recovery policies for SWE-bench, OT-TBLite,\nTerminal-Bench 2.0, SimpleQA, and DS-1000. SimpleQA uses the\nTogether-hosted openai/gpt-oss-120b judge. DS-1000 expects the\nadapter-generated local task tree.\n\nRoute verifier-only host environment references through Marin secret\nresolution and into the isolated Harbor driver. This makes the\nTogether-backed SimpleQA policy runnable without changing candidate\nendpoint authentication.\n\nPart of #9070\nPart of #8083\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "5d28fc74576ea9f56e42f24612e2562046d29b0f",
+      "url": "https://github.com/marin-community/marin/commit/5d28fc74576ea9f56e42f24612e2562046d29b0f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ethantsliu",
+      "author_name": "Ethan Liu",
+      "authored_at": "2026-09-14T18:45:17Z",
+      "committed_at": "2026-09-14T18:45:17Z",
+      "message": "[eval] Register OT-TBLite under its benchmark name (#8883)\n\nExpose the pinned `DCAgent/dev_set_v2` Harbor policy as `ot-tblite`.\nRemove the historical `grug-opencode-id` key so launch selections and\nevaluation records use the benchmark name.\n\nThe Harbor policy and pinned dataset revision are unchanged.\n\nFixes #8150\n\nCo-authored-by: Ben Feuer <bf996@nyu.edu>",
+      "sha": "f0579281934fea1740db76fbebed293fa70a8bf4",
+      "url": "https://github.com/marin-community/marin/commit/f0579281934fea1740db76fbebed293fa70a8bf4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-14T18:09:30Z",
+      "committed_at": "2026-09-14T18:09:30Z",
+      "message": "[finelog] Report relay health and recover newer local catalogs (#9139)\n\nRegional forwarding could stall while pods stayed Ready and the hub\nstill served queries, leaving operators without an independent freshness\nsignal. This adds a direct JWT-authenticated relay heartbeat that sends\ncomplete namespace snapshots outside the row path. The hub records\nreceipt and progress with its own clock; Grafana now pages when a\nconfigured sender or required node-agent namespace is missing, or when\nlocal publication or downstream settlement stops advancing.\n\nStartup recovery could also reject a locally newer catalog when\ncompaction had replaced objects named by the older remote HEAD. Catalog\nrevision now selects the winner: a newer local revision is retained and\npublished as a child of the claimed remote tip, while an equal or older\nlocal state is rebuilt from the selected remote catalog.\n\nThe bundled Finelog UI now centers table maintenance: table, storage,\nindex, segment, and forwarding boundaries. The expensive recent-row\npreview and unused dashboard editor are removed.\n\nRegional ingestion remains R2-first. The data relay protocol and\ncatch-up mechanics are unchanged; idempotent batch delivery and\ncoalesced cursor checkpoints remain follow-up work in the [Loom\nplan](https://loom.oa.dev/s/cqdmle8t).\n\nThe fixed source was restart-validated on the Marin hub, then rolled\nthrough marin-dev, cw-rno2a, cw-us-east-02a, and cw-us-east-08a. Each\ntarget reported the expected clean build stamp, zero new restarts, and\nhealthy ingestion; all regional senders delivered fresh independent\nstatus to the hub. The rollout also confirmed recovery of the\n[cw-us-east-08a incident](https://marina.oa.dev/echo/wiki/423).\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "1c300478d4374288e0fa8eb02b2c2abaa01b4333",
+      "url": "https://github.com/marin-community/marin/commit/1c300478d4374288e0fa8eb02b2c2abaa01b4333",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-14T18:08:17Z",
+      "committed_at": "2026-09-14T18:08:17Z",
+      "message": "[dependencies] Explain branch-based external pins (#9154)\n\nExplain beside the Harbor and MarinSkyRL sources that their isolated\nlocks pin exact runtime commits while the updater advances the\nconfigured branches. This guards against replacing branch tracking with\na fixed revision and disabling scheduled updates.\n\nThe comments do not change dependency resolution. Changed-file lint and\nthe advisory diff review pass.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "80efbb1f9c4c031aa10d98964553899afcb4ce5f",
+      "url": "https://github.com/marin-community/marin/commit/80efbb1f9c4c031aa10d98964553899afcb4ce5f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-14T18:07:58Z",
+      "committed_at": "2026-09-14T18:07:58Z",
+      "message": "[eval] Pin merged Evalchemy sample-record fix (#9141)\n\nAdvance Evalchemy to the squash commit from Evalchemy #124. The source\ncontinues tracking `main`; the isolated lock and packaged runtime\nrequirement pin the exact resolved commit so the scheduled updater can\nadvance it through reviewed changes.\n\nThe earlier 128-sample GSM8K run used intermediate head `56f6c9b8...`;\nit was not repeated at the squash commit. The external-pin check, 7\nfocused tests, 199 affected tests (1 skipped), and changed-file lint\npass.\n\nExtracted from #9102.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "8fb47f8f5684824f2a5c89d1a41995bb1f49594f",
+      "url": "https://github.com/marin-community/marin/commit/8fb47f8f5684824f2a5c89d1a41995bb1f49594f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-14T18:03:41Z",
+      "committed_at": "2026-09-14T18:03:41Z",
+      "message": "Limit W&B artifact uploads to 20 MB (#9153)\n\nReject W&B artifacts larger than 20 MB before the background tracker\ncopies them. Disable automatic source capture when its selected\ndirectory exceeds the same limit and log the cap violation.\n\n[Run 4x2igul2](https://wandb.ai/marin-community/marin/runs/4x2igul2)\nuploaded a 228 MB LM-eval result and a 379 MB source artifact containing\n`/app/.venv`. Other tracker backends inherit a no-op artifact-validation\nhook.",
+      "sha": "20f07abaf34d4940ca33915e9949cfb8296f61ef",
+      "url": "https://github.com/marin-community/marin/commit/20f07abaf34d4940ca33915e9949cfb8296f61ef",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-14T17:54:56Z",
+      "committed_at": "2026-09-14T17:54:56Z",
+      "message": "Fix GCP token expiry skew and cut redundant RPCs and dead code (#9146)\n\nFour independent changes, one per subproject.\n\n`CloudGcpService` read google.auth's `Credentials.expiry` — a naive\ndatetime\nholding UTC — with `.timestamp()`, which interprets a naive datetime in\nthe\nhost's local zone, so the cached-token window was skewed by the host's\nUTC\noffset. On a US/Pacific host a 1-hour access token was cached for 7.9\nhours, so\n`_headers` kept serving a token GCP had already stopped honoring and\nevery call\n401'd until the skew elapsed. East of UTC the sign flips and the token\nis\nre-minted on nearly every request. Only non-UTC hosts are affected,\nwhich\nincludes developer laptops running iris cluster commands against GCP.\n\nThe Zephyr coordinator loop ticks every 0.5s and probed worker-job\nliveness on\nevery tick. Each probe is an uncached `GetJobState` RPC to the Iris\ncontroller,\nso every pool cost 7,200 controller calls per hour whether or not it had\nwork in\nflight. The probe now runs at most once every 5s. The first tick still\nprobes\nimmediately, and the 120s heartbeat timeout — not this probe — bounds\nhow long a\ndead worker pool can go unnoticed.\n\n`marin.execution.disk_cache` and the `distributed_lock` decorator that\ncomposes\nwith it lost their last production caller when step caching moved into\n`StepRunner` (#3265). Their own test file was the only remaining\nimporter, so the\nmodule, the decorator, and that test go away together.\n\n`WandbConfig.save_xla_dumps` documented uploading XLA compiler dumps to\nW&B, but\nthe callback that read it was never registered as a training hook, so\nthe option\nsilently did nothing while the configuration reference still promised\notherwise.\nThe option, `wandb_xla_logger`, `save_xla_dumps_to_wandb`, and the\nnow-unused\n`is_wandb_available` are removed along with the stale docs rows. Users\nwho want\nXLA dumps can set `XLA_FLAGS=--xla_dump_to=...` and collect the\ndirectory.\n\n---------\n\nCo-authored-by: Nightshift Scout <nightshift@marin.local>",
+      "sha": "4a04d5bed4f9ca5edbb280f0d74bdf0499259448",
+      "url": "https://github.com/marin-community/marin/commit/4a04d5bed4f9ca5edbb280f0d74bdf0499259448",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-14T17:43:39Z",
+      "committed_at": "2026-09-14T17:43:39Z",
+      "message": "[eval] Consume Harbor's trial-error taxonomy (#9109)\n\nSnapshot Harbor’s error taxonomy and pinned Git commit during preflight.\nThe current taxonomy contains 27 infrastructure, 3 agent, 2 passthrough,\nand 3 undecided error names. Agent failures remain score-bearing without\na verifier result, and passthrough errors preserve usable verifier\nscores.\n\nUndecided errors are known to Harbor but have no default policy. Marin\nleaves them ungraded, counts them against the 90% completion gate, and\nretries them after backend recovery. Names absent from all four sets are\nrecorded as taxonomy drift and reject the evaluation as an\ninfrastructure failure.\n\nPreserve per-type error counts for scored and unscored trials, and\nrecord the exact Harbor commit SHA with each run so taxonomy provenance\ndoes not depend on package-version bumps.\n\nDesign:\nhttps://claude.ai/code/artifact/2b19eac3-7cc3-4931-97b2-a4984df2ece7\n\nFixes #8147\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "3a1b5678562c70ce63b446456ed0448fdbd7bb6c",
+      "url": "https://github.com/marin-community/marin/commit/3a1b5678562c70ce63b446456ed0448fdbd7bb6c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-14T17:35:04Z",
+      "committed_at": "2026-09-14T17:35:04Z",
+      "message": "[evaldash] Group benchmark variants under one family column (#9112)\n\nSettings of one benchmark now share a leaderboard column. Family\nmembership is\ndeclared in the launcher's eval registry and written to each run's\n`eval.family`; `gsm8k` and `gsm8k-0shot` both use family `gsm8k`.\nRecords without\na family still parse and remain separate columns. Capped `-smoke`\nvariants stay\nunfamilied because scoring surfaces exclude them.\n\n`/panel` returns each family, its variants, and the variant selected for\nthe\ncolumn. It chooses the variant with the most admitted cells for that\nrequest,\nbreaking ties by eval name; explicitly requesting one sibling pins it.\nThe\neffective `panel` contains one variant per family and controls coverage,\n`complete=1`, and aggregation. `benchmarks` and cells retain every\nadmitted\nvariant with its metric, cohort, harness version, and run provenance. A\nmodel\nthat ran only the selected variant therefore covers the visible panel.\nSelection and panel rendering use the same completeness rule.\n\nThe panel picker stores its selection locally and passes exact eval\nnames to\nthe `/panel` request and Compare route. The selected variants are\npreserved in\nthe panel and Compare URLs. `/meta` lists every known sibling so a\nnarrowed\npanel can restore another variant.\n\nFixes #8143",
+      "sha": "8e757501d121d81cc04d3cee7655448105dec3ec",
+      "url": "https://github.com/marin-community/marin/commit/8e757501d121d81cc04d3cee7655448105dec3ec",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-14T17:34:39Z",
+      "committed_at": "2026-09-14T17:34:39Z",
+      "message": "[eval] Derive Harbor agent context limits from the served model (#9105)\n\nDerive Harbor agent input and output limits from the model's serving and\ngeneration configuration. A DeepSeek-V4-Flash evaluation served a\n1,048,576-token context and a 393,216-token generation budget, but\nHarbor compacted at its default 32,768 input tokens, invalidating the\nlong-context comparison.\n\nWith automatic serving overrides enabled, clamp the model's explicit\ncontext limit to the checkpoint's native window before Harbor preflight\nand retain the resolved serving configuration for execution. A policy\nlimit below the resolved model limit wins; a policy limit above it fails\npreflight. This prevents an agent budget from exceeding a server window\nthat was reduced during serving configuration.\n\nIf neither model nor policy specifies a limit, retain Harbor's defaults.\nDry-run output and evaluation records include the resolved agent limits.\nThe `grug-opencode-id` policy requests 64,512 input tokens against its\nmatching model's 65,536-token window; the 31 catalog models configured\nto serve 32,768 tokens now reject that policy at preflight.\n\nFixes #8212",
+      "sha": "dd6819632cfef52adacc60c6f08ee2130da04301",
+      "url": "https://github.com/marin-community/marin/commit/dd6819632cfef52adacc60c6f08ee2130da04301",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-14T03:19:31Z",
+      "committed_at": "2026-09-14T03:19:31Z",
+      "message": "Preserve model dimensions during microbatching (#9045)\n\nBind the model before gradient microbatching so only batch inputs are\nsplit. Parameters with a leading dimension equal to the batch size\nremain model state.",
+      "sha": "de412954e99488cf004b54104a7eeb4b670d10a2",
+      "url": "https://github.com/marin-community/marin/commit/de412954e99488cf004b54104a7eeb4b670d10a2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-14T02:00:54Z",
+      "committed_at": "2026-09-14T02:00:54Z",
+      "message": "[vllm] Use one source lineage for GPU and TPU (#9136)\n\nUse the H100-qualified vLLM package source\n`4c1c798a7b6072aab4f435b0fe0eb9e3ae9e5e19`\nfor TPU as well as GPU. Marin now pairs that source with tpu-inference\n`29548fbab663b7ea946546ca7efaa473dab55ba5`, records both exact commits\nand\nupstream bases in `config/external/vllm/tpu.toml`, and generates\nmatching runtime\nrequirements.\n\nThe weekly refresh descriptor and skill now treat\n`marin-community/vllm/main` as the only maintained vLLM source lineage.\nTPU\nrefreshes select an exact source already on that lineage, rebase only\ntpu-inference, and use the vLLM fork's content-addressed paired-wheel\nworkflow.\nGPU and TPU retain separate dependency environments, artifacts, gates,\nand\npromotion inputs; neither device's unchanged wheel is rebuilt by the\nother\ndevice's refresh.\n\n## Exact source and runtime evidence\n\n| Item | Exact identity | Evidence |\n| --- | --- | --- |\n| vLLM package source | `4c1c798a7b6072aab4f435b0fe0eb9e3ae9e5e19` on\nupstream base `9d88ceb02694c6e3df182ec3c87201284f50e2c6` | Immutable GPU\nrelease\n[`marin-vllm-gpu-20260913-4c1c798a7b60`](https://github.com/marin-community/vllm/releases/tag/marin-vllm-gpu-20260913-4c1c798a7b60),\nwheel SHA-256\n`771a1b8551ec2dd3a4739eda08383e48173f8b6d0935075b201d0cffa916d602`,\n[H100 qualification\n34777241868](https://github.com/marin-community/vllm/actions/runs/34777241868)\n|\n| Protected vLLM `main` | `15275db540b7fed9670144df4ef7bec2168be36e` |\n`git diff --name-status 4c1c798a..15275db` contains only\n`.github/workflows/marin-gpu-release.yaml`; excluding that file produces\nan empty package diff |\n| tpu-inference | `29548fbab663b7ea946546ca7efaa473dab55ba5` on upstream\nrelease `v0.29.0` / `cdaf47c66c1089e66e0dd8b0aba92bc3f9b919c5` |\n[tpu-inference\n#24](https://github.com/marin-community/tpu-inference/pull/24); its\nnine-commit replay is patch-identical to the prior v0.28 overlay by `git\nrange-diff` |\n| TPU candidate |\n[`marin-vllm-tpu-candidate-4c1c798a7b60-29548fbab663-50abfbec0ed7-b750da02ab0e`](https://github.com/marin-community/vllm/releases/tag/marin-vllm-tpu-candidate-4c1c798a7b60-29548fbab663-50abfbec0ed7-b750da02ab0e)\n| [Build\n34793731694](https://github.com/marin-community/vllm/actions/runs/34793731694),\nworkflow `50abfbec0ed7ef8bca4f20b2fc59922516d836b8`, Python 3.12,\ndependency cutoff `2026-09-13T03:00:00Z` |\n| TPU wheel |\n`vllm-0.20.1rc1.dev0+marin.4c1c798a7b60.tpu-cp312-cp312-linux_x86_64.whl`\n| SHA-256\n`147ab1ee578af4021c574670b1a8695aefdda38b619ab0aa3d2fec464a3e2382` |\n| tpu-inference wheel |\n`tpu_inference-0.29.0+marin.29548fbab663-py3-none-any.whl` | SHA-256\n`d12bfbf543cb8c6821b92dc34e0cbe736c2517a07834db54b9dafea267262765` |\n| Physical TPU gate | Qwen3-0.6B, TP8, production priority, one `v6e-8`\nin `us-east5` | [Qualification\n34793836555](https://github.com/marin-community/vllm/actions/runs/34793836555)\npassed on the first run; the public pair clean-installed, the server\nstarted, two chat probes returned HTTP 200, and the owned Iris job was\nstopped |\n\nThe dependency cutoff is the first whole UTC hour after the selected\nvLLM\nsource commit. Earlier trial cutoffs excluded dependencies the source\nalready\nrequires; this cutoff clean-resolved the exact pair and prevents\nunrelated\nfuture uploads from changing it.\n\nThe direct pairing with the old tpu-inference v0.28 tip exposed one real\nAPI\nbreak: vLLM had removed `ModelOptNvFp4LinearMethod`. Upstream\ntpu-inference\nv0.29 carries the corresponding implementation. Rebasing Marin's\npatch-identical\noverlay onto v0.29 fixed the boundary without changing vLLM source. A\nlocal\nPython 3.12 build, clean install, vLLM TPU platform and NVFP4 imports,\n44 focused\npair tests, and the v0.29 CPU CI subset (16 tests) passed before the\nphysical gate.\n\nMarin validation passes:\n\n- `uv run config/update-external.py --check`\n- `uv run pytest -o addopts=\ntests/inference/test_external_dependencies.py` — 7 passed\n- `uv run --package marin-iac --extra deploy --group test pytest -o\naddopts= infra/loom/tests/test_infrastructure.py -k fork_ferry` — 1\npassed\n- `./infra/pre-commit.py --changed-files --fix`\n\n## Rollback and promotion\n\ntpu-inference protected `main` remains at\n`b669cfdce446bb039d209ff7a99198273e103026`. The exact refs are\npublished:\n\n- rollback: `main-backup/20260913/pre-b669cfdc` ->\n`b669cfdce446bb039d209ff7a99198273e103026`\n- validated: `main-20260913` ->\n`29548fbab663b7ea946546ca7efaa473dab55ba5`\n\nThe existing `main-next` still names the superseded #23/#8951 v0.28\nreview, so\nthis one-time replacement uses the immutable validated tag directly.\nAfter\nreview, an administrator can promote with an exact lease:\n\n```sh\ngit push \\\n  --force-with-lease=refs/heads/main:b669cfdce446bb039d209ff7a99198273e103026 \\\n  origin refs/tags/main-20260913:refs/heads/main\n```\n\nRollback after that swap, leased against the validated tip:\n\n```sh\ngit push \\\n  --force-with-lease=refs/heads/main:29548fbab663b7ea946546ca7efaa473dab55ba5 \\\n  origin refs/tags/main-backup/20260913/pre-b669cfdc:refs/heads/main\n```\n\nNo vLLM branch move is needed. The existing GPU release tag is its\nimmutable\nsource and rollback reference.\n\nMerge and promotion order:\n\n1. Review [tpu-inference\n#24](https://github.com/marin-community/tpu-inference/pull/24), [vLLM\n#61](https://github.com/marin-community/vllm/pull/61), and this PR\nagainst the evidence above.\n2. Lease-promote tpu-inference `main-20260913` to protected `main`; do\nnot merge the conflicting rebase PR or squash its linear overlay.\n3. Merge vLLM #61. It changes release automation and documentation, not\nvLLM package source, and its TPU-only paths do not trigger a GPU\nrebuild.\n4. Merge this Marin PR after confirming the two remote source\nidentities. It pins exact commits, so branch motion cannot silently\nchange the consumer.\n5. A human may then promote the already-qualified TPU candidate without\nrebuilding or allocating another TPU. From merged `main`, dispatch\n`marin-gpu-release.yaml` with `lane=tpu`, that same `candidate_tag`,\n`qualification_run_id=34793836555`, and `promote=true`. The workflow\nrequires that run to be successful at the candidate manifest's workflow\nSHA and validates its exact artifact before relabeling the same hashed\nassets.\n\nGitHub retains the accepted validation artifact through\n`2026-09-28T00:53:46Z`. Complete the final release before then; after\nexpiry, a\nnew physical qualification is required.\n\nKeep all three PRs draft until the protected-branch promotion is\ncomplete. Do\nnot finalize the TPU release before the source and consumer changes\nland.\n\nThis PR makes Marin #8430, #8431, and #8951 obsolete. vLLM #61 replaces\n[vLLM #52](https://github.com/marin-community/vllm/pull/52), and\ntpu-inference\n#24 replaces [tpu-inference\n#23](https://github.com/marin-community/tpu-inference/pull/23).\nThe new stack retains their useful content-addressed paired build,\nmanifest,\ncold-install, cleanup, and physical-gate behavior while removing the\nseparate\nvLLM TPU-source assumption.\n\n<details>\n<summary>Retired vLLM TPU overlay audit</summary>\n\nThe old stable `vllm/tpu` overlay at `3d26773be1d7` has no behavior that\nneeds a\nsecond maintained source branch. Every commit is accounted for on exact\nsource\n`4c1c798a7b60`:\n\n| Old TPU commit | Behavior | Status on `4c1c798a` |\n| --- | --- | --- |\n| `72a876a4a` | Marin owns the paired tpu-inference dependency | Present\nas `d4304d0b9` |\n| `b30a0dc1b` | Clear stale CMake state | Present as `7e7edea8d` |\n| `d83e6de8d` | Produce TPU metadata without importing Torch | Present\nas `c9df2e140` |\n| `599cd966e` | GrugMoE source/version and scheduler support | Ported as\n`dabaa7a74`, with current API adaptations `cafe16a56` and `edc2259a5` |\n| `5a18efecb` | Honor an explicit TPU target on macOS | Present as\n`b3a9020e8` |\n| `32faed3d2` | Skip scheduler-held requests | Present as `db09a091d` |\n| `e3d46c630` | Skip unused Rust artifacts for TPU | Present as\n`6876927d9` |\n| `d2df74d06` | GrugMoE GPU expert parallelism | Present as `881e2d46f`\n|\n| `8be798807` | Marin standards, PR CI, and hardware nightly | Ported\ninto the collapsed final operations state at `fd20e2b2d` and later\nmain-line workflow commits |\n| `6b76ce3fe` | Mixed-attention cache configuration | Present as\n`f12802b39` |\n| `08919d164` | Synchronize Ray ranks after remapping | Present as\n`04a21be8d` |\n| `6e6c25164` | Sanitize inherited Ray setup hooks | Present as\n`540e4f8b3` |\n| `c5e0be09c` | Force IPv4 for native endpoints | Present as `36b2c2047`\n|\n| `7c8548935` | GrugMoE pipeline-parallel serving | Present as\n`2c3feb462` |\n| `3d26773be` | Final Marin CI and standards state | Ported/collapsed\ninto `fd20e2b2d` and later main-line workflow commits |\n| retired source topology | Maintain and promote `tpu`/`tpu-next`\nseparately | Obsolete; the exact pair passed from the main-line package\nsource |\n\n</details>\n\n<details>\n<summary>Source commands and durable evidence</summary>\n\n```sh\ngit diff --name-status \\\n  4c1c798a7b6072aab4f435b0fe0eb9e3ae9e5e19..15275db540b7fed9670144df4ef7bec2168be36e\n\ntest -z \"$(git diff --name-only \\\n  4c1c798a7b6072aab4f435b0fe0eb9e3ae9e5e19..15275db540b7fed9670144df4ef7bec2168be36e \\\n  -- . ':(exclude).github/workflows/marin-gpu-release.yaml')\"\n\ngit range-diff \\\n  v0.28.0..d3f2a26835e970c81399d8f286e57c670c517073 \\\n  v0.29.0..29548fbab663b7ea946546ca7efaa473dab55ba5\n```\n\nThe downloaded candidate manifest, structured validation record, and\ncomplete\nqualification log are retained under the native task session. The GitHub\ncandidate release and workflow URLs above remain the public provenance.\n\n</details>\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "d8164349b3422084403f58f08cd95f29499fa5fa",
+      "url": "https://github.com/marin-community/marin/commit/d8164349b3422084403f58f08cd95f29499fa5fa",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-14T01:31:51Z",
+      "committed_at": "2026-09-14T01:31:51Z",
+      "message": "[agents] Stop creating repository research artifacts (#9138)\n\nStop agent workflows from producing new design, research, plan, logbook,\nand\nsnapshot files in the repository. Replace the overlapping artifact\nskills with\none opt-in `research` workflow that writes to an existing issue, PR, W&B\nreport,\npublished report, or durable session channel.\n\nRemove the design template and the documentation cleanup workflow that\narchived\nstale docs into `.agents/projects`. Keep `write-tests` as a concise\ntrigger that\nroutes agents to `TESTING.md` and module testing guides without\nrepeating their\ncontents. Existing historical project and logbook files remain\navailable; this\nchange removes active instructions and the lint rule that recommended\ncreating\nmore.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "6bb6064234130b8610531c78dda007ce284075e2",
+      "url": "https://github.com/marin-community/marin/commit/6bb6064234130b8610531c78dda007ce284075e2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-14T01:16:09Z",
+      "committed_at": "2026-09-14T01:16:09Z",
+      "message": "Deduplicate agent workflow instructions (#9137)\n\nKeep repository-wide policy in `AGENTS.md` while routing Echo search, PR\npublication, lint-review, monitoring, and design-doc procedures to their\nowning\nskills.\n\nLimit Echo incident records to live service, production-run, or shared\noperational system failures that required diagnosis or mitigation.\nOrdinary\ncode debugging, local failures, implementation notes, and experiment\nprogress\nremain outside incident records.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "127e833fe5121b528c0c40afe97fa577c06be01b",
+      "url": "https://github.com/marin-community/marin/commit/127e833fe5121b528c0c40afe97fa577c06be01b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-14T00:19:31Z",
+      "committed_at": "2026-09-14T00:19:31Z",
+      "message": "[finelog] Recover stale same-writer HEAD tokens (#9135)\n\nAdopt a newer catalog HEAD owned by the same writer as the next\ncompare-and-swap base when it differs from the local revision being\npublished.\nThe current attempt remains deferred; a later retry rebases the current\nlocal\nprojection onto the observed HEAD. Different writer epochs and\nconflicting\ncontent at one revision remain fencing errors.\n\nOn cw-us-east-08a, the Cloudflare R2 object store selected generation\n221521 for\n`telemetry_v1.node_agent` under the running writer epoch while Finelog's\nin-memory selection remained at generation 221520. The local SQLite\ncatalog\nthen advanced, so every publication presented the stale token and\nregional-to-hub\nforwarding stopped at 2026-09-11 10:13:24 UTC. The regression test\nreduces this\nsequence to cached generation 1, remote generation 2, and local\ngeneration 3;\nthe first attempt adopts generation 2 and the second publishes\ngeneration 3.\n\nIncident: https://marina.oa.dev/echo/wiki/423\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "8b2afb056b1a12a54043d4ab6cdc2d9eae83a564",
+      "url": "https://github.com/marin-community/marin/commit/8b2afb056b1a12a54043d4ab6cdc2d9eae83a564",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-15T00:00:00Z",
+    "start": "2026-09-14T00:00:00Z"
+  }
+}

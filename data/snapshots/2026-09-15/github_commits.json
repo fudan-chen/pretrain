@@ -1,0 +1,230 @@
+{
+  "commit_count": 20,
+  "commits": [
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-15T23:27:14Z",
+      "committed_at": "2026-09-15T23:27:14Z",
+      "message": "[hero] Add the Grub Zoo neuron prompt (#9185)\n\nAdd the Grub Zoo neuron-associate prompt and supplied long-form\nreference to\nthe Hero checkpoint completion bank. The pinned tokenizer encodes the\nprompt\nand reference as 2,696 tokens, within the sampler's 4,096-token context.\n\n---------\n\nCo-authored-by: William Held <9847335+Helw150@users.noreply.github.com>",
+      "sha": "7158128103943039ee8d3a3b03527889bf5c1068",
+      "url": "https://github.com/marin-community/marin/commit/7158128103943039ee8d3a3b03527889bf5c1068",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T23:23:44Z",
+      "committed_at": "2026-09-15T23:23:44Z",
+      "message": "Add progress logs for hero checkpoint completions (#9184)\n\nHero completion jobs showed startup messages but no sampling progress.\nAdd stage timings, per-prompt completion messages, and periodic\ngeneration counts. Record separate timings for model execution and for\ntoken selection and text decoding. Process zero writes shared progress,\nwhile every process retains warnings and errors. Shorten the README to\nthe report, launch command, resource requirements, publication timing,\nand recovery details.\n\nThe 18 existing completion tests, lint checks, and scoped type checks\npass. No new tests were added.\n\nActive jobs and retries retain their original source commit. These logs\napply to jobs whose saved source commit includes this change.",
+      "sha": "a8328dd8ad477d8070df363bf3e6f90462544f6b",
+      "url": "https://github.com/marin-community/marin/commit/a8328dd8ad477d8070df363bf3e6f90462544f6b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt-agent",
+      "author_name": "mcwitt-agent",
+      "authored_at": "2026-09-15T22:40:10Z",
+      "committed_at": "2026-09-15T22:40:10Z",
+      "message": "[gpu] Pin the validated ragged all-to-all PJRT wheel (#9179)\n\nPin the ARM64 CUDA 13 PJRT wheel to XLA `708c3a4ec79c`, which uses 32\nthread blocks of 512 threads, sender-relative peer ordering, and\neight-load copy batches for the opt-in ragged all-to-all device kernel.\nThe stock JAX, jaxlib, and CUDA plugin generation remains 0.11.1.\n\n[Three matched EP64/GB200 pairs](https://marina.oa.dev/echo/wiki/407)\nmeasured 2.766% higher training throughput for the 32 × 256 geometry,\npeer ordering, and copy changes versus the previous 152 × 128 kernel. A\nseparate three-pair comparison measured 0.699% higher throughput for 512\nversus 256 threads at fixed 32 blocks, peer ordering, and copy batches.\nEach comparison includes all 60 scored steps per run after 20 fixed\nwarmup steps, including latency spikes; these estimates come from\ndifferent run windows and should not be added. They do not establish\nreduced spike frequency or long-run convergence.\n\nThe [promoted\nwheel](https://github.com/marin-community/xla/releases/tag/marin-xla-pjrt-20260915-708c3a4ec79c)\nwas built on Iris and passed two-device GB200 output correctness and\ndevice-kernel engagement checks. Its immutable release includes the\nsource revisions, wheel hash, and validation record. The safe CPU suite\npassed 1,858 tests; all 11 Tasktrove failures reproduced on unchanged\n`main`.\n\n\nThe hero trigger now names the relaunch that deploys this wheel together\nwith the PDL-off QuACK launchers from #9183: run id\n`hero-nopdl-step108k`, initialized from `hero-mix-996f4891-step108k`'s\nhourly checkpoint `step-108778`, whose metadata is marked non-temporary\nso the old run's later saves keep it. The old run trains 200 steps past\nthat checkpoint as the paired control for the trial window (#8870).\n\n---------\n\nCo-authored-by: Matt Wittmann <matt.wittmann@openathena.ai>\nCo-authored-by: Matt Wittmann <mcwitt@gmail.com>",
+      "sha": "8f6f33bebe681ed12ff88a6ed14121990bf2cec3",
+      "url": "https://github.com/marin-community/marin/commit/8f6f33bebe681ed12ff88a6ed14121990bf2cec3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-15T22:11:35Z",
+      "committed_at": "2026-09-15T22:11:35Z",
+      "message": "[grug] Launch the QuACK grouped GEMMs without PDL (#9183)\n\nThe three QuACK grouped-GEMM launchers in `quack_moe_cute` now pass\n`use_pdl=False`, so the gated, plain, and weight-gradient kernels start\nafter the preceding kernel completes instead of overlapping it under\nprogrammatic dependent launch.\n\nQuACK 0.6.4's SM100 GEMM executes `griddepcontrol.wait` only in its\nTMA-load and CLC-scheduler warps. The MMA and epilogue warps decode\ntheir work tiles from `cu_seqlens` in global memory before any wait, so\na PDL-launched GEMM can read the expert group boundaries before the\nprevious kernel's writes are visible. Both GPU dumps of the ragged EP\nhero hang (#8870, steps 107501 and 108711) show that split: in every\nstuck CTA the MMA and epilogue warps retired on a tile the load and\nscheduler warps still held as valid, and one cluster retired on its\nfirst tile. The load warp then blocks on the A/B pipeline and the rank\nnever reaches the next ragged all-to-all barrier.\n\nCost was measured on the six-GEMM expert MLP forward and backward at the\nhero shape (601,088 rows, 6 experts, hidden 6144, intermediate 3072) on\ntwo GB200 nodes, 1,000 iterations per arm, each arm twice per GPU:\nmedian 87.6 ms per iteration with PDL off against 87.7 ms with PDL on on\none node, 88.7 ms against 88.5 ms on the other, within 0.3% and inside\nthe per-GPU spread. 32,000 iterations ran without a hang or non-finite\nvalue.\n\nThe change is a mitigation. Neither probe reproduced the hang in 100,000\nlaunches, and the hero rate is about one hang per 1e6 GPU-steps, so the\nchange is judged by the recurrence interval on the next hero relaunch.\nThe probes and their per-arm results are recorded on the issue. The\nupstream fix is a `griddepcontrol.wait` in QuACK's MMA and epilogue\nwarps, which one probe arm exercised with a patched copy of QuACK.\n\nPart of #8870",
+      "sha": "a428f1d25d53ee825de801f15674a3a439420df4",
+      "url": "https://github.com/marin-community/marin/commit/a428f1d25d53ee825de801f15674a3a439420df4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T22:05:58Z",
+      "committed_at": "2026-09-15T22:05:58Z",
+      "message": "[hero] Show token probabilities for generated and expected completions (#9181)\n\nRecord model log probabilities and the five most likely tokens for\ngenerated and expected hero completions. Add reference continuations to\nthe 35 prompts without an `expected` field, so all 45 prompts have a\nreference.\n\nScore expected text with teacher forcing in one causal model pass per\nbatch. Project the vocabulary one position at a time to limit memory\nuse. Scores use the full model distribution before temperature scaling.\n\nShow token colors, hover details, and sequence summaries for generated\nand expected text in the [hero completion\nreport](https://storage.googleapis.com/marin-public/rav/hero-completions/latest/index.html).\nThe `hero-native-v2-logprobs` release creates new requests for retained\npermanent checkpoints on the next workflow invocation. Previous results\nretain their text without probability data.\n\nThe 18 existing completion tests, type checks, and numerical comparisons\nagainst a small real Transformer pass. Browser checks include colors,\nhover details, keyboard access, mobile layout, and results without\nscores. No new tests were added. Full hero GPU execution remains\nunverified.\n\nPart of #8827.",
+      "sha": "de9d5e8351d701f9d676cfbc9cd5a24c79947485",
+      "url": "https://github.com/marin-community/marin/commit/de9d5e8351d701f9d676cfbc9cd5a24c79947485",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "timodonnell",
+      "author_name": "Tim O'Donnell",
+      "authored_at": "2026-09-15T21:08:12Z",
+      "committed_at": "2026-09-15T21:08:12Z",
+      "message": "[vibe_check] Add biocorpus prompts and an optional expected continuation (#9178)\n\nbiocorpus is in the hero data mix\n([`datakit/download/biocorpus.py`](https://github.com/marin-community/marin/blob/main/lib/marin/src/marin/datakit/download/biocorpus.py),\npinned to the `2026-07-30` bucket snapshot). These ten prompts ask\nwhether a checkpoint shows it.\n\nThey come in **five in-corpus / held-out pairs**. Reading one completion\ntells you little; comparing a pair separates *reproduced this document*\nfrom *knows what this kind of document looks like*.\n\n| pair | in-corpus | held out | why it is held out |\n|---|---|---|---|\n| myoglobin | `A0A3B3H9I9` medaka | `A0AB13A8W5` zebrafish | TrEMBL\nnon-representative |\n| GreA | `A6LMS3` *Thermosipho* | `P0DYD7` *Thermus aquaticus* | created\n2026-09-02 |\n| dogma splice | HES4 human | chicken *NDUFB2* | dogma build is\nhuman-only |\n| dogma translate | HES4 human | chicken *NDUFB2* | dogma build is\nhuman-only |\n| design direction | `A6LMS3` | `P0DYD7` | created 2026-09-02 |\n\n### Exclusion mechanisms, each verified against the built corpus\n\n- biocorpus keeps only **UniRef50 cluster representatives** from TrEMBL,\nso an annotated non-representative is excluded by cluster bookkeeping\nalone — nothing to do with content\n- the dogma build runs on **human genome files only** (`run_v2.sh`), so\nany other vertebrate is excluded while staying byte-identical in format\n- entries **created after the snapshot** cannot be in it\n\nThe third needs per-accession verification, not just a date filter. One\ncandidate created 2026-09-02 turned out to be in the corpus **four\ntimes**: the accession existed in TrEMBL before the snapshot and was\nonly later promoted to Swiss-Prot, so `date_created` records promotion\nrather than first existence. Every held-out item here was confirmed\nabsent by accession *and* by full sequence; every in-corpus item\nconfirmed present. The hit counts corroborate the recipe independently —\nthe TrEMBL representative appears once, the Swiss-Prot entry twice,\nmatching `--ordering both` on Swiss-Prot only.\n\n### Design notes\n\nBoth proteins are **single-copy genes**. A large paralog family\n(olfactory receptors, say) would let a model reproduce most of an\nannotation from family knowledge alone. Within each pair the shared\nboilerplate is near-identical and the discriminating detail is\nentry-specific — the GO process terms differ completely between the two\nmyoglobins, and the two GreAs differ on \"releases sequences of 2 to 3\"\nvs \"7 to 8 nucleotides\". The in-corpus organisms are deliberately\nobscure, so a correct completion is not explained by general web text.\n\nEvery document was rendered by the corpus builder itself, and `prompt +\nexpected` reconstructs a real training document byte-for-byte. The two\ndogma prompts nest: the translate prompt is exactly the splice prompt\nplus its expected continuation, so one tests splicing and the other\ntranslation without overlap.\n\nBudgets: worst prompt 1226 tokens, worst expected 548 — inside\n`context_length=4096` and `max_new_tokens=1024`.\n\n### `expected`\n\nOptional, unset on the existing 35 prompts. Sampling ignores it (no\nreference in `sample.py` or `generation.py`); the report shows it in a\ncollapsed `<details>` beside the completion, because a factual prompt\ncannot be marked by a reader who does not already know the answer.\n\n### For reviewers\n\n`sample_id` digests the spec, which contains the prompt list — so **this\ninvalidates every cached sample set and re-samples all retained\ncheckpoints**. The schema change rides along in the same commit for that\nreason, since it perturbs the digest too.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-authored-by: Claude Opus 5 <noreply@anthropic.com>",
+      "sha": "eb1eb946529a28995427df71aa366ef735bc7f41",
+      "url": "https://github.com/marin-community/marin/commit/eb1eb946529a28995427df71aa366ef735bc7f41",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-15T20:44:01Z",
+      "committed_at": "2026-09-15T20:44:01Z",
+      "message": "[zephyr] Report reducer input sizes through Finelog (#9087)\n\nReport reducer input rows, encoded payload bytes, and contributing\nmapper counts to `zephyr.shuffle` in Finelog using existing metadata\nreads. The coordinator announces each target with null sizes; each\nreducer attempt reports its totals when it finishes. Telemetry is best\neffort, so null sizes mean unreported and numeric zero means an empty\ntarget.\n\nThe Zephyr Grafana dashboard shows input distributions and measurement\ncoverage for a selected execution and reduce stage. Queries prefer the\nlatest attempt and distinguish measurements from placeholders. This\nhelps identify uneven shuffle inputs without additional storage reads.",
+      "sha": "36c76439f7e5d6e50e92a9de8928d475531fe3dd",
+      "url": "https://github.com/marin-community/marin/commit/36c76439f7e5d6e50e92a9de8928d475531fe3dd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-15T20:26:43Z",
+      "committed_at": "2026-09-15T20:26:43Z",
+      "message": "[finestore] Publish the evaluation archive contract (#9158)\n\nPublish the schema-v4 `EvalSample` and `StepRecord` contracts with a\ntyped `EvaluationStore` API in `marin-finestore`. The package accepts\ntyped rows and opaque artifacts. It does not parse lm-eval records or\nHarbor trajectories.\n\nPoint Evaldash, Marin's measurement path, and archive migrations at the\npackaged schemas. Marin's existing lm-eval exporter continues converting\nresults that lack native FineStore output. Native conversion is\nimplemented in\n[evalchemy#126](https://github.com/marin-community/evalchemy/pull/126)\nand [harbor#152](https://github.com/marin-community/harbor/pull/152).\n\nThe `Marin - Release Packages` workflow selects the `python-libs`\nrelease family when FineStore sources change and publishes its wheel\nafter merge. The linked consumer PRs require that release.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "ba2b0417080bb89b4db41aacf1d778e5976160d7",
+      "url": "https://github.com/marin-community/marin/commit/ba2b0417080bb89b4db41aacf1d778e5976160d7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-15T19:15:37Z",
+      "committed_at": "2026-09-15T19:15:37Z",
+      "message": "Delete dead data-path code and fix external-sort spill cleanup (#9170)\n\n`_merge_sorted_frames` wrapped its entire spill-cleanup loop in one\ntry/except,\nso the first `StoragePath.rm()` that raised aborted the loop and\nstranded every\nremaining run file. Each run holds a full `fan_in` group of the shard's\npayload,\nand on the inline-runner path the external sort directory lives under\nthe\nstage's object-storage prefix, so one transient delete error left\nbillable cloud\nstorage behind. Each run is now deleted independently.\n\n`HtmlToMarkdownConfig` declared fifteen markdownify options\n(`autolinks`,\n`bullets`, `escape_asterisks`, `wrap_width`, and the rest) as\nunannotated class\nattributes. They are not dataclass fields, so `markdownify_kwargs` —\nwhich\niterates `fields(self)` — never emitted them, and the converter has\nalways used\nmarkdownify's own defaults for those options. The values were verbatim\ncopies of\n`MarkdownConverter.DefaultOptions` and were free to drift from it while\nreading\nas live configuration. `ResiliparseConfig.markdownify_kwargs` goes with\nthem: it\nlooked up `markdownify_config`'s fields on `self` and so raised\n`AttributeError`\nfor any caller, of which there were none. Rendering is unchanged.\n\n`K8sResource.api_base`, `collection_path`, and `item_path` built REST\nURL paths\nfor the raw-HTTP Kubernetes client that #4532 replaced with the dynamic\nclient;\nthe dynamic client derives its own paths from the enum's `api_group`,\n`api_version`, `is_namespaced`, and `plural` metadata, which stays.\n`TaskAttempt.with_attempt` and `without_attempt` have had no caller\nsince #3496\nadded them. `ShardedDataSource.map_batches` and\n`AsyncDataset.map_batches` are\nunexported, undocumented, and uncalled — the sharded variant warned at\nruntime\nto use `build_cache` instead — and dropping them makes their whole\nsupport chain\ndead, including the `_DatasetTransform` hierarchy in `_preprocessor.py`.\nTests\nthat existed only to exercise the removed code are deleted with it.\n\n---------\n\nCo-authored-by: nightshift-scout <nightshift-scout@users.noreply.github.com>\nCo-authored-by: nightshift <nightshift@marin.local>\nCo-authored-by: Nightshift Agent <nightshift@marin.invalid>",
+      "sha": "fc8a97b4c71de3249ea2493d563d59b27b2512fb",
+      "url": "https://github.com/marin-community/marin/commit/fc8a97b4c71de3249ea2493d563d59b27b2512fb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T19:10:42Z",
+      "committed_at": "2026-09-15T19:10:42Z",
+      "message": "[hero] Add an option to submit all checkpoint completion jobs (#9175)\n\nAdd `submission=all` to the hero completion workflow and `--submission\nall` to the CLI. One invocation submits every eligible checkpoint in the\ncurrent discovery set at the selected priority. Iris queues the 64-GPU\njobs as capacity permits.\n\nThe `all` mode skips completed results, active attempts, exhausted\nretries, and requests from previous prompt banks. The default `next`\nmode retains one-job submission. Reports continue to publish on workflow\ninvocations.\n\nLint and type checks passed. Part of #8827.",
+      "sha": "8a4434316b3fd6e174812fdb14e4eb465280c89f",
+      "url": "https://github.com/marin-community/marin/commit/8a4434316b3fd6e174812fdb14e4eb465280c89f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T18:50:54Z",
+      "committed_at": "2026-09-15T18:50:54Z",
+      "message": "[hero] Pass the Hugging Face token to sampling jobs (#9174)\n\nPass the repository `HF_TOKEN` secret to the hero completion submitter.\nIris forwards the token to sampling tasks so tokenizer downloads use\nauthenticated Hugging Face requests.",
+      "sha": "919941bc41f1863932248d9bea07123c96581c86",
+      "url": "https://github.com/marin-community/marin/commit/919941bc41f1863932248d9bea07123c96581c86",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T17:54:57Z",
+      "committed_at": "2026-09-15T17:54:57Z",
+      "message": "[hero] Retain checkpoint sampling priority across workflow runs (#9172)\n\nRetain an explicit sampling priority for all checkpoints discovered by a\nmanual workflow invocation. Hourly runs use the saved priority for\nremaining requests and retries, with one 64-GPU job at a time. Later\ncheckpoints use batch priority.\n\nAdd a workflow input and CLI parameter so operators can request a\nproduction-priority backfill after repeated batch preemptions. Existing\nresults and retry limits stay in effect.\n\nLint and type checks passed.\n\nPart of #8827.",
+      "sha": "64797cd6355655bc75ad177923944108361c1c2c",
+      "url": "https://github.com/marin-community/marin/commit/64797cd6355655bc75ad177923944108361c1c2c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-09-15T15:05:06Z",
+      "committed_at": "2026-09-15T15:05:06Z",
+      "message": "[zephyr] Add a coordinator dashboard (#7911)\n\nServe a read-only Zephyr dashboard on the coordinator's existing actor\nendpoint through the Iris proxy. Select a pipeline to view its plan,\nshard status, counters, and Finelog metrics. The worker view shows the\nwhole coordinator pool.\n\nThe `zephyr/dashboard/` package contains the HTML page, JSON API, and\ndashboard queries. The queries use the coordinator lock to read shared\nstate. The page uses plain JavaScript and SVG, with no frontend build or\nexternal assets.\n\nJOIN input stages keep their own execution states. The JOIN stays\npending until those stages succeed. Metrics show 15-second averages from\ncounter deltas within each shard attempt and memory samples. They\ninclude work from failed attempts. Memory is estimated between samples.\n\nCompleted executions disappear after the driver reads their results and\nreleases coordinator state.\n\nPart of #5997.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "0cb3167f39f17eece3c75c67c0e1a6ade26686a4",
+      "url": "https://github.com/marin-community/marin/commit/0cb3167f39f17eece3c75c67c0e1a6ade26686a4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T08:05:56Z",
+      "committed_at": "2026-09-15T08:05:56Z",
+      "message": "Add an SVG cat prompt and image preview to vibe checks (#9169)\n\nAdd a prompt for an SVG of a cat on a unicycle. The report shows the\nimage below the selected prompt, with expandable SVG source. The image\nuses an `<img>` element, which disables scripts and external resources\nin SVG output.\n\nIncrease the new-token limit from 200 to 1,024 for all prompts so the\nSVG has more space. This can increase sampling time.\n\nBrowser checks and 1,868 repository tests passed.",
+      "sha": "34b7f477148c920c485cf54b3a3468e2929d50c5",
+      "url": "https://github.com/marin-community/marin/commit/34b7f477148c920c485cf54b3a3468e2929d50c5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T07:46:46Z",
+      "committed_at": "2026-09-15T07:46:46Z",
+      "message": "[iris] Remove a user access grant (#9168)\n\nRemove one account from the Iris production IAP policy and the CoreWeave\nUS-EAST-08A submission list. Delete its unused encrypted principal\nrecord.\n\nThe targeted Pulumi preview for the marin stack removes one IAP member\nand changes no other resources. The operator will apply Pulumi\nseparately. The CoreWeave submission-list change takes effect when the\ncontroller next starts.",
+      "sha": "fa3219290ec9154d93a408963bcf8837d5136622",
+      "url": "https://github.com/marin-community/marin/commit/fa3219290ec9154d93a408963bcf8837d5136622",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T07:19:59Z",
+      "committed_at": "2026-09-15T07:19:59Z",
+      "message": "[hero] Use OIDC for completion workflow authentication (#9167)\n\nAuthenticate the hero completions workflow as `github-iris` through\nOIDC. Iris rejected handoffs from the previous account because it lacked\nfederation admission to the GB200 cluster. The new account has that\nadmission and the active IAM grants from #9165.\n\nReduce the operations README to report access, run and status commands,\nand retry recovery notes.\n\nLint and workflow YAML checks pass. The affected test suite passed 1,868\ntests. The OIDC exchange still requires verification in GitHub Actions\nafter merge.\n\nPart of #8827.",
+      "sha": "844ab61a38a58a5f678efa824a33330348e239b9",
+      "url": "https://github.com/marin-community/marin/commit/844ab61a38a58a5f678efa824a33330348e239b9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T07:02:24Z",
+      "committed_at": "2026-09-15T07:02:24Z",
+      "message": "[iac] Grant CI federation and public bucket object access (#9165)\n\nAllow GitHub Actions in `marin-community/marin` to use the shared\n`github-iris` service account through `roles/iam.workloadIdentityUser`.\nThe grant selects the repository through `principalSet`, so it applies\nacross branches, subject to provider conditions and GitHub token\npermissions. Grant that account `roles/storage.objectUser` on the whole\n`marin-public` bucket so the hero completions workflow can publish\nreports.\n\nThe bucket grant permits reads, creation, updates, and deletion of\nobjects. Other repositories admitted by the account's [federation\npolicy](https://github.com/marin-community/marin/blob/main/infra/pulumi/src/iac/gcp/iam_data.yaml#L1598)\ncan also use these permissions through service account impersonation.\nThe workflow authentication change will follow after deployment of these\ngrants.\n\nIAM schema validation and lint pass. A live policy audit confirmed six\nexisting federation members and no unconditional\n`roles/storage.objectUser` binding on the bucket. The proposed policy\npreserves those members.\n\nA grant approver must run `review-grant`, merge the PR, and apply the\n`marin` stack with `pulumi up`.\n\nPart of #8827.",
+      "sha": "773216c6d1baa27f24b70b51118d203a543ca2e3",
+      "url": "https://github.com/marin-community/marin/commit/773216c6d1baa27f24b70b51118d203a543ca2e3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-15T04:55:13Z",
+      "committed_at": "2026-09-15T04:55:13Z",
+      "message": "[hero] Update current completions and show sampling status (#9164)\n\nUpdate the current hero completions report hourly so new results appear\nafter the next publication. Keep daily snapshots fixed, and skip\nsnapshot creation until a sample set completes. A failed daily upload or\nissue-comment update no longer prevents new results from appearing in\nthe current report.\n\nAdd an Actions summary with completed counts, checkpoint steps, Iris job\nlinks, and queue or error details. Run the summary after submission or\npublication errors. GPU submission stays asynchronous.\n\nRename the workflow to `Marin - Hero Completions` and its file to\n`marin-hero-completions.yaml` to match the domain-first convention.\n\nThe affected suite passed 2,413 tests, with 8 skips and 6 expected\nfailures. Lint and the global type check passed.\n\nPart of #8827.",
+      "sha": "e45b7e00c7787a047d579e98596cfc9c1c2b21f7",
+      "url": "https://github.com/marin-community/marin/commit/e45b7e00c7787a047d579e98596cfc9c1c2b21f7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-09-15T02:12:57Z",
+      "committed_at": "2026-09-15T02:12:57Z",
+      "message": "hero: automate checkpoint completions and daily reports (#9147)\n\n* part of #8827\n* sample every retained permanent checkpoint in the configured hero runs\nwith a versioned bank of 34 fixed prompts\n  * include English-to-Polish and Polish-to-English translation\n* discover checkpoints hourly and run one 64-GB200 job at a time, newest\nsteps first\n* run the full prompt bank again after failure, with three total job\nattempts per checkpoint and sampling specification\n* count preemptions, missing jobs, and scheduling timeouts in the same\nbudget\n* stop exhausted requests with saved failure markers and use Iris job\nstates without a persistent queue\n* save attempt markers before submission so the limit survives deleted\nIris job history\n* save one result after all prompts succeed, with fixed seeds and\ncheckpoint, tokenizer, settings, and source-commit provenance\n  * keep these inputs fixed across retries\n* use one 64-row batch for the current bank and successive batches in\nthe same job for larger banks\n* keep private records in\n`s3://marin-us-east-02a/marin/users/rav/hero-completions/`\n* publish completed sample history daily at\n`gs://marin-public/rav/hero-completions/`, with result JSON, dated\ncomparison pages, and a stable latest link\n* compare two checkpoints and a prompt, retain previous prompt banks,\nand update one comment on #8827\n  * report retries reuse the day's saved snapshot without GPU work\n* restore checkpoint weights and the saved router bias without optimizer\nstate, using master weights when present\n* keep the workflow in `experiments/grug/moe_hero_ep/ops/vibe_check/`\nand leave the hero launcher and shared publishing library unchanged\n* the [step-90000 sample\nrun](https://iris.oa.dev/job/%2Frav%2Fhero-completions-latest-20260912-0615)\ncompleted with the original ten prompts in about 30 minutes, including\nqueue time\n* no live validation yet for the expanded bank, new retry path, or full\ncheckpoint history\n* all 17 focused tests pass\n  * the full local suite cannot start without a C compiler for `pycosat`\n* the global type check reports four missing optional imports outside\nthe changed files\n* scheduled operation requires approved job-submission access to\n`cw-us-east-08a` for the `iris-ci-smoke` service account before\ndeployment\n  * no access changes in this PR\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "7fcb4583f4ab479686bbfa8f8bcab612d69ab9cd",
+      "url": "https://github.com/marin-community/marin/commit/7fcb4583f4ab479686bbfa8f8bcab612d69ab9cd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-15T00:31:07Z",
+      "committed_at": "2026-09-15T00:31:07Z",
+      "message": "[grug] Resume MoE checkpoints across FSDP and pipeline training (#8974)\n\nSave pipeline MoE checkpoints as one unsplit model and optimizer tree\nusing ordinary Levanter checkpoint APIs. FSDP and PP can load the same\nstate with different device meshes, pipeline schedules, and layer\nsplits. The completed step and pending router updates survive the\ntransition. The step limit counts total updates across restarts; an\nexplicit checkpoint root and save cadence control persistence.\n\nGrug maps stage-local state to global layer paths at the checkpoint\nboundary. Levanter adapts JaxPP device buffers and reconstructs the\ndestination MPMD placement without gathering model or optimizer tensors.\nShared optimizer counters are read on each destination stage. Standard\ncompletion metadata and discovery replace the separate latest pointer\nand source-topology checks. The model and optimizer structures must\nagree; checkpoints written by the pipeline trainer also record model\nconfiguration, optimizer settings, and precision for validation.\nChanging token grouping can change MoE routing and subsequent optimizer\nupdates.\n\nFixes #8972",
+      "sha": "69858ec74dceeb25a8bf23df41a636f11f90c05d",
+      "url": "https://github.com/marin-community/marin/commit/69858ec74dceeb25a8bf23df41a636f11f90c05d",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-16T00:00:00Z",
+    "start": "2026-09-15T00:00:00Z"
+  }
+}

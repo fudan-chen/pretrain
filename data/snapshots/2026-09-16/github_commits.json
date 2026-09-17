@@ -1,0 +1,120 @@
+{
+  "commit_count": 10,
+  "commits": [
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-09-16T23:52:45Z",
+      "committed_at": "2026-09-16T23:52:45Z",
+      "message": "[grafana] Ask finelog which namespaces it holds (#9186)\n\nBumps marin-finelog so the producers route can ask the deployment which\nnamespaces it holds, instead of naming each one and reading the error\nwhen it is absent.\n\n- The bridge pins a development release, the first to carry\n`list_namespaces`. No stable release has it, and the lock resolved the\nJune stable wheel.\n- That lock also moves marin-rigging and adds pydantic, because the\nnewer finelog needs the newer rigging. Bumping finelog alone leaves a\nlock whose connection helper fails to import.\n- The route queries only the RL namespaces the deployment holds, so a\nstatement never names an absent table.\n\nChecked against the hub with the new client: the route answers 200 with\nthe producer rows of last night's nightly run, and the listing takes\nabout 0.1 s.\n\nFollows #9123, where the route dropped an absent namespace by matching\nDataFusion's missing-table message.",
+      "sha": "9e8303aac03e3546a1cdc9c40801f08f11633521",
+      "url": "https://github.com/marin-community/marin/commit/9e8303aac03e3546a1cdc9c40801f08f11633521",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-16T23:38:45Z",
+      "committed_at": "2026-09-16T23:38:45Z",
+      "message": "Upgrade FA4 to fix H100 sparse backward race (#8741)\n\nUpgrade FA4 from beta16 to beta28 to fix a race in H100 block-sparse\nbackward that can corrupt gradients or produce NaNs. The [upstream\nfix](https://github.com/Dao-AILab/flash-attention/pull/2756) landed in\nbeta26; beta27 added compatibility with CUTLASS 4.6.2. The lockfile\nselects beta28.\n\nUpdate the launchers for the new API. Explicit padded scratch offsets\npreserve beta16's effective behavior. Quack 0.6.4 and CUTLASS 4.6.2 stay\nunchanged; apache-tvm-ffi moves from 0.1.10 to 0.1.14.\n\nOn 64 GB200s, beta16 and beta28 produced identical logged losses across\nnine frozen batches, repeated three times each. Sampled gradient\ndifferences between versions were 1.75–4.76% in relative L2, within the\nobserved 1.54–5.17% range between repeats of the same version. All\nmeasurements were finite. Gradient comparisons sample up to 4096\ncoordinates per parameter leaf.\n[Analysis](https://iris.oa.dev/#/job/%2Fheld%2Ffa4-8741-frozen-analysis-20260915).\n\nThe training comparison repeated [Matt's one-rack\ntest](https://github.com/marin-community/marin/pull/8959#issuecomment-5606628341):\n100 training updates from checkpoint 80912, with the same hero model,\noptimizer, batch size 1024, and sequence length 4096. Both arms used 64\nGB200s at Production priority:\n[control](https://iris.oa.dev/#/job/%2Fheld%2Ffa4-8741-hero-control-20260915-production-coord)\nat `a428f1d25d53` and\n[treatment](https://iris.oa.dev/#/job/%2Fheld%2Ffa4-8741-hero-treatment-20260915-production-coord)\nat `cbbb9f45caa2`. Both arms completed all 100 updates with zero task\nfailures or nonfinite logged values. Mean loss was 1.273384 for control\nand 1.273395 for beta28 (mean signed difference +0.0000111; maximum\nabsolute per-step loss difference 0.00110). Median step time after the\nfirst 10 updates was 16.03s for control and 15.90s for beta28.\n\nThree earlier H100 runs resumed with finite losses, but they predate the\nrebase. The rebased branch still needs H100 validation; the GB200\ncomparison does not test the H100 kernel or full-scale hero stability.\nSee [Echo 269](https://echo.oa.dev/wiki/269) for the incident history.",
+      "sha": "5fe0612308df9f4323adf05fc73d0f715749a1f8",
+      "url": "https://github.com/marin-community/marin/commit/5fe0612308df9f4323adf05fc73d0f715749a1f8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-16T21:38:22Z",
+      "committed_at": "2026-09-16T21:38:22Z",
+      "message": "Retain hero completion history across sampling versions (#9211)\n\nKeep completed hero samples in the latest report when the sampling\nspecification changes. Update the report only after new results with\ncompletion text arrive. A new specification with no completions leaves\nthe report unchanged.\n\nRead historical result formats and mark missing probabilities as\nunavailable. The public result files retain their original JSON. Skip\nmalformed result files, and display each comparison panel even if the\nother result fails to load. Scheduling still uses the current sampling\nspecification.\n\nAll 22 focused tests passed. Browser checks passed with historical\nformats, missing scores, and a failed result request.",
+      "sha": "4fd6c60ccf875df8b27424ecf5eaa345a6966d9d",
+      "url": "https://github.com/marin-community/marin/commit/4fd6c60ccf875df8b27424ecf5eaa345a6966d9d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-16T20:26:59Z",
+      "committed_at": "2026-09-16T20:26:59Z",
+      "message": "[finestore] Read archives whose format marker expired (#9202)\n\n- `ReadView` no longer refuses a `HEAD` without `_archive.json`. Version\n1 archives have no `HEAD`, and `read_snapshot` checks the format version\nthat `HEAD` carries, so the marker adds nothing for a populated archive.\nThe next writer open recreates it, as before.\n- `PersistentKvCache.load` and the local `store` path catch `Exception`,\nmatching the remote write queue. The cache is best-effort, so an\nunreadable, corrupt, or unsupported archive degrades to a recompile.\n\nThe GPU canary crashed on 2026-09-16 (#9194). The cutlass kernel cache\nat `s3://marin-us-east-02a/tmp/ttl=30d/cutlass-kernels` lost its\nwrite-once marker to the 30-day lifecycle rule, while `HEAD`, which\nevery commit rewrites, remained. The bucket reports `X-Amz-Expiration`\nas last-modified plus 30 days, so every write-once object expires on its\nown clock. Nothing recreated the marker because the crash came before\nany store, and only a writer open recreates it.\n\nSchema objects expire the same way. A missing one is already an\n`OSError` miss, and the writer open behind the next store recreates it.\nReaders recompile at most once per 30 days of writer inactivity. The\n`marin-us-east-02a` schema object is already gone, so the first run with\nthis change recompiles once and heals it. An earlier revision of this PR\nrewrote the marker and schema objects from the commit path to avoid that\none recompile. It needed interval state, a local-versus-remote gate, and\nconflict handling, so this revision removes it.\n\nOperational steps beyond merging:\n\n- [x] Recreate the marker to unblock the GPU canary before the fix\nships. Done 2026-09-16 18:58 UTC with `rclone rcat --s3-no-check-bucket\nmarin-cw:marin-us-east-02a/tmp/ttl=30d/cutlass-kernels/_archive.json`;\nthe object now expires 2026-10-17. Without `--s3-no-check-bucket`,\nrclone tries `CreateBucket` and fails with `InvalidRegion`.\n- [ ] Run the CoreWeave canary (`marin-canary-ferry-coreweave.yaml`,\nscheduled at 10:00 UTC, or `workflow_dispatch`) from a checkout that\ncontains this change. `iris cluster start --fresh` builds the task image\nfrom that checkout. Check that the run completes step 1. Expect one full\nrecompile on that run and hits on the next.\n- [ ] Land a fix for #9206 before 2026-09-29. On that date a\nnever-compacted shard in the hero cluster's `cutlass-kernels` archive\nexpires and every process there recompiles every kernel on every start.\nThe `marin-us-east-02a` archive follows on 2026-10-08. Deleting the\narchive root is the only recovery today.\n- [ ] The fused cross-entropy autotune cache uses the same path. Its\n`gs://marin-us-central2/tmp/ttl=30d/levanter_kernel_autotune/fused_cross_entropy_loss/block_sizes_v2`\narchive dates from 2026-08-25 with no commit since, so its marker and\n`HEAD` expire together on 2026-09-24. If an unfixed TPU job commits\nthere before then, `HEAD` outlives the marker and unfixed readers crash.\nA fixed writer recreates it, or recreate it with `gcloud storage cp`.\n\nFixes #9194",
+      "sha": "1930cc759892166475f08e1eab02dd1bbd17c4e0",
+      "url": "https://github.com/marin-community/marin/commit/1930cc759892166475f08e1eab02dd1bbd17c4e0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-16T20:12:56Z",
+      "committed_at": "2026-09-16T20:12:56Z",
+      "message": "Fix Gemma FLOP undercount and a quadratic dashboard worker scan (#9195)\n\n`GemmaConfig.flops_per_token` passed `glu=False` to\n`lm_flops_per_token`, counting the\nMLP as two projections. Gemma decoder layers build `LlamaMlp`, which\nruns `gate_proj`,\n`up_proj`, and `down_proj`, so the MLP term was two thirds of its true\nvalue and\nreported throughput and MFU for Gemma, Gemma2, and Gemma3 runs has been\nlow since the\nFLOP calculations landed. Gemma was the last `glu=False` outlier among\nthe gated-MLP\nmodels; gpt2 and apertus have ungated MLPs and are already correct.\n\n`CoordinatorDashboard.workers` merged counters one worker at a time, and\neach merge\nrescanned all of `_worker_counters` to filter for that worker. The map\nis keyed by\n`(worker_id, execution_id)`, so listing workers was quadratic in pool\nsize while\nholding the coordinator lock that also serves `pull_task`,\n`report_result`, and\n`heartbeat`. Grouping entries by worker in a single pass leaves merge\norder, and\ntherefore results, unchanged.\n\nThe rest is dead code. `WorkerView.attributes` in the Iris controller\ntest helpers was\nalways `{}` because `WORKER_DETAIL_COLS` selects no such column;\n`make_gcp_provider`\nnever read the `ScaleGroupConfig` its call sites passed, which implied\nthe fake\nprovider was configured from the scale group; and the markdown converter\ncarried an\nunused regex plus two commented-out blocks from 2024. The note\nexplaining why the\nlayout-table paragraph check stays off is kept as prose.\n\n---------\n\nCo-authored-by: nightshift <nightshift@marin.local>\nCo-authored-by: nightshift-scout <nightshift-scout@users.noreply.github.com>\nCo-authored-by: Nightshift Scout <nightshift@marin.invalid>",
+      "sha": "4c1361be4538c269efb4d11f219af47d7d403408",
+      "url": "https://github.com/marin-community/marin/commit/4c1361be4538c269efb4d11f219af47d7d403408",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-16T19:37:48Z",
+      "committed_at": "2026-09-16T19:37:48Z",
+      "message": "[tasktrove] Harden math answer grading (#9163)\n\nTreat empty or unterminated final boxed answers as incorrect.\nPreviously,\npermissive math parsing could recover an earlier boxed answer from\noutput that\nended with a malformed `\\boxed{` and award full credit.\n\nReject numeric specs with nonfinite or negative tolerances and with\nnonfinite\neffective tolerances. Generate the negative verification probe beyond\nthe\neffective tolerance, using the same contract validation as the grader.\nAdd\ntuple comparison and math and numeric spec serialization coverage.",
+      "sha": "c2e9d5095c2b36cee8f70d6cf5950a931002abe0",
+      "url": "https://github.com/marin-community/marin/commit/c2e9d5095c2b36cee8f70d6cf5950a931002abe0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-16T19:12:39Z",
+      "committed_at": "2026-09-16T19:12:39Z",
+      "message": "Upload XLA dumps to temporary storage (#9155)\n\nUpload XLA compiler dumps to 30-day lifecycle storage when\n`trainer.xla_dump_upload.enabled` is set. Each host sends its initial\ndump tree,\nthen new or modified files after complete hook passes, to\n`xla-dumps/<run-id>/process-<n>`.\n\n`XLA_FLAGS=--xla_dump_to=...` remains the opt-in capture control and\nmust be\nset before Python starts. The dumps bypass W&B artifacts; `ttl_days`\ncontrols\ntheir storage lifetime.",
+      "sha": "92a2232ffdfe24df4b80399edfbab44931f3de2d",
+      "url": "https://github.com/marin-community/marin/commit/92a2232ffdfe24df4b80399edfbab44931f3de2d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-16T18:48:35Z",
+      "committed_at": "2026-09-16T18:48:35Z",
+      "message": "Score hero references with stable tokenization and EOS (#9199)\n\nEncode each prompt and reference together. Require the combined encoding\nto start with the exact tokens from the prompt alone. For two Python\nprompts and three list prompts, move the initial reference newline to\nthe end of the prompt. This gives generation and reference scoring the\nsame prompt tokens with normal tokenization.\n\nScore a final end-of-sequence (EOS) token after each reference,\nincluding its log probability and the top five tokens at that position.\nShow EOS and colored newline markers in the report. Default to the\nlatest checkpoint on the right and the previous checkpoint on the left,\nwhile preserving explicit URL selections.\n\nThe sampler release and prompt changes produce new request IDs, so\nreports select results from the updated configuration. Existing results\nrequire new sampling runs to get the corrected scores.\n\nAll 46 prompt/reference pairs preserve their prompt tokens and decode\nexactly with the pinned tokenizer. All 22 focused tests, type checks,\nlint, and browser checks pass.",
+      "sha": "8bbc3f3d066f2ac7f310d28a67ee0cef44d86a1f",
+      "url": "https://github.com/marin-community/marin/commit/8bbc3f3d066f2ac7f310d28a67ee0cef44d86a1f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-16T05:17:29Z",
+      "committed_at": "2026-09-16T05:17:29Z",
+      "message": "Generate three hero completions per prompt on 32 GPUs (#9189)\n\nGenerate three completions per prompt and checkpoint with distinct,\nrepeatable seeds. Save generated-token log probabilities and the five\nmost likely alternatives for each sample. Compute expected-answer\nprobabilities once per prompt and checkpoint. Display all three samples\nin the [hero checkpoint\nreport](https://storage.googleapis.com/marin-public/rav/hero-completions/latest/index.html).\n\nFilter saved requests by the current prompt bank and generation settings\nbefore schema validation. Exclude historical requests from retries and\ntheir results from publication, so older schemas cannot block the\npublisher. The new sampler release identifier creates fresh requests for\nretained checkpoints. The current report will be empty until results\nfrom this release arrive.\n\nReduce each checkpoint job from 64 to 32 GB200 GPUs across eight nodes,\nwith a batch size of 32 per job. This permits two jobs within a 64-GPU\nbudget when node resources are available. GPU memory use and throughput\nstill need a live run.\n\nThe 22 focused tests, lint, scoped type checks, and local browser checks\npassed. An abstract-mesh check confirmed that model tensor dimensions\nsupport 32-GPU sharding.\n\nPart of #8827.",
+      "sha": "5b15614b09f7a976a8e075d2b36233b59991cb7e",
+      "url": "https://github.com/marin-community/marin/commit/5b15614b09f7a976a8e075d2b36233b59991cb7e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-09-16T00:28:24Z",
+      "committed_at": "2026-09-16T00:28:24Z",
+      "message": "[grafana] Fix the RL run view and list recent runs on Home (#9123)\n\nMakes the RL view usable on a run that has finished, and reachable\nwithout knowing its address.\n\n- The producers panel reads from a new bridge route, which queries each\nRL namespace separately and skips any the deployment does not have.\n- The view is renamed \"RL Post-training\", opens on 24 hours, and selects\nthe most recent run.\n- Legends show the series without its column name, generated tokens move\nto a second axis, and four titles name the runs they apply to.\n- Home shows a \"Recent RL runs\" table, and each row opens the view on\nthat run.\n- A launch request whose runtime profile disagrees with its effective\n`trainer.strategy`, after overrides, is rejected.\n\nChecked against a nightly run: 16 panels, 0 errors, 14 with data. The\nuid is unchanged, so old links still work.",
+      "sha": "96da2a6cdce401187239846957687fdde22cf8a5",
+      "url": "https://github.com/marin-community/marin/commit/96da2a6cdce401187239846957687fdde22cf8a5",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-17T00:00:00Z",
+    "start": "2026-09-16T00:00:00Z"
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "commit_count": 16,
+  "commits": [
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-17T22:59:59Z",
+      "committed_at": "2026-09-17T22:59:59Z",
+      "message": "[eval] Normalize and catalog rollout conversations (#9236)\n\nWrite Evalchemy and Harbor conversations to a shared FineStore\n`rollouts_v1` table keyed by evaluation identity, turn, and content\npart. The schema distinguishes completion, chat, and agentic\nconversations; normalizes participant and content roles; and retains\nHarbor token counts, token IDs, log probabilities, and costs.\n\nMarin derives rollout rows from evaluator-owned `samples` and `steps`\nafter those tables are sealed. The completion object is bound to their\nsource-table snapshot, so successful retries are no-ops while resumed\nruns with new source rows are normalized again. Physical rollout tables\nare schema-versioned. Existing sample and step tables, raw evaluator\nsource artifacts, and trajectory blobs are unchanged; no Evalchemy or\nHarbor upstream change is required.\n\nRegister terminal evaluation and SkyRL attempts in Finelog\n`marin.rollout_runs`. Eval rows point to their FineStore archive, while\nSkyRL rows point to the retained trajectory directory and terminal\nmanifest, making rollout-producing runs discoverable without duplicating\ntheir payloads in Finelog.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "63ec2387ab98f596f4ee41d844481cde731dd988",
+      "url": "https://github.com/marin-community/marin/commit/63ec2387ab98f596f4ee41d844481cde731dd988",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-17T22:29:07Z",
+      "committed_at": "2026-09-17T22:29:07Z",
+      "message": "[iris] Use scheduler preemption for CoreWeave verification (#9234)\n\nAllow `iris-batch` Pods to preempt lower-priority Kubernetes Pods and\nremove Iris’s cross-namespace verification eviction loop. CoreWeave\nverification Pods bypass Kueue with the unconstrained-topology\nannotation, so Kueue can admit Iris workloads and kube-scheduler selects\nonly the priority `-1` verification Pods needed for placement.\n\nA live single-node check on `cw-us-east-02a` admitted an 8-GPU Kueue\nWorkload over an annotated verification Pod; kube-scheduler preempted\nthe test and scheduled the workload three seconds later.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "b4beaff0485b9598f1b62fd814c4269080690655",
+      "url": "https://github.com/marin-community/marin/commit/b4beaff0485b9598f1b62fd814c4269080690655",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-17T22:26:06Z",
+      "committed_at": "2026-09-17T22:26:06Z",
+      "message": "[grug] Coordinate hero garbage collection at shared steps (#9224)\n\nAdd opt-in coordinated cyclic garbage collection to the hero EP training\nloop through `--gc-interval 100` in the diagnostics launcher or\n`hero_grug_trainer_config(gc_interval=100)`. After ten local warmup\nupdates, disable automatic cyclic collection and collect once;\nthereafter a training hook collects at completed global steps divisible\nby the interval and on normal training completion. Scheduled collection\nruns before checkpoint decisions. Evaluation wrappers also collect after\neach evaluation returns. The shared step cadence coordinates collection;\nGC adds no barriers. Restore the previous GC policy on normal or\nexceptional exit. Coordinated GC remains disabled by default. Local GC,\ncheckpoint, and full-iteration timings and a GC profiler annotation\nexpose the resulting cost.\n\nThe hero planning estimate is roughly 0.6 seconds less amortized time\nper update, or 3–4%, if coordination removes most of the observed\nstaggered-GC overhead. The [production\ndiagnosis](https://marina.oa.dev/echo/wiki/455) attributed 3.83% of\neligible elapsed time to excess above a quiet-step baseline: about 0.675\nseconds of the 17.591-second mean update. A shared 1.5-second collection\nevery 100 updates would cost about 0.015 seconds/update, leaving a\nconditional estimate of 0.66 seconds saved. The residual also includes\nother delays, and the slowest collection across 704 ranks is unmeasured,\nso this is a planning estimate rather than a measured hero speedup.\n\nThe [64-GPU\nvalidation](https://iris.oa.dev/#/job/%2Fmwittmann%2Fgc-sync-9205-hook-20260917-coord)\nused the full model with one sequence per GPU, ten warmup updates, and\n300 measured updates per arm. Elapsed time including the treatment’s\ninitial and final collections fell from 795.576 to 776.003 seconds\n(2.46%; 2.652 to 2.587 seconds/update). Before the final callback pass,\nelapsed time fell from 795.575 to 774.700 seconds (2.62%). Automatic GC\nproduced 72 full collections across 48 steps; coordinated GC produced\none collection per rank after warmup, at global updates 100/200/300, and\non normal completion at global update 310. Scheduled collections ran\nthrough the training hook before checkpoint decisions. The slowest\nrank’s periodic collections took 1.15–1.22 seconds; final collection\ntook up to 1.30 seconds.\n\nBoth arms had identical sampled live HBM (35.094 GiB per rank) and\nallocator peaks (111.840 GiB), with no increase above their post-warmup\nbaselines. Live memory was sampled every ten measured steps and at\ncompletion; the allocator peak includes warmup. Maximum sampled\ntreatment RSS growth was 54.4 MiB per rank above the post-warmup\nbaseline. This single pair exercised checkpoint decisions with writes\nand evaluation disabled. Production-batch throughput, evaluation\ntransitions, and long-term memory behavior still need a monitored\nproduction trial; the production hero is not enabled by this change.\n\nPart of #9205.",
+      "sha": "7c02f0cba574cdf7c023eee895cabb6e868014b3",
+      "url": "https://github.com/marin-community/marin/commit/7c02f0cba574cdf7c023eee895cabb6e868014b3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-17T22:00:29Z",
+      "committed_at": "2026-09-17T22:00:29Z",
+      "message": "[eval] Add a --seed override to the eval launcher (#9221)\n\nThe eval launcher took its sampling seed only from the Evalchemy config\nfile,\nso repeating an eval across seeds (for example AIME24's ten seeded runs)\nmeant\none YAML variant per seed or identical launches. `launch --seed N`\noverrides\nthe seed of every Evalchemy definition in the launch, and the override\nreaches\neach run record's evalchemy.seed so differently seeded launches keep\ndistinct\nprovenance. Harbor definitions are unchanged.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "7ae0e7dc454f1ab2d59e2303d004dca03a451acf",
+      "url": "https://github.com/marin-community/marin/commit/7ae0e7dc454f1ab2d59e2303d004dca03a451acf",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-17T21:35:56Z",
+      "committed_at": "2026-09-17T21:35:56Z",
+      "message": "Raise direct inference timeouts to 12 hours (#9226)\n\nRaise the default request timeout from 35 minutes to 12 hours for both\nthe Iris proxy and the dashboard's upstream HTTP client. Non-streaming\nAIME evaluations at 64K tokens hit the old deadline while vLLM was still\ngenerating; at the observed roughly 49 ms per token, a full response\nwould take about 53 minutes.\n\nAt that rate, 262K tokens would take about 3.6 hours. The 12-hour limit\nleaves headroom for slower decoding and request queueing, while staying\nbelow the eval client's 24-hour timeout. Existing deployments must be\nrelaunched to pick up the new default.\n\nCo-authored-by: Ben Feuer <bf996@nyu.edu>",
+      "sha": "d4d19591f997369fb9c0697071c384a1b0ee3a85",
+      "url": "https://github.com/marin-community/marin/commit/d4d19591f997369fb9c0697071c384a1b0ee3a85",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-17T20:18:39Z",
+      "committed_at": "2026-09-17T20:18:39Z",
+      "message": "[levanter] Add W&B run forking (#9231)\n\nExpose W&B run forking through `WandbConfig`. A fork creates a distinct\nchild\nrun from a selected parent-history step. A later recovery launch reuses\nthe\nchild ID without `fork_from`.\n\nW&B forbids `resume` and `fork_from` together, so fork initialization\nomits\n`resume`. The configuration validates the handoff format and rejects a\nchild\nrun that names itself as its source.\n\nPart of #8506",
+      "sha": "2f12c6bcdba80c5adabf014ea9c3f799eb71bc37",
+      "url": "https://github.com/marin-community/marin/commit/2f12c6bcdba80c5adabf014ea9c3f799eb71bc37",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-17T19:51:26Z",
+      "committed_at": "2026-09-17T19:51:26Z",
+      "message": "[eval] Store evaluator output directly in FineStore (#9177)\n\nRoute evaluator output through FineStore at the producer boundary.\nEvalchemy stores its native results JSON and per-task sample JSONL as\nsource artifacts and writes normalized sample rows. Harbor stores typed\ntrial results, trajectories, and job config, lock, and result files as\nsource artifacts and writes normalized samples and trajectory steps.\nFineStore owns generic artifact storage and the shared schemas; it\ncontains no evaluator-specific conversion.\n\nMarin now passes the archive destination to each evaluator and reads the\nresulting records.\n\nAn Iceball Micro run on `cw-us-east-08a` completed both evaluators:\nEvalchemy wrote 256 GSM8K rows for 128 documents across two extraction\nfilters plus its native source artifacts; Harbor wrote two AIME sample\nrows plus its job and trial artifacts. A final Evalchemy run against the\nmerged producer pin completed in 4 minutes 59 seconds, and an\nindependent read-back found 256 rows under `gsm8k_5shot` with both\nnative source artifacts present.\n\nDetailed ownership and live-run evidence:\nhttps://loom.oa.dev/s/4d4aj9d9/artifacts/finestore-native-evaluation-delivery\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "71181f1489133c0cffef1b582fda0b3f12f0f8b8",
+      "url": "https://github.com/marin-community/marin/commit/71181f1489133c0cffef1b582fda0b3f12f0f8b8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-17T19:02:12Z",
+      "committed_at": "2026-09-17T19:02:12Z",
+      "message": "[levanter] Avoid deletes when committing remote checkpoint metadata (#9215)\n\nCommit remote checkpoint metadata directly to its final object after\ntensor serialization completes. Remote object writers publish on close,\nso metadata remains the completion marker without a sibling\ncopy-and-delete. Local filesystems keep the atomic sibling rename.\n\nPR #8974 changed checkpoint metadata publication from a direct write to\na sibling rename, introducing a delete operation under the permanent\ncheckpoint prefix. The CoreWeave policy denies deletion under permanent\nhero checkpoint prefixes. The previous remote rename copied\n`metadata.json` into place and then failed to delete its temporary\nsource. The asynchronous `AccessDenied` surfaced at the next checkpoint\nand ended the training attempt. Regression coverage checks publication\nwith deletion denied and propagation of a close-time publication failure\nwithout a discoverable completion marker.\n\nIncident: https://marina.oa.dev/echo/wiki/459\n\nCoordinator lock-release deletion is a separate follow-up. Its retained\nfailures occur when the coordinator exits its orchestration step;\nheartbeat refresh and stale-lock takeover use writes. It can obscure\nshutdown errors and leave a lease until it expires, but it is not\nrequired for this metadata fix and is not known to interrupt the ongoing\ntraining loop.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Matt Wittmann <matt.wittmann@openathena.ai>\nCo-authored-by: Matt Wittmann <mcwitt@gmail.com>",
+      "sha": "c139b2dd3f70810b7bb3b2d68e5161956405fbc5",
+      "url": "https://github.com/marin-community/marin/commit/c139b2dd3f70810b7bb3b2d68e5161956405fbc5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-17T19:01:38Z",
+      "committed_at": "2026-09-17T19:01:38Z",
+      "message": "[grug] Skip padded tokens in MoE dispatch (#9159)\n\nExclude attention-mask padding from routed MoE dispatch, logical\ncapacity, routing statistics, and QB threshold updates. Static\ncollective and receiver-buffer shapes remain unchanged, while invalid\nassignments consume no logical capacity or expert gradient and are\nreported separately from sender and receiver drops.\n\nPadded inputs match their compact equivalents for valid-token outputs\nand gradients, including capacity overflow and four-device execution\nwith an all-padding shard. The affected safe suite passed 725 tests, and\nthe focused MoE and model suite passed 127 tests. Accelerator-only\nragged and DeepEP execution remains hardware-gated. The fresh-process\nbenchmark reports forward and backward runtime and allocator peak deltas\nfor representative accelerator shapes.\n\nFixes #8953\n\n---------\n\nCo-authored-by: David Hall <9633+dlwh@users.noreply.github.com>\nCo-authored-by: Matt Wittmann <matt.wittmann@openathena.ai>\nCo-authored-by: Matt Wittmann <mcwitt@gmail.com>",
+      "sha": "207b9dfe379e28d7b7c665c74992a7310fa7f4f6",
+      "url": "https://github.com/marin-community/marin/commit/207b9dfe379e28d7b7c665c74992a7310fa7f4f6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-17T17:45:10Z",
+      "committed_at": "2026-09-17T17:45:10Z",
+      "message": "[grafana] Separate Finelog outages from invalid alert results (#9152)\n\nReturn schema-valid zero rows for training and Zephyr alerts, and no\ndata for storage alerts whose no-data state is OK, when Finelog reports\na retryable RPC, transport, or discovery failure.\n`FinelogFleetUnhealthy` continues to report the outage.\n\nKeep every Grafana rule's execution-error state at Alerting. Invalid\nqueries, missing namespaces, oversized results, invalid Arrow payloads,\nand alert projection errors remain visible as execution errors.\n\nDuring a Finelog hub restart on 2026-09-14, retryable failures reached\nGrafana, whose Alerting execution-error state converted them into firing\nalert instances. The new alert endpoints consume only typed\nunavailability before Grafana evaluates the result. The fleet monitor\nalready covers that failure: https://marina.oa.dev/echo/wiki/433\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "f113d5f0ed47b9cdfa6eb5c5b93a47c5d1ff08f2",
+      "url": "https://github.com/marin-community/marin/commit/f113d5f0ed47b9cdfa6eb5c5b93a47c5d1ff08f2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-17T16:14:05Z",
+      "committed_at": "2026-09-17T16:14:05Z",
+      "message": "[evaluation] Read the standard error of Evalchemy repeated-sample tasks (#9196)\n\nQuick summary:\n\nEvalchemy and lm-eval reported stderr statistics with a slightly\ndifferent name convention, and our stats reader didn't account for this.\nAs a result, some evals in evalchemy like AIME24 would have no visible\nstderr and result in an interval of 0-1. This fixes that.\n\n\n\nAgent speak:\n\nEvalchemy's aime24 task averages over repeats and writes the mean as\n`accuracy_avg` with its standard error as `accuracy_std_err`. The record\nreader only knew lm-eval's `<metric>_stderr` spelling, so every aime24\nmeasurement carried no dispersion and an interval of [0, 1]. The panel\nsorts a benchmark column on the interval lower bound, so every model\ntied at 0.0 and clicking the AIME24 header changed nothing in either\ndirection. The same tie hid the ranking in Compare and in the Δ-best\ncolumn.\n\n`stderr_for` now pairs `<metric>_avg` with `<metric>_std_err`, and\n`primary_metric` no longer treats `accuracy_std_err` as a headline\ncandidate. The measurement stays continuous: the repeats are re-runs of\nthe same 30 items, not independent items, so the recorded standard error\nacross repeats is the right dispersion and a Wilson interval over 300\ntrials would be too narrow.\n\nOn the production record `20260721-003923-qwen3-1.7b-aime24-3d7f`\n(accuracy_avg 0.163, accuracy_std_err 0.0173) the interval moves from\n[0.000, 1.000] to [0.129, 0.197]. Existing records need no rewrite; the\nreader is the one place that knows a harness's metric spelling. The\nevaldash fixtures gain an aime24 record for snowball and tootsie-8b in\nthe Evalchemy spelling, so the local dashboard shows the interval and a\nfixture test guards it. The Harbor aime runs with `pass@1` and\n`n_scored: 0` are a separate data problem and are not changed here.\n\nFound while checking the sort direction toggle from #9104.",
+      "sha": "4da207a970c5e5564784bd04217164239f347ca8",
+      "url": "https://github.com/marin-community/marin/commit/4da207a970c5e5564784bd04217164239f347ca8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-17T15:53:55Z",
+      "committed_at": "2026-09-17T15:53:55Z",
+      "message": "[evaldash] Sort panel benchmark columns on the score (#9198)\n\nBefore:\nA panel benchmark column sorted on the interval lower bound after\nhttps://github.com/marin-community/marin/pull/8122 . Any column whose\nintervals are wide or degenerate then ties every row at the same bound,\nand the header toggle changes nothing. AIME24 showed this: every cell\nread 0.0-100.0 (#9196 fixes the missing dispersion behind that), so\nclicking the header in either direction left the rows in name order.\n\nNow:\nThe panel now orders a benchmark column by the score itself, which is\nwhat the cell shows in large type. The fleet-best marker and the\ndelta-best figure pick the column leader by the same rule, with the\nlower bound as the tie-break",
+      "sha": "25cc533b62109e84fb684ff55b0d40c2055a500e",
+      "url": "https://github.com/marin-community/marin/commit/25cc533b62109e84fb684ff55b0d40c2055a500e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-17T15:52:31Z",
+      "committed_at": "2026-09-17T15:52:31Z",
+      "message": "[nightshift] fix documentation drift (#9132)\n\n> Seed hums, digits drift —\n> the doc still names a river\n> the code rerouted.\n\n`docs/design/finelog-exact-analytics.md` describes Finelog's segment\nindex\nfamily in the present tense, and the implementation moved past it.\n\nThe `IndexSpec` enum listed four variants; it now has six. Document\n`AdaptiveValueCounts` and `AdaptiveGroupExtrema`, their query families,\nand the\n`Schema.grouped_extrema` declaration that drives the second one.\nAdaptive\nsections are best-effort: a segment that declines one above its\ncardinality or\nbyte budget stays complete, while a missing declared `ValueCounts`\nsection still\nmakes the bundle stale.\n\nValue-count substitution no longer requires complete coverage across\nvisible\nsegments. Contained segments read summaries, boundary and L0 segments\nkeep an\nordinary aggregate, and a final aggregate merges both exactly; grouped\nextrema\nuse the same shape under `FinelogGroupExtrema`.\n\nCorrect the `training-status` projection column list, which was missing\n`run_id`, `job_id`, and `attributes_json`, and record that the telemetry\nschema\nnow declares fourteen projections rather than one. Mark the benchmark\nsection as\nthe acceptance run for the original four-method family so its numbers\nare not\nread as current.\n\nThe other five docs under `docs/design/` were checked against the code\nin the\nsame pass. Their file paths, symbols, and config values still resolve,\nand the\nmarkdown links are intact.\n\n---------\n\nCo-authored-by: nightshift-scout <nightshift-scout@users.noreply.github.com>",
+      "sha": "6ea4485a093a83eb5a36cf8e8309a7fa1937d46d",
+      "url": "https://github.com/marin-community/marin/commit/6ea4485a093a83eb5a36cf8e8309a7fa1937d46d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-17T15:51:25Z",
+      "committed_at": "2026-09-17T15:51:25Z",
+      "message": "Cut duplicated packing, HTML parsing, and profile-duration code paths (#9223)\n\nThree independent cleanups, one per subproject.\n\n`levanter/data/packing.py` carried two packing implementations. Nothing\ncalls\n`SequencePacker` or `pack_prompt_completions`: eval_harness packs\nthrough\n`greedy_pack_prompt_completions`/`pack_documents`, and only the tests\nkept the\npool-based path alive. Removing it drops 276 lines, including the module\ndocstring that still described the pool strategy rather than the greedy\none in\nuse. `test_per_segment_loss` built its packed example with\n`SequencePacker`, so\nit now constructs the `LmExample` directly with the same segment layout,\nthe way\nthe neighboring `test_segment_correct` does.\n\n`clean_wiki_html` chained three helpers that each parsed the HTML string\ninto\ntheir own BeautifulSoup tree and serialized it back, so every article in\na\nmulti-million-article Wikipedia dump paid three parse and serialize\nround trips\nwhere one suffices. The helpers now mutate a shared soup that\n`clean_wiki_html`\nparses and serializes once, matching how the sibling ar5iv transform\ncomposes\nits cleanup steps. `html.parser` is not idempotent over its own output,\nso head\n`<link>`/`<meta>` elements now serialize without the synthetic\nself-closing slash\nand pick up a stray closing tag; Resiliparse re-parses the result\ndownstream and\ntreats them as void either way, and the extracted markdown is\nbyte-identical\nacross all nine Wikipedia snapshot fixtures.\n\nIris resolved the wire default for an unset\n`ProfileTaskRequest.duration_seconds`\nat four sites: the controller sized its forwarding RPC timeout from a\nprivate\ncopy, the federation peer sized the parent->peer proxy budget from a\nsecond copy,\nthe k8s backend resolved a bare `or 10` at capture time, and the worker\nfell back\nto a constructor default. The controller forwards the unset field\nverbatim, so\nraising one literal alone leaves the capture running past the budget of\nthe hop\nwaiting for it. `DEFAULT_PROFILE_DURATION_SECONDS` now lives in\n`cluster.runtime.profile`, the module that already owns the capture\nhelpers all\nfour callers import. Behavior is unchanged.\n\n---------\n\nCo-authored-by: nightshift-scout <nightshift-scout@users.noreply.github.com>\nCo-authored-by: nightshift <nightshift@marin.community>",
+      "sha": "68b46e9549a45a248e490eb337555656e8f1c545",
+      "url": "https://github.com/marin-community/marin/commit/68b46e9549a45a248e490eb337555656e8f1c545",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-17T14:56:38Z",
+      "committed_at": "2026-09-17T14:56:38Z",
+      "message": "[evaldash] Enforce benchmark metric and coverage protocols (#9145)\n\nEvaldash previously inferred a task's headline metric and treated the\nnumber of scored samples as enough to judge whether a run covered its\nbenchmark. That let small capped runs replace complete results and made\ntasks such as DROP report a different metric from the evaluator's\nintended score.\n\nEvaluation harnesses now emit a versioned benchmark protocol with\ncanonical metric names, uncertainty kinds, and full and attempted item\ncounts. Marin stores that metadata and the harness's canonical results\nin `record.json`, uses them for coverage admission and column\ncomparisons, and keeps source metrics for provenance. Evalchemy supplies\nper-task protocols for lm-eval and chat-native tasks. Harbor reports\ncontinuous reward with the standard error across scored trials and\nscales task counts by the configured trials per task.\n\nRecords without evaluator metadata continue through the legacy reader.\nKnown historical aliases map to their canonical names so existing\ncolumns remain populated while benchmarks are rerun. Runs with\nundeclared custom tasks remain readable alongside declared tasks.\n\nValidated with the required lint, 395 affected tests (1 skipped), 137\nfocused producer and reader tests, the Evaldash production build, and a\nreal Harbor metadata preflight. The Evalchemy cluster smoke launch could\nnot submit because the configured application-default credentials file\nis absent in this environment.\n\nFixes #8148\nFixes #8144",
+      "sha": "b9ccaa6db8d38cf89d8589b276ecc5f0f9ef00cb",
+      "url": "https://github.com/marin-community/marin/commit/b9ccaa6db8d38cf89d8589b276ecc5f0f9ef00cb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "jyizheng",
+      "author_name": "Yizheng Jiao",
+      "authored_at": "2026-09-17T06:44:42Z",
+      "committed_at": "2026-09-17T06:44:42Z",
+      "message": "[levanter] Clamp untuned fused-CE block sizes to the weight-tile budget (#8932)\n\nOn Hopper the fused cross-entropy autotune swept its block-size\ncandidates on every call. The cache key requires tracing the kernel with\nthe inferred block sizes; for shapes with no tuned entry, inference\nreturns the default BlockSizes (h=512, v=1024), whose weight tile\nexceeds the NVIDIA shared-memory budget that\n`_validate_launch_feasibility` enforces. The trace raises, so the sweep\nresult is never retained. Move the budget into config.py, shared by the\nlaunch check and inference, and clamp the untuned default by halving v\nthen h until it fits. Tuned entries and non-NVIDIA devices are\nunchanged.\n\nFixes #8853\n\nCo-authored-by: David Hall <david.hall@openathena.ai>",
+      "sha": "6bc19cbca90d6cf78c29e9790097d8ae6398e152",
+      "url": "https://github.com/marin-community/marin/commit/6bc19cbca90d6cf78c29e9790097d8ae6398e152",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-18T00:00:00Z",
+    "start": "2026-09-17T00:00:00Z"
+  }
+}

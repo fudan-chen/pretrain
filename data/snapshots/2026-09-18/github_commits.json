@@ -1,0 +1,219 @@
+{
+  "commit_count": 19,
+  "commits": [
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-18T23:53:09Z",
+      "committed_at": "2026-09-18T23:53:09Z",
+      "message": "Permit preemption retries for hero sampling jobs (#9267)\n\nPermit up to 1,000 preemption retries within each hero sampling job.\nThese retries do not consume additional submissions from the\nthree-submission limit per request. Application failure retries remain\ndisabled.",
+      "sha": "6112366851e4717d1ad18527e97c792c05ac56a5",
+      "url": "https://github.com/marin-community/marin/commit/6112366851e4717d1ad18527e97c792c05ac56a5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-18T22:51:14Z",
+      "committed_at": "2026-09-18T22:51:14Z",
+      "message": "[agents] Use fsutil for object storage operations (#9265)\n\nDirect local GCS, CoreWeave S3, and R2 operations through the\nrepository's\n`fsutil` interface. The skill points agents at bucket-aware routing in\n`config/*.yaml` and the existing reference documentation, and prevents\nIris\njobs from being used solely for object-storage access.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "e07e839c3497caf175fd4af73c278da365588f77",
+      "url": "https://github.com/marin-community/marin/commit/e07e839c3497caf175fd4af73c278da365588f77",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-18T21:13:48Z",
+      "committed_at": "2026-09-18T21:13:48Z",
+      "message": "[grafana] Narrow Finelog training discovery queries (#9260)\n\nDiscover training dashboard runs from process-zero `phase` heartbeats\nrather than every stepped metric row. The production 12-hour selector\nreturned the same 123 runs and fell from 2.93 seconds to 1.49 seconds.\n\nLimit broad hero phase enrollment to the one-hour enrollment window. If\nIris still reports an active run after its phase heartbeat ages out,\nrecover that run's execution identity with an exact 24-hour cluster and\n`run_id` query. The fallback preserves silent-run alert behavior while\nallowing Finelog to use the existing `run_id` partitions.\n`levanter.metrics` intentionally remains without secondary indexes.\n\nThe September 17 Grafana alert change routed transient failures through\nalert endpoints but did not change these SQL probes. The September 2\nchange renamed one evaluation metric. The last query-shape change was\nthe August 26 partitioning rollout.\n\nIncident: https://marina.oa.dev/echo/wiki/478\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "91335dcc831fe6efb119c4ad58f669e6e84387bc",
+      "url": "https://github.com/marin-community/marin/commit/91335dcc831fe6efb119c4ad58f669e6e84387bc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-18T20:42:16Z",
+      "committed_at": "2026-09-18T20:42:16Z",
+      "message": "[sft] Filter repeated tool calls after identical replies (#9259)\n\nFilter chat records when the assistant repeats the same tool call a\nthird time after the first two calls return identical text. The sequence\nmust occur before the next user message, with each call following its\npreceding reply. Parallel tool batches remain valid. The filter has its\nown counter and does not count toward the 5% malformed-record health\nlimit.\n\nA sample audit of 210,031 conversations across 246 SFT sources found 101\nmatching traces in 19 sources. The chat normalization version changes so\ndownstream artifacts will be rebuilt on the next run. Records ending in\na tool call remain valid because some environments use a terminal tool\nto finish a task.",
+      "sha": "07ce26f6dfcb7fd10e080eaa37cc6214c44d6dc8",
+      "url": "https://github.com/marin-community/marin/commit/07ce26f6dfcb7fd10e080eaa37cc6214c44d6dc8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-18T20:32:32Z",
+      "committed_at": "2026-09-18T20:32:32Z",
+      "message": "[grug] Reuse QB-routed MoE (#9238)\n\nAdd QBRoutedMoE to own common QB routing, padding-aware dispatch, and\nrouting metrics. Model wrappers retain router and expert parameter\nownership, preserving existing TensorStore checkpoint and optimizer\npaths while keeping their topology-specific block and sharding wiring.\n\nHero-EP reuses the common local and stacked routing metric reductions\nwhile preserving its deferred scan collective, latent expert path, and\nhistogram QB estimator.",
+      "sha": "3c41d7f7ba6bab422ac6c15d1574606567636cb5",
+      "url": "https://github.com/marin-community/marin/commit/3c41d7f7ba6bab422ac6c15d1574606567636cb5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-18T20:27:29Z",
+      "committed_at": "2026-09-18T20:27:29Z",
+      "message": "[grug] Remove FA4 THD attention backend (#9241)\n\nRemove the unused FA4 THD attention backend and its fixed-shape segment\nmetadata. The CoreWeave canary no longer offers the THD selection.\nPacked segment IDs continue through the FA4/CuTe bounds path used by\nHero.",
+      "sha": "37f10dc2a01a73de1e5c7a04122290992d8a6ea3",
+      "url": "https://github.com/marin-community/marin/commit/37f10dc2a01a73de1e5c7a04122290992d8a6ea3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-18T19:10:33Z",
+      "committed_at": "2026-09-18T19:10:33Z",
+      "message": "Require final answers or tool calls at chat turn boundaries (#9243)\n\nRequire normalized chat records to finish assistant turns with a final\nanswer or tool call. This prevents an end-of-turn token immediately\nafter reasoning or ordinary commentary. User followups after completed\ntool observations remain valid.\n\nBump the normalization version so existing outputs are revalidated.",
+      "sha": "e8460b35bd6b312b62799b12ae363b3981af3c83",
+      "url": "https://github.com/marin-community/marin/commit/e8460b35bd6b312b62799b12ae363b3981af3c83",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt-agent",
+      "author_name": "mcwitt-agent",
+      "authored_at": "2026-09-18T18:56:18Z",
+      "committed_at": "2026-09-18T18:56:18Z",
+      "message": "[grug] Finalize the hero handoff at step 121638 (#9242)\n\nConfigure `hero-main-step121638` to restore the retained\n`hero-nopdl-step108k` checkpoint at step 121638. The parent W&B row was\nverified as `_step=121637`, `global_step=121637`; the child inherits\nhistory through that row and replays training from step 121638.\n\nCreate the W&B child once with `trigger_hero.sh fork-wandb`, then use\n`trigger_hero.sh launch` to resume its tracker and restore training\nstate. Fork creation stays outside Iris retry loops. Fork creation\nrequires a clean checkout at fetched main; launch requires that same\nrecorded SHA and lineage and rejects live parent or child coordinators.\nUpdate the deployment guides to preserve these rules for later cutovers\nand rollbacks. The production trial remains 200 steps.\n\nThe single-rack A/B and main d768 validation completed with closely\ntracking loss trajectories; the main d768 run had a router z-loss\nexcursion. Historical d768 runs also showed similar single-layer router\nexcursions; configuration differences limit causal conclusions. The\nadditional live-commit d768 control remains in progress. The [validation\nreport](https://wandb.ai/marin-community/marin_moe/reports/d768-validation:-router-excursions-on-main-versus-known-good-baseline--VmlldzoxNzk2MjI1OA==)\nrecords the evidence. This change prepares the launcher; merging it does\nnot stop or launch training.\n\nPart of #8506\n\n---------\n\nCo-authored-by: Matt Wittmann <matt.wittmann@openathena.ai>",
+      "sha": "b8213bd52c74fde8ce093c6105c17b6e5bb1024f",
+      "url": "https://github.com/marin-community/marin/commit/b8213bd52c74fde8ce093c6105c17b6e5bb1024f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-18T18:37:57Z",
+      "committed_at": "2026-09-18T18:37:57Z",
+      "message": "[marina] Serve applets on named hosts (#9203)\n\nServe the Zephyr applet at `zephyr.marina.oa.dev` using a configured\nhost-to-applet mapping. The root redirects to the current revision on\nthe same host; versioned pages, assets, queries, and Python APIs keep\ntheir revision. Existing UUID-based URLs on `applets.marina.oa.dev`\nremain valid.\n\nRewrite paths before route authentication and restrict each named host\nto its assigned applet. Add the DNS record and Cloud Run domain mapping\nthrough the Marina deployment. Complements #9173.\n\nNote that the way applets work, the site is already live under this\nuuid-based name:\n\n<img width=\"1571\" height=\"606\" alt=\"image\"\nsrc=\"https://github.com/user-attachments/assets/941853c1-8985-494a-8583-0f34b56751a8\"\n/>",
+      "sha": "9bb32a826566fa64ecab2a3d29af231f53dae6b6",
+      "url": "https://github.com/marin-community/marin/commit/9bb32a826566fa64ecab2a3d29af231f53dae6b6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-18T18:35:44Z",
+      "committed_at": "2026-09-18T18:35:44Z",
+      "message": "[iris] Link the dashboard heading to the home page (#9252)\n\nThe heading in the controller and worker dashboards now links to the\ndashboard's root route. On the Marin cluster this is iris.oa.dev.\n\nThe link uses the router root instead of a fixed URL, so local,\nCoreWeave, and worker dashboards return to their own home page.",
+      "sha": "a31f06c4b2de6b9b1a03b0324d753766213d8fdb",
+      "url": "https://github.com/marin-community/marin/commit/a31f06c4b2de6b9b1a03b0324d753766213d8fdb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-18T18:35:23Z",
+      "committed_at": "2026-09-18T18:35:23Z",
+      "message": "[eval] Let Harbor load Hugging Face task datasets (#9254)\n\nPass `hf://` dataset selectors to Harbor in both preflight and\nevaluation workers. The pinned Harbor runtime downloads the snapshot and\nloads its task directories, so Marin no longer makes a second copy or\nsubstitutes a local path. Marin still rebases workspace-local datasets\nand forwards `HF_TOKEN` for gated repositories.\n\nThis uses the merged Harbor loader from [Harbor\n#160](https://github.com/marin-community/harbor/pull/160). A moving\n`ref: main` can still change between preflight and execution.\n\nThe safe Marin suite passed with 1,957 tests, five skips, and five\nexpected failures. An isolated preflight with a fake one-task HF\nsnapshot returned `hf://example/tasks` as the benchmark task with count\none. The merged Harbor pin passed the external lock check and isolated\nimport.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "1c8adcdb45c8837e516562062b1d888cc8618e00",
+      "url": "https://github.com/marin-community/marin/commit/1c8adcdb45c8837e516562062b1d888cc8618e00",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-18T16:55:13Z",
+      "committed_at": "2026-09-18T16:55:13Z",
+      "message": "[infra] Add vLLM release to nightly matrix (#9166)\n\nShow the scheduled vLLM GPU release qualification as its own lane in\nInfra's\nseven-day nightly matrix. The lane follows the daily 12:30 UTC schedule\nfrom\nAugust 4 and waits twelve hours before marking an absent run missing.\n\nKeep duration classification pending because the workflow can exit\nquickly for\nan existing release or run GPU qualification for a new candidate. The\nstatic\nGrafana fixture mirrors the production lane order; this intentional\nduplication\npreserves the existing deterministic render path.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "40ce58562b3395f3eddfdcf08349dd71d6fb8254",
+      "url": "https://github.com/marin-community/marin/commit/40ce58562b3395f3eddfdcf08349dd71d6fb8254",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-18T16:33:00Z",
+      "committed_at": "2026-09-18T16:33:00Z",
+      "message": "[agents] Reuse relevant Echo searches in research sessions (#9255)\n\nAllow the research workflow to reuse a relevant Echo search completed\nearlier\nin the same logical session when the question, repository scope, and\nfreshness\nrequirements are unchanged. This avoids repeated prior-work queries\nduring\nfollow-up questions while retaining the search requirement when those\ninputs\nchange.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "a0d03049826b3aefafa489fc2f51310fc14da8c3",
+      "url": "https://github.com/marin-community/marin/commit/a0d03049826b3aefafa489fc2f51310fc14da8c3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-18T16:09:37Z",
+      "committed_at": "2026-09-18T16:09:37Z",
+      "message": "[eval] Repair the eval launcher for chat-served and reasoning models (#9251)\n\nMarin's Evalchemy client (marin/evaluation/evalchemy/client.py, the\nscript the eval job runs once per task to build and run the evalchemy\ncommand) no longer loads the checkpoint tokenizer on chat routes. The\nendpoint applies the chat template, and the client-side load rejected\nKimi-Linear (custom tokenizer code) and Gemma 4 (tokenizer metadata in\nthe Transformers 5 format, which Evalchemy's pinned Transformers 4.57\ncannot parse). Loglikelihood tasks still load it with trust_remote_code.\nThe eval job also forwards JUDGE_API_KEY, JUDGE_BASE_URL and JUDGE_MODEL\nso FinanceBench can reach its judge; #9070 tracks passing judge\ncredentials through a secret mechanism, and this forwarding is the\ninterim path.\n\nThe Harbor preflight materializes hf:// datasets. Since #9145 it passed\nthe raw hf:// name to Harbor's registry package validator, which\nrejected every Hugging Face-backed policy at launch. The preflight now\ndownloads the snapshot into the Hugging Face cache with 32 workers (13 s\nwarm, 267 s cold for the SWE-bench folders) and hands Harbor a local\ntask tree, the same shape the worker builds at run time. HF_TOKEN\nreaches the preflight for gated repositories.\n\nGeneration budgets come from the served context or the model config\ninstead of a per-config cap. Every generation config carried an explicit\nmax_tokens (128 for TriviaQA, 1024 for the code suites, 8192 for AIME24,\n32768 for OlympiadBench) that the client sent as both --max_tokens and\ngen_kwargs max_gen_toks. Reasoning models hit those caps inside their\nchains: 64 of 180 Qwen3.6 OlympiadBench requests and 17,925 of 17,944\nTriviaQA requests ended truncated with no final answer, and Qwen3.6\nscored 0.023 on AIME24. max_tokens is now optional end to end and\nremoved from every generation config except MRCR, the long-context\nretrieval benchmark whose prompts are built to fill an explicit\nmax_length. An Evalchemy chat benchmark then derives its budget from the\nserved context minus its stored longest prompt (evalchemy#132); AIME24\non a 73,664-token context gets 72,898 output tokens. An lm-eval-native\ngeneration task only reads max_gen_toks and would fall back to lm-eval's\n256-token default, so the client hands it the served context minus a\n4,096-token prompt reserve. A model config's generation.max_gen_toks\noverrides both paths. The client tells chat benchmarks from lm-eval\ntasks by their directory under Evalchemy's eval/chat_benchmarks.\n\nThe Evalchemy pin advances 412ae9c2 -> 9447eed9: the code sandbox\npreloads numpy before reliability_guard nulls os.putenv, which had\nscored every HumanEvalPlus and MBPPPlus sample 0.0 since evalchemy#111\n(evalchemy#137; Qwen3-Coder HumanEvalPlus reads 0.878 after); served\nchat models initialize without a client tokenizer (#140); infrastructure\nfailures are recorded per sample and per task instead of failing the run\n(#141, #142, #143, #144); when some FinanceBench judge requests fail,\nthe trials the judge did grade keep their labels and the failed ones are\nrecorded as grader infrastructure (#145); Gemma 4's list-valued\nextra_special_tokens loads under Transformers 4.57 (#146); MBPPPlus and\nHumanEvalPlus grade indented solutions that previously raised\nIndentationError (#148). The Harbor pin advances ec23913e -> 16ba2893:\nthe terminus-2 agent accepts extra_body given as a JSON string\n(harbor#158), and DS-1000 tasks grade the file the instruction tells the\nagent to write, where every agentic trial had scored 0 before\n(harbor#159).\n\nFixes #9227 (client tokenizer load on chat routes). Fixes #9229 (Harbor\npreflight hf:// datasets). Part of #8083.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "0787407bc418afa4129ea2dbc82dc1e296ab3a69",
+      "url": "https://github.com/marin-community/marin/commit/0787407bc418afa4129ea2dbc82dc1e296ab3a69",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-18T16:00:50Z",
+      "committed_at": "2026-09-18T16:00:50Z",
+      "message": "[evaldash] Group Harbor variants by dataset (#9235)\n\nHarbor evaluations without an explicit `eval.family` now use their\nrecorded dataset as the benchmark family. Policies and dataset-version\nvariants over the same dataset therefore share one Evaldash column,\nincluding historical records. Explicit launcher mappings such as the\nGSM8K family remain authoritative.\n\nThe inferred key intentionally excludes `eval.harbor.version`: revisions\nremain selectable variants of the same benchmark instead of becoming\nseparate families.\n\nFollow-up to #9112.",
+      "sha": "ce66e19733984e7f0b78deb4e53bf6251c6d68e0",
+      "url": "https://github.com/marin-community/marin/commit/ce66e19733984e7f0b78deb4e53bf6251c6d68e0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-18T06:12:41Z",
+      "committed_at": "2026-09-18T06:12:41Z",
+      "message": "[sft] Register Open-SWE-Traces structured chat sources (#9245)\n\nRegister each release, agent harness, model, and task combination in the\npinned v1.0, v1.1, and v1.2\n[Open-SWE-Traces](https://huggingface.co/datasets/nvidia/Open-SWE-Traces)\ndata as a structured chat source, 13 in total. Preserve the recorded\nissue prompts, reasoning, tool definitions, calls, observations, and\n`resolved` task-success field in normalized chat. Render the\nconversation with Marin's chat template.\n\nThe export omits tool-call IDs on observations. Assign each observation\nto the next outstanding call, including when an assistant issues\nparallel calls. The Hugging Face file list shows that all 212 Parquet\nshards map to exactly one source. Thirty sampled trajectories across the\nthree releases converted, normalized, and rendered without rejection.\nThe full download and conversion pipeline has not run.",
+      "sha": "3071922e5d29f3dd0f924ca0881d71fbe5c7fca9",
+      "url": "https://github.com/marin-community/marin/commit/3071922e5d29f3dd0f924ca0881d71fbe5c7fca9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-18T03:46:57Z",
+      "committed_at": "2026-09-18T03:46:57Z",
+      "message": "[sft] Register Nemotron v3 structured chat sources (#9237)\n\nRegister 75 structured chat partitions from 21 pinned datasets in\nNVIDIA's Nemotron post-training v3 collection. Source roles, reasoning,\ntool calls, and available tool schemas pass through Harmony\nnormalization. Anonymized names such as `NAME_1` remain in the source\ntext. The Instruction-Following-Chat-v3 chat split restores withheld\nWildChat and LMSYS seed prompts by SHA-256 against pinned source\ndatasets before conversion.\n\nCompetitive-Programming-v1 remains excluded: a released Python row\n(`e50e6e27ab80d625d56a2bc8fdadc7be`) has `messages[0].content == \"-\"`\nand no recovery key. SWE-v3 remains excluded because its tool calls lack\nsource tool definitions. Empty conversations, interrupted tool exchanges\nbefore a later turn, and pathological repeated lines are filtered.\nTerminal unanswered tool calls are preserved. For SWE-v2 agentless, the\nadapter removes an exact `<think>`/`<solution>` output-format suffix.\nThis retained 44 otherwise rejected issue examples in a 100-row sample.\nSource `train_turns` annotations remain in the chat artifact, but the\ncurrent trainer applies loss to every assistant turn.\n\nFull dataset materialization has not run. Restoring LMSYS prompts\nrequires access to its gated source dataset at execution time.",
+      "sha": "5bee4ef4ba9c4d6e7a15383799595af657004d18",
+      "url": "https://github.com/marin-community/marin/commit/5bee4ef4ba9c4d6e7a15383799595af657004d18",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-18T02:01:05Z",
+      "committed_at": "2026-09-18T02:01:05Z",
+      "message": "[inference] Add Chat tools and simulated agent workspaces (#9204)\n\nLet users define typed Python functions and attach simulated agent\nworkspaces in the Iris Chat UI. The dashboard converts annotated\nsignatures and docstrings into OpenAI function schemas and exposes each\nenabled workspace as a conventional `bash(command)` tool. Both use the\nstandard `tools` request field, so the active tokenizer template renders\ntheir calls and results. Browser conversations persist Python source,\ninitial workspace files, and replayable command history. Empty chats\ninclude two Python examples and three agent tasks for code repair, log\ninvestigation, and configuration changes.\n\nTool exchange follows the served model's active, tool-aware tokenizer\ntemplate. The dashboard's `/info` response includes generated-output\nconventions extracted from that template. Direct vLLM and Levanter\nserving use the template loaded by their backend. Brokered serving uses\nan explicitly configured template when present and otherwise loads the\nconfigured tokenizer's tool-aware template. The browser recognizes the\ncall delimiters used by Marin's Datakit and Delphi templates, the bare\n`name`/`parameters` JSON emitted by the repository's Llama 3 template,\nand structured OpenAI `tool_calls` from servers that parse calls\nthemselves.\n\nThe More options panel exposes `enable_thinking` and\n`custom_instructions` as `chat_template_kwargs`. A Raw chat toggle\nreplaces rendered messages with one role-labeled plain-text transcript\ncontaining the system and user messages, unparsed assistant response\nfields, structured tool calls, tool results, and errors. Normal parsing\nand tool execution continue while this view is active. Reasoning parsing\nuses the active template's delimiters and recognizes the repository's\nknown thinking-token pairs when metadata is absent or stale.\n\nAssistant calls and tool results remain structured messages in\nconversation history. Subsequent requests include assistant `tool_calls`\nand matching `role: \"tool\"` messages, so the backend renders results\nthrough the same model template. Validation and invocation failures\nbecome matching tool results that the model can recover from. An\ninterrupted round receives cancellation results, and the UI stops after\neight consecutive tool rounds.\n\nPython schema discovery parses function syntax without executing it.\nPydantic validates and coerces arguments before invocation and validates\nreturn values afterward. Functions must be synchronous and use the\ndocumented JSON-compatible annotation subset. Each invocation runs in a\nfresh ShellSim environment without access to the host filesystem,\nprocesses, network, environment variables, or clock. The simulation\nallows 10 million CPU ticks, 64 MiB of memory, 4 MiB of disk, and 1 MiB\nof output. An outer worker enforces a 10-second wall timeout, and\nsubmitted source is limited to 64 KiB.\n\nAgent workspaces reconstruct their initial files and replay prior\ncommands before each Bash call, preserving edits and simulated Git state\nwithout retaining a host process or directory. Initial files receive a\nfresh Git baseline. Users can seed files as JSON or load a public GitHub\nrepository's default-branch snapshot outside ShellSim; credentials,\nremote history, submodules, binary files, and generated directories are\nexcluded. Imports are limited to 500 text files, 256 KiB per file, 4 MiB\ntotal text, and a 4 MiB compressed archive. Workspace simulations allow\n50 million CPU ticks, 64 MiB of memory, 16 MiB of disk, and 2 MiB of\noutput, with at most 32 replayed commands. ShellSim implements simulated\nBash and Python subsets, so unsupported commands and language features\nreturn tool errors.\n\nThe Iris dashboard capability URL authorizes inference, simulated tools,\nworkspace commands, and bounded public GitHub downloads. Share it only\nwith trusted users and treat it as a credential.\n\n---------\n\nCo-authored-by: William Held <9847335+Helw150@users.noreply.github.com>",
+      "sha": "29ca5597a6bc8d681fa0927f7da0c6fd0ef0092b",
+      "url": "https://github.com/marin-community/marin/commit/29ca5597a6bc8d681fa0927f7da0c6fd0ef0092b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-18T01:47:55Z",
+      "committed_at": "2026-09-18T01:47:55Z",
+      "message": "[sft] Preserve Terminus protocol and filter AgentTrove sources (#9239)\n\nPreserve the full initial Terminus prompt, including its JSON response\nschema, and each assistant JSON object containing `commands`. Keep\nterminal output as user turns. This fixes the rendered SFT examples for\nAgentTrove, Nemotron Terminal, and Penfever's Terminus rollouts.\nTerminal observations containing malformed tool wrappers remain\nfiltered.\n\nDrop AgentTrove chat rows whose `original_source` is `freelancer`,\n`Inferred Bugs`, `MagiCoder Evol Instruct`, `exp_rpt`, `exp_rle`, or\n`unknown`. A [15-row sample of\n`freelancer`](https://datasets-server.huggingface.co/rows?dataset=open-thoughts%2FAgentTrove&config=default&split=train&offset=499995&length=15&revision=b395a43)\ncontains job postings, including open-ended app requests and a recruiter\nrole, with repeated task IDs. The [TaskTrove v5.1\naudit](https://huggingface.co/datasets/open-thoughts/TaskTrove/blob/96567362fa3c41208e0954317c53767023b420eb/audits/v5.1/INDEPENDENT_ANALYSIS.md)\nrejected the Inferred Bugs, Nemotron C++, and Magicoder task lineages;\nits [release\nhistory](https://huggingface.co/datasets/open-thoughts/TaskTrove/blob/96567362fa3c41208e0954317c53767023b420eb/README.md)\nrecords other retired freelancer, `exp_rle`, `exp_rpt`, and `exp_flat25`\nlineages. AgentTrove folds several upstream repositories into each of\n`exp_rpt`, `exp_rle`, and `unknown`. Filtering those whole labels\nintentionally discards some tasks that may be sound to avoid pulling in\ndeprecated envs.",
+      "sha": "87c01cf32b2d9546e7eb689bf3108a503b4c4baf",
+      "url": "https://github.com/marin-community/marin/commit/87c01cf32b2d9546e7eb689bf3108a503b4c4baf",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-19T00:00:00Z",
+    "start": "2026-09-18T00:00:00Z"
+  }
+}

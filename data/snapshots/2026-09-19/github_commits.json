@@ -1,0 +1,109 @@
+{
+  "commit_count": 9,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-19T19:23:37Z",
+      "committed_at": "2026-09-19T19:23:37Z",
+      "message": "[ci] Bound Iris jobs launched by GitHub Actions (#9285)\n\nGitHub Actions submissions to standing Iris controllers now receive\nserver-side execution deadlines. Six canary launchers and each weekly\nstorage-report stage expire after six hours. The shared CoreWeave\nintegration parent expires after 30 minutes, with Fray carrying that\ndeadline to Iris.\n\nGitHub runner and monitor timeouts cannot terminate an Iris job after\nthe runner disappears. These server deadlines bound the remaining work\neven when workflow cancellation skips cleanup.\n\nThe audit covered direct workflow CLI submissions, the Python storage\nsubmitter, the shared CoreWeave integration workflow, and the hero\ncompletion reconciler, which already had four-hour execution and 24-hour\nscheduling deadlines. The other Iris integration workflow uses a local\nephemeral cluster that is torn down with its runner.\n\nIncident: [CI jobs ran without server\ndeadlines](https://marina.oa.dev/echo/wiki/485)\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "066ea85f413ccecc564ae45b76ea4812d71abe87",
+      "url": "https://github.com/marin-community/marin/commit/066ea85f413ccecc564ae45b76ea4812d71abe87",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-19T19:00:37Z",
+      "committed_at": "2026-09-19T19:00:37Z",
+      "message": "Reduce Finelog cost for inference dashboards (#8930)\n\nFetch each inference telemetry series once in the Grafana bridge and\nshare the projected result across the overview and diagnostics pages.\nThis reduces Finelog query work from one scan per panel to one selector\nscan and one bounded telemetry scan. The rebased dashboards retain\n#9269's identity filter, which offers only runs that reported\n`num_requests_running`.\n\nFor `/held/serve-grug-20260919-playground-weaver-r10` from 2026-09-19\n15:07:57 to 18:07:57 UTC, the dashboard on main at `d2d97e8` issued 84\nscans while loading the overview alone, and all ten panels exceeded the\n10.21-second deadline. This branch issued two scans: the selector\nreturned in 0.72 seconds and the compact telemetry fetch returned in\n0.29 seconds. The cold overview completed in 1.19 seconds; all ten\noverview and 17 diagnostics panel requests returned successfully, and\nwarm page switches issued no new scans.\n\nThe shared projection preserves output-length buckets, the fraction of\nengine finishes caused by the length limit, and mean inter-token latency\n(ITL) per engine. Both pages open on five minutes and refresh every two\nminutes; historical ranges remain selectable. Fetches are capped at one\nmillion samples and 50,000 series, while local calculations use one\nthread, a 512 MB managed-memory limit, and no disk spill. Dense ranges\nthat exceed these limits return an explicit error. Runs that did not\nexport native ITL leave that metric unavailable instead of estimating\nit, so [MarinSkyRL PR\n#515](https://github.com/marin-community/MarinSkyRL/pull/515) affects\nfuture telemetry but is not a merge prerequisite.\n\nPart of #8929.\n\n---------\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "2d180e9bd6d974a2e02ee6a18c5f34047d095ede",
+      "url": "https://github.com/marin-community/marin/commit/2d180e9bd6d974a2e02ee6a18c5f34047d095ede",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-19T15:35:47Z",
+      "committed_at": "2026-09-19T15:35:47Z",
+      "message": "[data] Route TaskTrove MCQA for RL and SFT (#9264)\n\nTaskTrove's cleaned release retained 611,698 MCQA tasks even though most\nare better suited to supervised fine-tuning or are unusable. This change\nadds a conservative routing pass and integrates its decisions into the\nrelease pipeline.\n\nThe reusable routing `ArtifactStep` submits recoverable GLM-5.3 batches,\nvalidates a forced tool response locally, and combines worker shards\ninto complete task-level `decisions.jsonl` and `route-mappings.jsonl`\nartifacts. The completed artifact contains 603,290 mappings: 23,860 RL,\n458,562 SFT, and 120,868 garbage. It is stored at\n`s3://marin-us-east-02a/marin/tasktrove/mcqa-routing/2026.09.18.1`.\n\nThe cleaner loads the canonical mapping JSONL once and applies a direct\nmap-side lookup by task ID. MCQA tasks routed to RL remain in the main\nHarbor corpus and are also written to the route-specific RL split. SFT\ncandidates retain their task and solution payloads in a separate\nParquet. Garbage rows and MCQA rows absent from the mapping fail closed\nwithout retained payloads. Non-MCQA rows are unchanged.\n\nThe release keeps the existing consumer contract through\n`tasks/part-00000.parquet`, which remains the full RL-compatible corpus\nwith its prior schema. Existing `TaskTroveDataSource` users therefore\ncontinue to read `tasks/` without changes. The new `rl/` and `sft/`\npaths contain only MCQA rows assigned to those routes.\n\nThe `2026.09.18.3` release is stored at\n`s3://marin-us-east-02a/marin/tasktrove/clean/2026.09.18.3` and\ncontains:\n\n- `tasks/part-00000.parquet`: 861,848 retained Harbor tasks using the\nprevious schema\n- `rl/part-00000.parquet`: 23,860 MCQA tasks routed to RL, with routing\nprovenance\n- `sft/part-00000.parquet`: 458,562 MCQA SFT candidates with routing\nprovenance and Harbor payloads\n- `ledger.parquet`: rejected, garbage, and 8,408 fail-closed unmapped\nMCQA rows\n- `manifest.json` and `report.md`: route and release accounting\n\nThe SFT split preserves routed Harbor tasks for downstream single-turn\nconversion; it does not perform that conversion in this release.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "d2d97e888ce1a59b0e344bfbaca9cc4871f4148a",
+      "url": "https://github.com/marin-community/marin/commit/d2d97e888ce1a59b0e344bfbaca9cc4871f4148a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-19T15:14:11Z",
+      "committed_at": "2026-09-19T15:14:11Z",
+      "message": "[finelog] Regenerate schema-derived table spec fields (#9272)\n\nRegenerate schema-derived source-layout and artifact-policy fields from\nthe new logical schema when a managed registration updates an\nobject-backed table. Copying these fields from the active specification\nretained values derived from the old schema. A production-catalog shadow\nregistration then rejected the telemetry table specification before the\nsession-discovery artifacts from #9269 could activate.\n\nPreserve explicitly configured layout settings. Physical layout changes\ncontinue through the existing migration lifecycle, while metadata-only\nindex and projection changes activate without rewriting stored rows.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "fbaf63c45d30225096b5eef1d99c8f73018fa092",
+      "url": "https://github.com/marin-community/marin/commit/fbaf63c45d30225096b5eef1d99c8f73018fa092",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-19T01:39:40Z",
+      "committed_at": "2026-09-19T01:39:40Z",
+      "message": "[dependencies] Align TPU vLLM source at 70ea9ae8 (#9270)\n\nMove Marin's TPU serving pin from vLLM `4c1c798a` to `70ea9ae8`, paired\nwith the unchanged tpu-inference source `29548fba`. This aligns the TPU\nlane\nwith the vLLM source used by MarinSkyRL. Marin's GPU and MarinSkyRL pins\nstay\nunchanged, and no vLLM or tpu-inference source patch is required.\n\nRecord exact-source alignment as a preference when both device gates\npass.\nGPU and TPU keep separate wheels, dependency environments, manifests,\ngates,\npromotion inputs, and release cadences. Compatibility or qualification\ncan\njustify temporary source skew; record the reason and prefer a later\nqualified\ncommon commit without delaying either lane.\n\nThe exact Python 3.12 pair clean-installed; 44 checks covering the\npaired\nGrugMoE, model-loader, and nightly paths passed before candidate\npublication.\nThe public candidate\n\n[`marin-vllm-tpu-candidate-70ea9ae8f260-29548fbab663-cf8f3a6eb7e8-b5f5e06166f4`](https://github.com/marin-community/vllm/releases/tag/marin-vllm-tpu-candidate-70ea9ae8f260-29548fbab663-cf8f3a6eb7e8-b5f5e06166f4)\nthen passed the first and only physical run on one production-priority\n`v6e-8`\nin `us-east5`: Qwen3-0.6B started at tensor parallel size 8 and answered\nall\nfour chat prompts with HTTP 200. [Qualification\n\n35405315448](https://github.com/marin-community/vllm/actions/runs/35405315448)\nretains the validation record through `2026-10-03T00:12:21Z`.\n\nBoth source commits are already on their protected `main` branches.\nMerge this\nMarin PR first. Before the validation record expires, and after\nconfirming\nvLLM `main` still contains the qualification-reuse path, a human can\npromote\nthe same bytes with:\n\n```sh\ngh workflow run marin-gpu-release.yaml \\\n  --repo marin-community/vllm --ref main \\\n  -f lane=tpu \\\n  -f candidate_tag=marin-vllm-tpu-candidate-70ea9ae8f260-29548fbab663-cf8f3a6eb7e8-b5f5e06166f4 \\\n  -f qualification_run_id=35405315448 \\\n  -f promote=true\n```\n\nThis dispatch reuses the accepted qualification. It must not allocate\nanother\nTPU or rebuild the pair.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "7b63e0d0cefcb19282fd9cc7efb3c109cbfc4801",
+      "url": "https://github.com/marin-community/marin/commit/7b63e0d0cefcb19282fd9cc7efb3c109cbfc4801",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-19T01:16:05Z",
+      "committed_at": "2026-09-19T01:16:05Z",
+      "message": "[sft] Register misconceptions and update WildChat completions (#9271)\n\nRegister `open-athena/synthetic-misconceptions-conversations` as a\nstructured SFT source. Every conversation in the pinned revision ends\nwith a user turn, so conversion removes that closing turn and retains\nthe preceding exchanges. All 3,450 rows then end on an assistant target,\npass chat validation, and have unique source IDs.\n\nAdvance `open-athena/wildchat-glm53-format-completions` to its 9,975-row\nrelease. The new revision supersedes the previous 9,809-row snapshot and\nretains the pinned WildChat source revision used by the existing\nprompt-recovery checks.",
+      "sha": "0258b44434253101a1285bfad7a34631b9da49a3",
+      "url": "https://github.com/marin-community/marin/commit/0258b44434253101a1285bfad7a34631b9da49a3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-19T00:45:48Z",
+      "committed_at": "2026-09-19T00:45:48Z",
+      "message": "[sft] Set explicit thinking mode for every chat conversation (#9261)\n\nChat normalization derives `enable_thinking` from canonical assistant\nanalysis messages. Conversations with at least one analysis message\nenable thinking; conversations with none disable it. A conversation that\nmixes analysis and non-analysis assistant turns remains in thinking\nmode, and its existing messages are unchanged.\n\nNormalization also increments\n`normalize_chat/conversations_with_final_over_2k_estimated_tokens` once\nper conversation when any assistant final response exceeds a\ntokenizer-free estimate of 2,000 tokens. This diagnostic does not filter\nrecords.\n\nBump the normalization version to `2026.09.18.1`, which invalidates\nnormalized, rendered, and text artifacts. Source extraction artifacts\nremain reusable because source adapters continue to handle only\nsource-specific reasoning representations.",
+      "sha": "38f16862707ab239128a8e2943658e759bf21d08",
+      "url": "https://github.com/marin-community/marin/commit/38f16862707ab239128a8e2943658e759bf21d08",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-19T00:31:52Z",
+      "committed_at": "2026-09-19T00:31:52Z",
+      "message": "[grafana] Fix fork efficiency and history sampling (#9268)\n\nExclude inherited W&B history from a fork's progress efficiency and\nprojected completion calculations. The previous baseline credited parent\ntokens against the child's elapsed time. The [hero\nfork](https://wandb.ai/marin-community/marin_moe/runs/hero-main-step121638)'s\ncorrected progress efficiency was about 87% when checked.\n\nGive each displayed fork its own history sample budget in both the\ntraining and infra report charts, while retaining the sampled parent\ncurve. The dashboard's 2,000-point query returned only 14 child points;\nquerying the child segment returned 883 points and exposed variation\nhidden by the sparse tail. These fixes are separate commits.\n\nAll 34 source tests pass. The broader Grafana suite has five failures,\nall reproduced on unmodified main at e07e839c34.",
+      "sha": "264f19a09fffe3a9372dfe07b7d5bc507d31df9d",
+      "url": "https://github.com/marin-community/marin/commit/264f19a09fffe3a9372dfe07b7d5bc507d31df9d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-19T00:26:58Z",
+      "committed_at": "2026-09-19T00:26:58Z",
+      "message": "[grafana] Index inference session discovery (#9269)\n\nRestrict inference identity pickers to `num_requests_running` samples,\nkeeping\nthe selected dashboard time range while avoiding scans of unrelated\ntelemetry.\nMarinSkyRL rows must also report `metric_source=vllm`, so non-inference\nmetrics\ndo not populate the selector.\n\nAdd an exact-name posting and a covering Finelog projection for\ntimestamps and\nstructured identity columns. During the incident, broad dashboard\nqueries took\n6.6–8.3 seconds and pushed the one-row fleet-health probe to 7.51\nseconds. The\nreplacement three-hour selector returned the same 42 identities in 2.89\nseconds\nbefore this projection was deployed.\n\nThe projection backfills through normal index maintenance; no producer\nchange\nor service restart is required. See the [incident\nrecord](https://marina.oa.dev/echo/wiki/478).\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "9f3eadd0bf735e9a297486b9f226efceb14bad06",
+      "url": "https://github.com/marin-community/marin/commit/9f3eadd0bf735e9a297486b9f226efceb14bad06",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-20T00:00:00Z",
+    "start": "2026-09-19T00:00:00Z"
+  }
+}

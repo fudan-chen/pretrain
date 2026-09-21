@@ -1,0 +1,65 @@
+{
+  "commit_count": 5,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-20T22:26:06Z",
+      "committed_at": "2026-09-20T22:26:06Z",
+      "message": "[telemetry] Isolate Prometheus collector failures (#9297)\n\nKeep scrape and health-reporting failures inside the Prometheus\ncollector so telemetry cannot terminate its polling thread. Expected\nendpoint connection failures emit a bounded warning without a traceback;\nunexpected processing and publication failures retain tracebacks for\ndiagnosis.\n\nThis prevents a metrics endpoint disappearing during task shutdown from\nreplacing the workload's actual failure with a telemetry stack trace.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "16577ee58917a6511cb2d02ea640961a25c0179c",
+      "url": "https://github.com/marin-community/marin/commit/16577ee58917a6511cb2d02ea640961a25c0179c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-20T22:23:32Z",
+      "committed_at": "2026-09-20T22:23:32Z",
+      "message": "[post-training] Add learning-progression curriculum pass (#9294)\n\nAdd a catalog-level learning graph that implements the proposal's\nepsilon condition: mastery of A should materially\nimprove the chance of some success on a recurring family of entry-level\nB tasks. Capability generation continues to\nleave embedded prerequisite arrays empty. The published v3 catalog\nclears the 17 legacy hard-dependency entries and\nstores the reviewed graph once at the catalog root.\n\nThe production pass is subject-local. Each of the 45 subjects receives\none compact packet, one Sol/high proposer,\nand one independent Sol/high reviewer. Agents do not receive the full\ncatalog, and the workflow does not run\nper-capability, per-edge, or semantic repair calls. Every edge records\nan enabled scope, artifact-substitution test,\ntransfer basis, and two concise task-family witnesses. Cross-subject\nprogression remains a follow-up rather than\nbeing inferred from partial context.\n\nThe final graph contains 1,812 acyclic edges. Proposers emitted 1,631;\nreviewers accepted 1,596, rejected 35, and\nsupplied 216 complete omissions. Subject graphs contain 19–78 edges and\nreach a maximum learning stage of eight. D15\nrequired one mechanical retry after its first combined result contained\na cycle. Total measured usage was 4.85M\ntokens, compared with 16.28M for the original catalog build and 8.92M\nfor the production repair wave.\n\nThe canonical artifact is\n\n`s3://marin-us-east-02a/marin/task-curriculum/catalogs/2026.09.20-subject-local-v3-0ce32038771d/curriculum.json`\n(SHA-256\n`0ce32038771d4fb0c66498f29604474d6766040e8917f894b31940a6a828149a`). The\ndeterministic evidence archive\nSHA-256 is\n`84a1ba4284360ba3e722be7f06206588296dc3c25027300415002c9f187d779a`. The\none-off human viewer is\nhttps://applets.marina.oa.dev/a/67f69132-2ef4-4c9e-b8b5-77cabd126442/\n(revision 9); it exposes hierarchy and\nwithin-subject learning-stage views, edge evidence, and a separate\ncapability-scores tab.\n\n\nFollow-up to #9232. Part of #9193.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "af64c310b4b74d11f95a672ecf49f44258f0031e",
+      "url": "https://github.com/marin-community/marin/commit/af64c310b4b74d11f95a672ecf49f44258f0031e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-20T04:11:03Z",
+      "committed_at": "2026-09-20T04:11:03Z",
+      "message": "[post-training] Publish cross-domain task curriculum (#9232)\n\nPublish the 45-subject cross-domain v2 curriculum as an immutable typed\nJSON artifact. The 3.6 MB payload stays in external storage. The catalog\ncontains 2,405 nodes: 1,999 assignable capabilities and 406\norganizational groups. Runtime consumers validate it directly with\nPydantic. The 45-subject inventory is a separate typed S3 artifact;\nprior YAML catalogs remain immutable rollback artifacts.\n\nThe production pass attempted one bounded repair on 42 subjects and\nretained three accepted v3 graphs. Anonymous same-call review selected\n41 repairs and tied D32, whose baseline was preserved. Mean holistic\nscore rose from 78.36 to 92.81. Twenty-four subjects are `pilot_ready`;\n21 remain explicitly provisional after the one-repair stopping rule. The\n1,001/1,080 frozen fit is a reused diagnostic because the older baseline\nhad seen an earlier fit summary.\n\nA final routing audit placed all 24 practical TaskTrove shell,\nrepository-workspace, and bug-repair tasks in D02. Twenty-one had one\ncomplete capability home. The three misses cover unrelated operations\nand do not justify another catch-all. Evaluation-policy and AAII\nmetadata found subject homes across all 45 roots; ten benchmark entries\nmeasure cross-domain task mechanics instead of subject knowledge.\n\nThe canonical catalog is\n`s3://marin-us-east-02a/marin/task-curriculum/catalogs/2026.09.19-json-1faada4eeda8/publish/curriculum.json`,\nSHA-256\n`1faada4eeda8368a7834602e88f8f3fb97e35a4baf5dedc2bae10a5dffbfc58b`. The\nsame immutable prefix contains the summary, anonymous comparison,\nrouting audit, evidence archive, and manifest. Marina viewer revision 6\nserves the pinned JSON at\nhttps://applets.marina.oa.dev/a/67f69132-2ef4-4c9e-b8b5-77cabd126442/v/6/.\n\nPart of #9193\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "1f9c387b6c452895ff58573c2b6117c5500303db",
+      "url": "https://github.com/marin-community/marin/commit/1f9c387b6c452895ff58573c2b6117c5500303db",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-20T03:43:57Z",
+      "committed_at": "2026-09-20T03:43:57Z",
+      "message": "[grafana] Share bounded Finelog datasets across panels (#9286)\n\nMove repeated Finelog panel SQL for Node Details, Zephyr, Training,\nRuns, RL, Accelerators, Jobs, and Home behind fixed Grafana bridge\nendpoints. Panels with the same identity and time window share one\ncached dataset; concurrent cold requests coalesce, and each panel\nselects a named local projection. Cold dataset builds use one source for\nNode and Zephyr, three for Training, two for Runs, three for RL and\nAccelerators, and five for Jobs. Selector queries remain separate.\n\nThe shared runner centralizes identity and window validation, SQL\nrendering, source and projection budgets, cache keys, and serialized\nDuckDB projection. DuckDB uses one thread, a 512 MB memory limit, and no\ndisk spill. Domain limits cap identities, source rows or samples,\nprojected rows, time windows, and point counts; the bridge-wide row\nlimit remains an upper bound. Requests that exceed a budget return HTTP\n400 and ask the operator to narrow the request.\n\nThe consolidated sources preserve panel-specific semantics: GPU power is\naveraged per device before fleet sums, run ownership is ranked before\nselected-run filtering, active-run freshness uses training metrics, top\nresource rankings remain independent and cluster-scoped, stale devices\nremain visible, and RL percentiles are computed once at the panel bucket\ngrain.\n\n## Live Finelog comparison\n\nA sequential replay against the hub used one Training run over the fixed\n2026-09-19 16:30–19:30 UTC window:\n\n- `origin/main`: 16 successful panel queries, 16.88 seconds of summed\nquery time, 1,232 rows, and 62 KB of panel responses.\n- This branch: three successful source queries, 3.21 seconds of summed\nquery time, then 0.25 seconds of local projection. The sources returned\n2,275 rows and 608 KB, and projected 1,232 rows.\n\nThis comparison covers one Training run and sequential execution. It\ndemonstrates lower query count and summed query time for that replay,\nnot end-to-end Grafana page latency, concurrent p95 behavior, or lower\ntransfer volume.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "2b0f70aaa564b364828c93c05e682ca901881bb6",
+      "url": "https://github.com/marin-community/marin/commit/2b0f70aaa564b364828c93c05e682ca901881bb6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-20T02:22:35Z",
+      "committed_at": "2026-09-20T02:22:35Z",
+      "message": "[grafana] Make vLLM runs easier to triage (#9274)\n\nBoth inference pages put run triage above the charts. Query health\ndistinguishes available detail, summary-only data, empty telemetry,\ntimeouts, and sample-limit rejection. Run attention shows a\nselected-range count gap when first-token observations exceed\n`request_success_total` finishes, then points to the evaluator in Iris.\nA partial or active window can produce the same gap, and separate vLLM\nfailure and timeout counters are excluded. The cue does not classify\nfailed requests. The diagnostics page links the selected or manually\nentered serve to Iris and gives general guidance for checking its\nevaluator.\n\nFor the [64K AIME24\nserve](https://iris.oa.dev/#/job/%2Fheld%2Feval-20260916-212517-grug-aime-pareto-today-20260916-d7d3%2Finference-aa956e649f044c9ba12a0de164895732?cluster=marin),\nthe first seven hours show 156 coherent first-token observations and 16\nrecorded `request_success_total` finishes; the full selection shows 160\nand 16. Generated-token totals are 6,013,445 and 6,203,035,\nrespectively, and all 29 hourly bins match independent raw counter\ncalculations. The linked\n[evaluator](https://iris.oa.dev/#/job/%2Fheld%2Feval-20260916-212517-grug-aime-pareto-today-20260916-d7d3%2Feval-aime24-64k-ac462950?cluster=marin)\nlogged repeated proxy 504s after 2100 seconds, retries, and 15 terminal\nrequest failures. Those are client and proxy observations; the server\ncount gap does not establish their cause.\n\nSelect up to seven hours for engine, latency, and outcome detail. Longer\nranges use a bounded reset-aware summary with hourly generated tokens,\nobserved waiting and KV-cache peaks, and native inter-token latency. The\npicker scans only the first seven hours of a longer selection; an exact\nserve ID can be entered when it omits a later session. The detail source\nscan matches current main's merged #8930 query apart from whitespace. On\nthe 64K window, its live fetch returned 1,030 compact series rows (11.28\nMB) in 2.77 seconds. The full-run summary fetched 104 series rows (4.38\nMB) in 3.87 seconds and projected them locally in 0.42 seconds. One\npanel-data source fetch is shared by all 31 targets across the two pages\nper selected range. The identity picker is a separate bounded query.\nThese measurements do not establish a speedup over current main.\n\nThe full-run summary omits latency tails, output-length distribution,\nper-engine detail, and client or proxy time. Historical scalar\nhistograms work here; bundled histogram support remains in Ahmed's\npending #9276 and MarinSkyRL #694. The dashboards have not been\ndeployed, so final Grafana rendering is unverified.\n\nPart of #8929.\n\n---------\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "e7ee488b9fff2f86e14d3441a00a848071440fef",
+      "url": "https://github.com/marin-community/marin/commit/e7ee488b9fff2f86e14d3441a00a848071440fef",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-21T00:00:00Z",
+    "start": "2026-09-20T00:00:00Z"
+  }
+}

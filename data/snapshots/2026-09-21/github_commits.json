@@ -1,0 +1,109 @@
+{
+  "commit_count": 9,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-21T23:37:11Z",
+      "committed_at": "2026-09-21T23:37:11Z",
+      "message": "[finelog] Prune key trigrams before log data (#9310)\n\nCheck range-constrained trigram columns first and stop reading a\nsegment's index sections when no spans remain. Job-prefix log searches\ncan reject a segment with the small `key` index before opening its\nlarger `data` index. The SQL predicate still checks surviving rows.\n\nOn the federated `log` table, a representative prefix overlaps about 669\ncatalog segments. Key trigram pruning leaves about 60 candidates, while\nthe initial set advertises about 1.1 GB of `data` index payload. Before\nthis change, `EXPLAIN` took about 10 seconds; `EXPLAIN ANALYZE` scanned\n3.3 MB of Parquet in about 90 ms. Production latency after deployment\nremains unmeasured.\n\nRemove the obsolete Finelog corpus assertion for the accelerators\ndashboard, whose queries now run through bounded Grafana endpoints with\ncoverage in the Grafana suite.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "fbdbe3e9786e2dc0655782077d5f9a41c1e99a8f",
+      "url": "https://github.com/marin-community/marin/commit/fbdbe3e9786e2dc0655782077d5f9a41c1e99a8f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-09-21T23:04:01Z",
+      "committed_at": "2026-09-21T23:04:01Z",
+      "message": "[iac] Grant Marina access to a new operator (#9311)\n\nAdd an encrypted principal to Marina’s `roles/iap.httpsResourceAccessor`\nbinding so the operator can access Marina-hosted apps.\n\nThe principal is registered in the shared IAM registry and referenced by\nthe Marina deploy-target declaration. A reviewer should run the grant\nreview workflow before applying the `marin` Pulumi stack.",
+      "sha": "160e9accf745387878b6dfa184d7ab6f26dfac86",
+      "url": "https://github.com/marin-community/marin/commit/160e9accf745387878b6dfa184d7ab6f26dfac86",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-21T20:43:12Z",
+      "committed_at": "2026-09-21T20:43:12Z",
+      "message": "use shared hero checkpoint discovery in vibe checks (#9307)\n\n* use `hero_checkpoint_paths()` for vibe-check inventory and sampling\nrequests, so checkpoint selection follows the shared current run ID\n* live discovery found 22 checkpoints, up from 18, and preserved all 18\nexisting sample IDs\n* lint, type checks, and four focused tests passed. The affected suite\nhad 2,010 passes and eight failures in local network interface detection",
+      "sha": "e35a463ced02c3c14a46757199dd6fa68bc46e1c",
+      "url": "https://github.com/marin-community/marin/commit/e35a463ced02c3c14a46757199dd6fa68bc46e1c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-21T20:06:45Z",
+      "committed_at": "2026-09-21T20:06:45Z",
+      "message": "[marina] Add public applet sharing (#9305)\n\nAllow applet owners and configured Marina operators to set `--mode\npublic`\nduring publish or update, or change only the mode with `marina applets\nmode`.\nPublic applets receive share URLs under `public.applets.marina.oa.dev`.\nA\nseparate unauthenticated Cloud Run service accepts only GET and HEAD\nrequests\nunder `/a/`; publishing, lifecycle controls, SQL queries, and non-read\nbackend\nrequests remain on the IAP-protected service.\n\nPublic mode assumes trusted applet code and unrestricted data. A GET\nbackend\nstill runs with the applet database role and service credentials and can\ncause\nside effects. Applets remain private by default, and updates preserve\nthe\nexisting mode unless `--mode` is supplied.\n\nDeploy the `marin-marina` stack first so the public Cloud Run service\nexists.\nThen review and apply the `marin` stack's `allUsers` invoker grant\nthrough the\n`review-grant` workflow; applying that grant before service creation\nfails.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "c91b0327f5a27b87cc6331ac367e5980656c4a38",
+      "url": "https://github.com/marin-community/marin/commit/c91b0327f5a27b87cc6331ac367e5980656c4a38",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-21T20:01:42Z",
+      "committed_at": "2026-09-21T20:01:42Z",
+      "message": "add permanent checkpoint discovery for the current hero run (#9306)\n\n* add `hero_checkpoint_paths(run_id=CURRENT_HERO_RUN_ID)` to return\npermanent checkpoint paths from W&B run ancestry, sorted by step\n* share `CURRENT_HERO_RUN_ID` through `current_run.py`. The launcher\nreads it with `uv run python -m\nexperiments.grug.moe_hero_ep.current_run`\n* a live query returned 22 permanent checkpoint paths. Shell syntax,\nlint, and type checks passed. Local affected tests reported 2,318 passes\nand eight failures in network interface detection",
+      "sha": "86e583ecd7bec188ac82cb5451c5b8acdd1e1665",
+      "url": "https://github.com/marin-community/marin/commit/86e583ecd7bec188ac82cb5451c5b8acdd1e1665",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-21T18:55:36Z",
+      "committed_at": "2026-09-21T18:55:36Z",
+      "message": "Delete unused Dolma validator, dead jax shim, and duplicate state sets (#9249)\n\nThree unrelated deletions of code that no longer does anything.\n\n`marin/validate/validate.py` validated Dolma-format `documents/` trees\nand wrote\na dataset-level `metadata.json`. Nothing has called it since it was\nadded in\nSeptember 2024 (#244): no experiment, step, test, doc, or console script\nreferences it, and no consumer reads the metadata it produced. The\ndatakit's\n`ingestion_manifest.py` covers dataset metadata for the Parquet\npipeline.\nDeleting it leaves `write_provenance_json` as the only live symbol in\n`marin/utilities/validation_utils.py`, so that module moves to\n`marin/utilities/provenance.py` and the five helpers used only by the\ndeleted\nscript go with the script.\n\n`levanter` resolved the `shard_map` correctness-check kwarg at import\ntime in\nthree modules, each computing `\"check_vma\" if \"check_vma\" in\ninspect.signature(shard_map).parameters else \"check_rep\"`. Levanter pins\n`jax>=0.9.2,<0.12`, and `jax.shard_map` exposes `check_vma` with no\n`check_rep`\nparameter at both ends of that range, so the fallback branch is\nunreachable. The\nfour call sites now pass `check_vma=False` literally.\n\n`iris/cluster/controller/reads.py` declared three private tuples of task\nstates\nthat re-listed `ACTIVE_TASK_STATES`, `DISPATCHED_TASK_STATES`, and\n`EXECUTING_TASK_STATES` from `task_state.py`, two of which the file\nalready\nimported for other queries. Those queries now bind the canonical\nfrozensets, so\nthe SQL filters cannot drift from the sets the reconcile and scheduling\npaths\nuse. Member lists are unchanged.\n\n---------\n\nCo-authored-by: Nightshift Scout <nightshift@marin.local>",
+      "sha": "9d99a0f4ecf7e3ed69c6dfe8e401cf170b08a848",
+      "url": "https://github.com/marin-community/marin/commit/9d99a0f4ecf7e3ed69c6dfe8e401cf170b08a848",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-21T18:54:15Z",
+      "committed_at": "2026-09-21T18:54:15Z",
+      "message": "[nightshift] fix documentation drift (#9296)\n\n> Flags renamed at dusk—\n> the manual still points north\n> to a deleted path.\n\nThe stall alert contract still described the execution-selecting phase\nquery as\nreading the trailing hour, and a hard hang as holding its training\nexecution\nanchor for an hour. Both windows became a day in #8568, when the phase\nlookback\nwas widened so a run that went silent hours ago stays recognisable as\none that\nstopped publishing rather than one that never started. An operator\nreading the\ncontract to check enrollment would look at the wrong window. Record the\nday, and\nthe ten-minute deferral to `TrainingTelemetryGone` that now fires first.\n\nThe same change left `_EXECUTION_LOOKBACK`, the constant the documented\nhour came\nfrom, unread; drop it and move the process-zero comment onto the\npredicate it\nexplains.\n\nFound by scanning `docs/ops/` against the code. The rest of that folder\n— alert\ntitles, routes, reasons, thresholds, NCCL RAS outcomes and limits, and\nthe Iris\nand Levanter symbols it names — matches the current tree.\n\nThe agentic lint review could not run here: every lane exited on `Not\nlogged in`,\nso the `agentic-lint` label is withheld.\n\nCo-authored-by: loom-oa-dev[bot] <298838646+loom-oa-dev[bot]@users.noreply.github.com>",
+      "sha": "b930ecbd6a45ad83a8aa02ffe5bc4dd3cbaf2ab8",
+      "url": "https://github.com/marin-community/marin/commit/b930ecbd6a45ad83a8aa02ffe5bc4dd3cbaf2ab8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-21T17:40:09Z",
+      "committed_at": "2026-09-21T17:40:09Z",
+      "message": "[rigging] Refresh distributed leases in a context (#9298)\n\nKeep acquired distributed leases fresh with a shared `lease_refresh`\ncontext\nmanager. Confirmed ownership loss stops further refresh attempts without\ninterrupting the caller, while other refresh failures retry with capped\nexponential backoff. The refresher never attempts reacquisition because\na new\nlease cannot restore exclusivity across an ownership gap.\n\nMove Levanter's model cache off its private heartbeat and keep\ncompletion-marker\npublication inside the refreshed interval. A slow object-store marker\nwrite\ntherefore remains covered by the heartbeat while the lease is healthy.\n\nThis is the Marin dependency for\n[MarinSkyRL\n#686](https://github.com/marin-community/MarinSkyRL/pull/686).\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "ec35b73618bea32bbd129df013d92caa8cfb75bc",
+      "url": "https://github.com/marin-community/marin/commit/ec35b73618bea32bbd129df013d92caa8cfb75bc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-21T14:35:16Z",
+      "committed_at": "2026-09-21T14:35:16Z",
+      "message": "[eval] Support pipeline-parallel vLLM serving (#9200)\n\nAllow evaluation model YAMLs to request pipeline-parallel vLLM serving\nwith `serve.pipeline_parallel_size`. The GPU resource hint applies per\ntask: H100x8 with pipeline parallelism (PP) 2, tensor parallelism (TP)\n8, and data parallelism (DP) 1 creates a two-task Iris gang using 16\nGPUs. Validate TP × DP against GPUs per task before submission, keep\nfull-checkpoint host memory per task, and expose only the leader's\nendpoint.\n\nPass tensor parallelism through the native multi-node launcher and keep\nhealthy followers running without a fixed lifetime; coordinator outages\nstill have bounded retries. Record resolved serving geometry and\n`max_model_len` after endpoint startup, distinguishing them from\nrequested settings when startup fails. Single-task serving remains the\ndefault.\n\nPythia PP2 × TP8 × DP1 completed GSM8K evaluation on two H100x8 tasks in\nsmoke run\n`20260916-154135-pythia-31m-pipeline-tp8-pp2-smoke-gsm8k-0shot-db5f`\n(Iris job\n`/karan/eval-20260916-154135-pythia-31m-pipeline-tp8-pp2-smoke-9850`,\ncluster `marin`, execution on `cw-us-east-02a`). Grug PP2 × TP1 × DP8\nreached a serving endpoint and executed requests; its evaluation hit a\nsample-count failure on base `e9a1f53d6a` and has not been rerun on the\nupdated base. The pinned Grug implementation rejects TP greater than 1.\nOmit the start-rank flag for DP1 to avoid a startup validation error\nfrom inferred external load balancing; see the [launcher\ninvestigation](https://marina.oa.dev/echo/wiki/451).\n\nThe catalog includes a pinned GLM-5.2 AWQ INT4 configuration at PP2 ×\nTP8 × DP1 with FP8 KV and a 1,048,576-token context limit. At\n`gpu_memory_utilization: 0.83`, the limiting stage had 25.59 GiB\navailable KV against 26.14 GiB required. Changing only utilization to\n0.85 increased that budget to 27.17 GiB and completed the two-example\nGSM8K evaluation in [Iris run\n20260918-152852-glm-5.2-awq-int4-pp2-1m-67da](https://iris.oa.dev/#/job/%2Fkaran%2Feval-20260918-152852-glm-5.2-awq-int4-pp2-1m-67da).\nThe catalog preserves this measured setting rather than leaving it in a\ntemporary smoke YAML.\n\nInspect the GLM gang without submitting it:\n\n```sh\nuv run python -m experiments.evaluation.cli launch --model glm-5.2-awq-int4-pp2-1m --evals gsm8k-0shot --limit 2 --dry-run\n```\n\nThe GLM smoke validates startup configured for 1M context and short\nrequests, not actual full-length prompts or sustained concurrency. A\n30-minute live soak and deliberate leader-kill recovery remain\nunvalidated. A cold regional cache requires separate approval to mirror\nroughly 474 GB from Hugging Face.\n\nPart of #8215.",
+      "sha": "02fc7d85a2c8d40fec3a16efe4d51bb8e8bb7c09",
+      "url": "https://github.com/marin-community/marin/commit/02fc7d85a2c8d40fec3a16efe4d51bb8e8bb7c09",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-22T00:00:00Z",
+    "start": "2026-09-21T00:00:00Z"
+  }
+}

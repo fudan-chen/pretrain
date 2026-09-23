@@ -39,7 +39,7 @@
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "96f63ef1a3fbb94d7a3592ff2fa6af7e9afa6d9f4d11ca3735ed24bf23250f80"
+          "sha256": "3f2caf0a8cd0f74d7575c31fae1064a6b5f1179359cb4ed85f96d207d1000f33"
         }
       ],
       "facts": {
@@ -63,7 +63,7 @@
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "96f63ef1a3fbb94d7a3592ff2fa6af7e9afa6d9f4d11ca3735ed24bf23250f80"
+          "sha256": "3f2caf0a8cd0f74d7575c31fae1064a6b5f1179359cb4ed85f96d207d1000f33"
         }
       ],
       "derivation": {
@@ -89,7 +89,7 @@
       "evidence": [
         {
           "artifact": "data/hero/hero-12d8b6f0-dee637/meta.json",
-          "sha256": "96f63ef1a3fbb94d7a3592ff2fa6af7e9afa6d9f4d11ca3735ed24bf23250f80"
+          "sha256": "3f2caf0a8cd0f74d7575c31fae1064a6b5f1179359cb4ed85f96d207d1000f33"
         },
         {
           "artifact": "data/baselines/matched_progress_v1.json",

@@ -1,0 +1,274 @@
+{
+  "commit_count": 24,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-22T23:12:16Z",
+      "committed_at": "2026-09-22T23:12:16Z",
+      "message": "[iris] Clean failing uv caches safely (#9340)\n\nInstall Iris-managed uv environments with clone mode so cache cleanup\ncannot\ninvalidate running tasks. On an existing CoreWeave node, the task\nworkdir and\nshared cache were on the same XFS filesystem with reflinks enabled. A\n1.237 GB\nlocked environment installed from a warm cache in a median 260.5 ms with\nclone\nmode, versus 176.5 ms with symlinks. Clone-installed environments\nsurvived\n`uv cache clean`; symlink-installed environments did not. The\n[benchmark and design\nrecord](https://loom.oa.dev/s/ap6dmu49/artifacts/uv-cache-recovery-proposal)\ncontains the concurrent results and reproduction details.\n\nKeep the shared cache as the default and retry a failed setup-time\ninstall once\nwith a task-local cache. After the local retry succeeds, the task setup\nwrapper\nwrites an attempt-UID marker into the node's `/uv/cache`. Three distinct\nmarkers\non one node within 30 minutes make the node agent run `uv cache clean`\nagainst\nthat shared cache. The agent emits `uv_cache_recovery_observed` when it\nconsumes\na marker and `uv_cache_cleared` after a successful clean.\n\nThe generic age-based reclaimer skips `/uv/cache`. Cache mutation there\nruns\nthrough uv's cache command and lock. The node agent now runs on every\nKubernetes\ntask node with the cache hostPath mounted, so it can see recovery\nmarkers when\nFinelog and age-based reclamation are disabled.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "c287d85649a27a2c2ddf54d49120e6192ebbea90",
+      "url": "https://github.com/marin-community/marin/commit/c287d85649a27a2c2ddf54d49120e6192ebbea90",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-22T22:25:08Z",
+      "committed_at": "2026-09-22T22:25:08Z",
+      "message": "Drop dead FA4 index helper, coverage validator, and log guards (#9325)\n\n`iris.runtime.telemetry.configure` and the controller's native-proxy\nmetrics\npoller each wrapped their `logger.warning` call in a second\n`try/except Exception: pass`. `logging` routes handler and formatting\nfailures\nthrough `Handler.handleError` instead of raising, so the inner guard\ncould only\ndiscard the warning the outer handler exists to emit. A failure to\nconfigure\nFinelog telemetry or to read a native-proxy snapshot is now always\nreported.\n`configure` also ended with a `return` after the final statement.\n\n`_packed_segment_backward_block_sparse_indices` in the FA4 CUTE backend\nmerged\nthe partial and full Q-block metadata into one index list. The backward\npass has\nconsumed `_packed_segment_backward_block_sparse_indices_with_full`\ndirectly since\nD128 GQA moved to SM90 in 587d6e16bf, leaving the merge reachable only\nfrom its\nown test. Both are deleted; the remaining tests still cover the\n`_with_full`\npartial/full split and the causal lower bounds the metadata is built\nfrom.\n\n`_validated_coverage` in `marin.evaluation.lm_eval_samples` has had no\ncaller\nsince #9145. `BenchmarkMetadataRef.validate_protocol` rejects\n`n_attempted > n_benchmark` and constrains both counts to be\nnon-negative, and\n`task_coverage_and_metrics` raises when the sample document extent\nexceeds\n`n_attempted` before it builds the coverage record.\n\n---------\n\nCo-authored-by: nightshift-scout <nightshift-scout@users.noreply.github.com>\nCo-authored-by: nightshift <nightshift@marin.invalid>",
+      "sha": "80a02726cb757fbb06fca025aa1b1aeb09fa88a8",
+      "url": "https://github.com/marin-community/marin/commit/80a02726cb757fbb06fca025aa1b1aeb09fa88a8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-22T22:06:16Z",
+      "committed_at": "2026-09-22T22:06:16Z",
+      "message": "[grug] Enable context-parallel hero training (#9119)\n\nShard the hero residual stream by sequence and keep parameters and Muon\nstate partitioned across the context group, including the expert bank\nwhen only the context axis splits it. Route each context shard\nindependently and preserve global router statistics. Configure the\ntrainer batch mesh for 262K-token sequences at batch size 16 on EP16 x\nCP4, and derive optimizer scaling from the actual sequence length.\n\nExpose sequence, mesh, attention-scale, and checkpoint overrides in\ndiagnostic launchers while retaining the production defaults. Reject an\nexpert bank that the expert and context axes together cannot split\nbefore the fleet is allocated. Cap small-model evaluation batches at the\ntraining batch size. Runs with at least 256 training sequences per step\nretain the existing evaluation batch size of 256.\n\nThe earlier benchmark revision (`b5c7f84ff6`, before the review fixes)\ncompleted 40 updates on 64 GB200s at a 262K-token sequence length, with\n10.03% median MFU and 1.42% mean dropped assignments:\nhttps://wandb.ai/marin-community/marin_moe/runs/lc-main-ragged-262k-0911.\nThis throughput measurement does not establish long-context training\nquality.\n\nStacked on #9118.\n\nPart of #8754",
+      "sha": "3979fb30205b7c65927d42bae543316428d76020",
+      "url": "https://github.com/marin-community/marin/commit/3979fb30205b7c65927d42bae543316428d76020",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-22T21:55:25Z",
+      "committed_at": "2026-09-22T21:55:25Z",
+      "message": "[grug] Keep length-1 mesh axes in the FA4 output sharding (#9346)\n\nFA4/CuTe attention now returns Q's own partition spec, including mesh\naxes of length 1. Since #9117 the wrapper dropped those axes from its\noutput spec. Explicit sharding compares axis names, so on a mesh where a\nbatch axis has length 1 the model's gating multiply rejects the\nattention output with a ShardingTypeError at trace time. The hero mesh\n(11 racks x EP64) has data=1 and fails this way on main; the\ncontext-parallel meshes in #9119 also have data=1.\n\nThe new hero-model test traces the loss and gradient through the FA4\nwrapper, with the CUDA kernel replaced, on meshes with and without a\nlength-1 data axis. It fails on main with the ShardingTypeError and\npasses with this change. The real kernel was not run.",
+      "sha": "ced6b7f3f694ae0a1d46ebb59f09ca081449234a",
+      "url": "https://github.com/marin-community/marin/commit/ced6b7f3f694ae0a1d46ebb59f09ca081449234a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-22T21:42:26Z",
+      "committed_at": "2026-09-22T21:42:26Z",
+      "message": "[finelog] Cache repeated bounded log tails (#9347)\n\nCache initial bounded `FetchLogs` tail results by the full normalized\nfilter and advance cached snapshots with sequence-bounded delta scans.\nOn a hub catalog with 6.71 billion rows in 715 objects, a repeated\n100-line tail for source prefix `/muchanem/glm53-relay-e/` containing\n`routes:` fell from a 1.309-second median to 65 milliseconds (20.1x)\nwith identical rows and cursor. The first request after the Finelog hub\nrestart took 2.685 seconds; subsequent unchanged-snapshot requests took\n50–76 milliseconds.\n\nCoalesce concurrent disk loads of identical immutable `.fidx` bundle\nheaders or parsed index sections. Report cache occupancy, load attempts,\ncoalesced waits, and evictions through `/api/server`. Slow `Query` and\n`FetchLogs` warnings now separate visibility waits, provider\nconstruction, logical planning, physical planning, execution,\nnormalization, and response encoding.\n\nUse disjoint metric-name branches and separate lookback windows in the\nhero-health and training-stall alert queries. This retains 24-hour phase\nand evaluation liveness history while bounding health metrics to 65\nminutes and progress metrics to 30 minutes.\n\nDetailed diagnosis and benchmark protocol: [Finelog slow-query diagnosis\nand 10x execution\nplan](https://loom.oa.dev/s/6twmncpa/artifacts/finelog-slow-query-plan).\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "03ec22195278d2a69db353abfa4b6b4f9696fa96",
+      "url": "https://github.com/marin-community/marin/commit/03ec22195278d2a69db353abfa4b6b4f9696fa96",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-22T20:35:54Z",
+      "committed_at": "2026-09-22T20:35:54Z",
+      "message": "[eval] Isolate external judge credentials (#9197)\n\nFinanceBench launches now keep an external judge endpoint, model, and\n`SecretSpec` credential separate from candidate authentication. The\nchecked-in FinanceBench and SimpleQA policies use Together's\n`openai/gpt-oss-120b` judge and resolve its provider credential through\nthe local environment or the managed cloud source. Records retain the\njudge endpoint and model while omitting credential references and\nvalues. URLs with credentials, query strings, or fragments fail during\nconfig validation.\n\nCurrent main pins include the strict FinanceBench and SimpleQA graders\nfrom Evalchemy #130 and Harbor #154. FinanceBench accepts only exact\ngrader labels and propagates judge transport failures without producing\nscores. SimpleQA version 1.1 selects the corrected generated dataset\nthrough the registry at the current Harbor pin and applies the same\nfailure semantics to all 4,326 tasks.\n\nLoopback OpenAI-compatible servers verified distinct fake judge\ncredentials at both evaluator boundaries. The 89 focused tests and the\naffected Marin suite of 1,960 tests pass. No paid provider or cluster\nevaluation was run.\n\nFixes #9070\n\nExample job:\nhttps://iris.oa.dev/#/job//karan/eval-20260922-195827-qwen3-0.6b-ea18\n\n---------\n\nCo-authored-by: Ben Feuer <bf996@nyu.edu>",
+      "sha": "c480de560de442ae3ba67ee75d4fb4ecf4431edc",
+      "url": "https://github.com/marin-community/marin/commit/c480de560de442ae3ba67ee75d4fb4ecf4431edc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-22T20:31:23Z",
+      "committed_at": "2026-09-22T20:31:23Z",
+      "message": "[iac] Complete Pulumi operator permissions (#9336)\n\nDeclare the existing Pulumi operator in the authoritative Marin Dev\nbinding.\nThe operator already holds this grant live; recording it in\n`iam_data.yaml`\nprevents the next `marin` stack update from removing it. Marin Dev\nsupplies the\nstate-bucket, KMS, and project-IAM permissions omitted from the\nsupplemental\nMarin Pulumi Admin role.\n\nAdd `iam.roles.undelete` to Marin Pulumi Admin so the stack can restore\nany\nmanaged custom role recreated during GCP's seven-day soft-delete window.\n\nFollow-up to #9329. A reviewer should use the repository's\n`review-grant`\nworkflow, then run `pulumi up` for the `infra/pulumi` `marin` stack.",
+      "sha": "49149682b6fc68764b86f5373acf3e8fb56a9c4d",
+      "url": "https://github.com/marin-community/marin/commit/49149682b6fc68764b86f5373acf3e8fb56a9c4d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-22T20:31:05Z",
+      "committed_at": "2026-09-22T20:31:05Z",
+      "message": "[docs] Make internal onboarding agent-first (#9304)\n\nMake internal onboarding a short, agent-first entry point. New hires get\nan\naccess checklist and a prompt that invokes the `onboard-marin` skill.\nThe skill\nchecks local setup and external services read-only by default and\nrequires\nexplicit approval for remote smoke jobs.\n\nDocument Pulumi operation as an elevated, optional duty following #9329.\nOperators need both the Marin Dev and Marin Pulumi Admin roles. The\nonboarding\nskill verifies filtered live role bindings and state read access without\nrunning\n`pulumi up`, while grants follow the encrypted `add-grant` and\n`review-grant`\nworkflow.\n\nRemove the stale manual Iris workflow and route operational details to\nmaintained\nsources. The infrastructure guide distinguishes preemptible Google TPUs\nfrom\nnon-preemptible CoreWeave GPUs while requiring restart-safe jobs on\nboth, with\nconcrete data and training resume examples. Contributor setup now\nfollows the\ninstallation guide instead of the obsolete `make init` path.",
+      "sha": "8196ca8fb8e57baf1cdcebabb09f4f452c7b309c",
+      "url": "https://github.com/marin-community/marin/commit/8196ca8fb8e57baf1cdcebabb09f4f452c7b309c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-09-22T20:26:41Z",
+      "committed_at": "2026-09-22T20:26:41Z",
+      "message": "[eval] Score aggregate-only Evalchemy tasks by enumerated documents (#9156)\n\nEvalchemy's AIME24 and OlympiadBench grade the whole item set and write\nonly an\naggregate `accuracy_avg`; their sample rows carry no per-item score. The\nexport\npreviously recorded zero scored items, so the panel rejected these runs\nwith\n\"no item count.\"\n\nCount every enumerated document as scored when evaluator metadata\ndeclares an\naggregate `_avg` primary metric. Scoreless rows for ordinary benchmarks\nremain\nungraded, so incomplete or historical sample files cannot report full\ncoverage. Aggregate-scored tasks have no per-item pass tally.\n\nThis uses the benchmark protocol added by #9145. A capped AIME24 run\nremains\nineligible under the benchmark coverage gate. The behavior was verified\nagainst the pinned Evalchemy fork's sample-row shape; no stored AIME24\nrecord\nwas available.",
+      "sha": "d4ada76cbddfbd5fbe4cfd0b91af2b30a8facc74",
+      "url": "https://github.com/marin-community/marin/commit/d4ada76cbddfbd5fbe4cfd0b91af2b30a8facc74",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-22T20:25:56Z",
+      "committed_at": "2026-09-22T20:25:56Z",
+      "message": "[inference] Guard tool loops, preserve XML, and share chats (#9337)\n\nDefault chat tool exchanges to unlimited rounds and expose a persisted\nmaximum\nin More settings. Positive values stop after the configured number of\nrounds.\nThe UI stops before executing a third consecutive call with the same\nfunction\nand canonical arguments.\n\nRender unfenced model HTML and XML as escaped literal text before\nsanitization.\nCustom tags remain visible without becoming active DOM elements.\n\nAdd short share links backed by bounded, process-local snapshots. Links\nretain\nonly a 16-character ID. Snapshots contain user and assistant text plus\nerrors,\nexclude hidden prompts, reasoning, and tool execution state, and reject\nrequest\nbodies larger than 512 KiB. The newest 128 shares remain available until\neviction or serve-process restart. Imported shares persist in the\nrecipient's\nbrowser conversation history.\n\nThe share ID is not a credential. Access still requires the copied\ndashboard\ncapability URL, which grants endpoint access until the Iris-assigned\nexpiration\ntime.\n\n---------\n\nCo-authored-by: William Held <9847335+Helw150@users.noreply.github.com>\nCo-authored-by: William Held <will.held@openathena.ai>",
+      "sha": "13ffee1264b323a1b9be98045e7148addf91684b",
+      "url": "https://github.com/marin-community/marin/commit/13ffee1264b323a1b9be98045e7148addf91684b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-22T19:34:23Z",
+      "committed_at": "2026-09-22T19:34:23Z",
+      "message": "[testing] Reject guard-mirroring tests (#9341)\n\nReject standalone scalar and configuration guard tests unless they\nreproduce a\nreported regression or protect a compatibility-critical public contract.\nDirect\ntest authors and reviewers toward consequential behavior.\n\nTreat exact dependency versions, default scalar values, and serialized\nconfiguration as implementation details unless an external consumer\ndepends on\ntheir exact value or representation. This aligns Marin's project-wide\npolicy\nwith marin-community/marin-style#16.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "401c5881199ac4a72e9a68eec97f6ffc54f4b47d",
+      "url": "https://github.com/marin-community/marin/commit/401c5881199ac4a72e9a68eec97f6ffc54f4b47d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-22T19:08:41Z",
+      "committed_at": "2026-09-22T19:08:41Z",
+      "message": "Fix CUDA 13.2 serving for promoted vLLM wheels (#9314)\n\n## Summary\n\n- promote the validated CUDA 13.2 Marin vLLM wheel release with native\nK2 Horizon support\n- resolve fork wheels through explicit CUDA and CPU PyTorch indexes and\npair each backend with its matching CUDA compiler packages\n- preserve the configured tokenizer repository after checkpoint weights\nare mirrored to object storage, including vLLM and Levanter serving\npaths\n- pass the tokenizer and pinned revision to vLLM so model-native chat\ntemplates and parsers remain available\n- preserve useful failure lines in truncated server-startup diagnostics\nthrough Iris shared log highlighting\n\n## Validation\n\n- `uv run config/update-external.py --check vllm`\n- `uv run pytest -q tests/inference/test_vllm_server.py\ntests/inference/test_vllm_wheel_entrypoint.py\ntests/inference/test_external_dependencies.py` (35 passed, 1 skipped)\n- `GLOO_SOCKET_IFNAME=lo0 uv run pytest -q\ntests/inference/test_serve.py` (67 passed)\n- `./infra/pre-commit.py --files ...` on all changed files\n- live K2 Horizon TP=2 Math500 canary loaded the native model and served\nsustained traffic\n- live K2 Horizon TP=2 BFCL-Parity canary completed successfully using\nthe official template and native `k2_horizon` reasoning/tool parsers\n\n## Lint review\n\nThe review ran iteratively and every reported finding was addressed. The\nfinal rerun could not start any lane because the backing agent CLI was\nunavailable.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "db27423ba1b37bdd7bd654fcc4ca6968193d5b0a",
+      "url": "https://github.com/marin-community/marin/commit/db27423ba1b37bdd7bd654fcc4ca6968193d5b0a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-22T18:57:11Z",
+      "committed_at": "2026-09-22T18:57:11Z",
+      "message": "[levanter] Support context-parallel short convolution (#9118)\n\nExchange the left neighbor's activations and segment IDs before running the local convolution, then discard halo outputs. This preserves causal values and gradients across sequence shards for the reference and Pallas backends. Reject halos larger than one shard's local sequence length because the exchange reads only the adjacent shard. The context-parallel path keeps the channel-axis guard of the unsharded path, so a channel dimension partitioned across multiple \"model\" shards raises instead of being silently all-gathered when resharding for the local convolution.\n\nShare partition inspection between the convolution and Grug through levanter.sharding. Preserve concrete arrays' placement on JAX Auto mesh axes and empty partition specs; Grug callers still select default token sharding for empty specs.\n\nPart of #8754",
+      "sha": "81c42b42120602a4f2ebf40e20e0fcaead93ba2d",
+      "url": "https://github.com/marin-community/marin/commit/81c42b42120602a4f2ebf40e20e0fcaead93ba2d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-22T18:32:49Z",
+      "committed_at": "2026-09-22T18:32:49Z",
+      "message": "[canary] Fail when TPU capacity is exhausted (#8718)\n\nMake the TPU canary fail when Iris cannot admit the requested TPU\ncapacity.\nIris still cancels the waiting job cleanly; a final workflow step then\nexits\nnonzero, so GitHub and Grafana no longer record a no-training success.\n\nScheduled capacity outcomes skip Slack. Other failures retain\ndiagnostics and\nSlack notification. Successful runs still require metrics validation.\n\n[Run\n33423728535](https://github.com/marin-community/marin/actions/runs/33423728535)\ntested exact head `590e8d190c0aef95eba54ac282e16f1246a0b07a` on a real\nv6e-4 in\n`us-east5-b`. It completed 237 steps with final loss 5.7976 against\nlimits of\n200 steps and 8.0, and left both Iris jobs terminal. All eight focused\nIris\nmonitor tests pass. The optional profile summary could not find\n`trainer.log_dir`; it is non-blocking and did not affect the gates.\n\nThat run covers the normal path. [Scheduled run\n\n32939622815](https://github.com/marin-community/marin/actions/runs/32939622815)\nproduced the real `RESOURCE_EXHAUSTED` signal under the old workflow.\nFocused\ntests cover that output and cleanup. A natural stockout has not\nexercised the\nnew final GitHub failure step end to end.\n\nThe 2026-09-22 audit found no superseding behavior on `main`. Grafana\nstill\nderives both ferry views from the workflow conclusion, and #8801 set the\nTPU\nnightly minimum duration to zero. #9285 only added a six-hour Iris\nserver\ndeadline; the refreshed branch preserves its `--timeout 21600`. At head\n`0ab8fb82914f9a33a391db94a1b729ab275cbbc1`, the eight focused monitor\ntests\nand changed-file lint pass; the safe affected-test selector found no\ntest\npackages for this workflow-only diff. No new TPU run was launched.\n\n---------\n\nCo-authored-by: yoblin <268258002+yoblin@users.noreply.github.com>\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "e0fa09555ba504060c6684a8c69220f2b5ff6f84",
+      "url": "https://github.com/marin-community/marin/commit/e0fa09555ba504060c6684a8c69220f2b5ff6f84",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-22T18:17:36Z",
+      "committed_at": "2026-09-22T18:17:36Z",
+      "message": "[grug] Support context-sharded queries in FA4 attention (#9117)\n\nPartition queries across context shards while retaining the full\nkey/value sequence on each shard. Carry global query offsets through\ncausal masking and backward bounds, and sum partial key/value gradients\nacross shards. Keep THD and native SM90 GQA backward explicitly\nunsupported for context parallelism.\n\nStacked on #9116.\n\nPart of #8754",
+      "sha": "371c48afc212eb6b07e7331fa830145ad314b09a",
+      "url": "https://github.com/marin-community/marin/commit/371c48afc212eb6b07e7331fa830145ad314b09a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-22T18:16:31Z",
+      "committed_at": "2026-09-22T18:16:31Z",
+      "message": "[iac] Grant Iris IAP access to an operator (#9338)\n\nGrant the existing encrypted operator principal\n`roles/iap.httpsResourceAccessor` on the `iris-marin-be` and\n`iris-marin-dev-be` backend services. This enables the operator to\nauthenticate through IAP to both Iris environments.\n\nA grant approver should run the `review-grant` playbook, merge the\nconfirmed change, and apply the `marin` Pulumi stack.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "1f385b04cc999d33a87b11318d1f4a7df93191c3",
+      "url": "https://github.com/marin-community/marin/commit/1f385b04cc999d33a87b11318d1f4a7df93191c3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-22T18:00:29Z",
+      "committed_at": "2026-09-22T18:00:29Z",
+      "message": "[iac] Add a Pulumi operator role (#9329)\n\nMarin Dev is the role meant for day to day users. I wanted a separate\nrole that also adds the necessary magic for Pulumi without granting full\naccess to everything directly for general hygiene.\n\nLmk if we'd rather not. \n\n--\n\nDefine a supplemental Marin Pulumi Admin custom role for the Compute,\nArtifact Registry, service-account, custom-role, IAP, Cloud Run, KMS,\nand bucket writes performed by the `marin` GCP stack. The existing Marin\nDev role continues to supply reads, state-bucket access, KMS encryption\nand decryption, Secret Manager access, and project IAM updates.\n\nGrant the role to an existing encrypted Marin Dev principal. The role\nand binding were created live to unblock operator applies, then adopted\ninto the `marin` Pulumi state. The role includes IAM policy mutation and\nshould remain limited to trusted `marin` stack operators.",
+      "sha": "a1d6f77920e9e42a3404caae6b376aa3d7757b46",
+      "url": "https://github.com/marin-community/marin/commit/a1d6f77920e9e42a3404caae6b376aa3d7757b46",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-22T17:30:25Z",
+      "committed_at": "2026-09-22T17:30:25Z",
+      "message": "[iris] Use shared uv cache until setup fails (#9330)\n\nKeep every task attempt on the node-shared uv cache. During setup, Iris\nwraps `uv sync` and `uv pip install`: the first failed install retries\nagainst `$IRIS_WORKDIR/.uv-recovery-cache` with `--reinstall`, and a\nworkdir marker keeps later installs in that attempt on the recovery\ncache. Other uv commands are not replayed because their exit status may\ncome from user code. Retries caused by workload or infrastructure\nfailures no longer force a cold dependency sync.\n\nIn-place cache cleaning remains unsafe while Iris virtual environments\nsymlink to cached files. The [repair\nproposal](https://loom.oa.dev/s/0nkqy1cf/artifacts/uv-cache-recovery-proposal)\ncompares copy and clone modes with cache-generation quarantine, then\noutlines cache-owner detection, rotation, telemetry, and reclamation.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "12bbd5d45b1b176167ab3cfe905e06004c2f02e3",
+      "url": "https://github.com/marin-community/marin/commit/12bbd5d45b1b176167ab3cfe905e06004c2f02e3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-22T17:27:11Z",
+      "committed_at": "2026-09-22T17:27:11Z",
+      "message": "[eval] Apply Harbor output budgets to Terminus requests (#9327)\n\nApply each resolved Harbor output budget to Terminus-2's ordinary\nchat-completion requests. `generation.max_gen_toks` previously populated\nonly `model_info.max_output_tokens`, which Terminus used for capability\nmetadata and compaction but did not forward as `max_tokens` on normal\nturns.\n\nPreserve an explicit lower `llm_call_kwargs.max_tokens` from the Harbor\npolicy. Reject request limits above the resolved model output budget\nbefore launching inference.\n\nRelated to https://github.com/marin-community/harbor/issues/165.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "ed13d00e8b86e96bc377a50c936abd49f522bf56",
+      "url": "https://github.com/marin-community/marin/commit/ed13d00e8b86e96bc377a50c936abd49f522bf56",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-22T16:48:20Z",
+      "committed_at": "2026-09-22T16:48:20Z",
+      "message": "[grug] Add context mesh support and preserve token shard reductions (#9116)\n\nAdd a context axis to the Grug mesh while preserving parameter placement\nat context degree one. Read token partitioning from traced arrays so MoE\ndrop-count reductions count each dropped assignment once and fused loss\nretains sequence sharding instead of gathering activations.\nExpert-parallel MoE rejects a token partition that omits the expert\naxis, since its shard_map follows the input spec and would otherwise\nhand every expert rank the same tokens.\n\nVariants without sequence sharding reject context parallelism during\nconfiguration. Legacy checkpoints can restore onto the new mesh with\nparameters partitioned across expert and context axes.\n\nPart of #8754",
+      "sha": "d8d1e932ee40fe698b38818591146df5e3d0a5bf",
+      "url": "https://github.com/marin-community/marin/commit/d8d1e932ee40fe698b38818591146df5e3d0a5bf",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-22T16:32:23Z",
+      "committed_at": "2026-09-22T16:32:23Z",
+      "message": "[iris] Recover task setup and serving failures (#9322)\n\nOn the first task attempt, Iris starts `uv sync` against the node-shared\ncache. A failed default sync retries within that attempt against\n`$IRIS_WORKDIR/.uv-recovery-cache` and reinstalls the environment. The\nattempt workdir persists through the run command, so the new symlink\ntargets remain valid.\n\nEach scheduler retry after attempt zero sets\n`UV_CACHE_DIR=$IRIS_WORKDIR/.uv-cache` before any setup script runs.\nDefault and custom scripts therefore avoid a malformed entry from the\nnode-shared cache on later attempts. Only the generated default setup\nscript has the additional same-attempt fallback. Python installations\ncontinue to use the shared cache.\n\nEvery `ZephyrContext` now gives its coordinator 1 CPU and 4 GiB of\nmemory unless the caller supplies `coordinator_resources`. The previous\n0.1 CPU and 1 GiB default let full-workspace dependency setup exceed the\npod memory limit before the coordinator actor registered. CoreWeave\nsmoke runs\n[35716738886](https://github.com/marin-community/marin/actions/runs/35716738886)\nand\n[35720717255](https://github.com/marin-community/marin/actions/runs/35720717255)\nreproduced the `OOMKilled` setup failure and integration-test timeout.\n\nDrafting-evaluation jobs also failed with `Metadata field Name not\nfound` while reading cached NumPy or pandas wheels. The workdir caches\navoid those node-shared entries. Direct and brokered remote-inference\njobs now set Iris `max_task_failures` to their configured\n`max_retries_failure`, which defaults to one. The old cumulative budget\nof zero ended the job on its first hard task failure before the per-task\nreplacement could run; a second hard failure now ends a\ndefault-configured job and returns control to its parent pipeline.\n\nIncident record: https://marina.oa.dev/echo/wiki/499\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "2bcd357dfdfd61ff2fa2726c336d9eca607f3aaa",
+      "url": "https://github.com/marin-community/marin/commit/2bcd357dfdfd61ff2fa2726c336d9eca607f3aaa",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-22T16:20:39Z",
+      "committed_at": "2026-09-22T16:20:39Z",
+      "message": "[packaging] Publish ShellSim as a marin-core dependency (#9326)\n\nInstall ShellSim 0.1.10 or newer from PyPI as a required marin-core\ndependency. The release builder now retains ShellSim in wheel metadata,\nso isolated `marin-serve` installations can import dashboard tool\nmodules.\n\nThe built `marin-core` wheel declared `Requires-Dist: shellsim>=0.1.10`,\nand an isolated uv tool installation ran `marin-serve --help`\nsuccessfully. The affected safe suite passed 2,021 tests with 3 skipped\nand 5 expected failures.\n\nFixes #9323\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "92d9eecafd10fe7821901a32f1c4ac6c113ae587",
+      "url": "https://github.com/marin-community/marin/commit/92d9eecafd10fe7821901a32f1c4ac6c113ae587",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-22T05:40:34Z",
+      "committed_at": "2026-09-22T05:40:34Z",
+      "message": "[inference] Add Git-aware Chat workspaces (#9263)\n\nGive vLLM Chat workspaces ShellSim's current local Git behavior,\nincluding branches, commits, merges, stashes, rebases, blame, and\nreflog. Pin ShellSim to the reviewed upstream revision that provides\nthese operations.\n\nPublic GitHub imports now perform one credential-free shallow clone when\nthe user chooses **Clone public repo**. The service translates up to 32\nrecent first-parent commits and their bounded UTF-8 text changes into\nShellSim-native commits, then deletes the temporary clone. Models can\ninspect prior revisions with `git log`, `git show`, `git diff`, and `git\nblame` without subsequent network access.\n\nThe simulated workspace remains network-isolated, so clone, fetch, pull,\nand push are unavailable during model tool calls. Imports exclude merge\ntopology, tags, submodules, binary and oversized files, private\nrepositories, and history outside the configured bounds.\n\n---------\n\nCo-authored-by: William Held <9847335+Helw150@users.noreply.github.com>\nCo-authored-by: William Held <will.held@openathena.ai>",
+      "sha": "39ff14d184a7c96fcb79a993dedbb2332d57baab",
+      "url": "https://github.com/marin-community/marin/commit/39ff14d184a7c96fcb79a993dedbb2332d57baab",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-22T00:41:26Z",
+      "committed_at": "2026-09-22T00:41:26Z",
+      "message": "[grug] Enable coordinated GC in the hero launcher (#9266)\n\nEnable coordinated cyclic garbage collection every 100 completed\ntraining steps in the scaling-ladder launcher, including the production\nhero. Use the coordinated GC implementation from #9224, including\nwarmup, evaluation cleanup, and restoration of Python's GC policy on\ntraining exit. Diagnostics remain opt-in.",
+      "sha": "cf3f4ffd1b8821a2216eac2082409306c2a29cb2",
+      "url": "https://github.com/marin-community/marin/commit/cf3f4ffd1b8821a2216eac2082409306c2a29cb2",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-23T00:00:00Z",
+    "start": "2026-09-22T00:00:00Z"
+  }
+}

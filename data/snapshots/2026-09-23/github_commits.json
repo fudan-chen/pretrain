@@ -1,0 +1,241 @@
+{
+  "commit_count": 21,
+  "commits": [
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-09-23T23:28:55Z",
+      "committed_at": "2026-09-23T23:28:55Z",
+      "message": "[iac] Enable contractor Iris submissions across live clusters (#9388)",
+      "sha": "68f0ea20785fc86e976741111f5d9ad53c236cf5",
+      "url": "https://github.com/marin-community/marin/commit/68f0ea20785fc86e976741111f5d9ad53c236cf5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-23T21:44:48Z",
+      "committed_at": "2026-09-23T21:44:48Z",
+      "message": "[loom] Reconcile deployments through container loopback (#9391)\n\nApply the Loom deployment manifest through the server container's\nloopback listener. The host runs the request with `docker compose exec`;\nCaddy overwrites `X-Loom-Forwarded` on every public request. No\nseparately minted or rotated deployment token is required.\n\nShared mode rejects the machine-local token used by the current startup\nscript, leaving the new image ready while profile reconciliation returns\nHTTP 401. Loom's companion change permits only an unmarked,\ncredential-free `deployment.reconcile` request from its own loopback\nlistener: https://github.com/marin-community/loom/pull/356.\n\nThe automated Loom reviewer cannot currently launch because production\nfederation profiles were not reconciled. Its failed check reports\n`cannot mint a session credential for unauthorized user` and needs to be\nrerun after the deployment is repaired. Incident record:\nhttps://marina.oa.dev/echo/wiki/516.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "4c23e93681b843c3afc8b35c132c16c9e14b6d11",
+      "url": "https://github.com/marin-community/marin/commit/4c23e93681b843c3afc8b35c132c16c9e14b6d11",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-23T21:37:41Z",
+      "committed_at": "2026-09-23T21:37:41Z",
+      "message": "[dependencies] Advance external runtimes (#9394)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`5becb4e44ee5`](https://github.com/marin-community/evalchemy/commit/5becb4e44ee5249d4ec347229f467e107075caa3)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`6543ab6cf556`](https://github.com/marin-community/harbor/commit/6543ab6cf5562e690203ddffb40efac74ef4f45b)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`5fe676b33f7b`](https://github.com/marin-community/MarinSkyRL/commit/5fe676b33f7b05a76948f7117cda82daf3ea4511)\n|\n\n## Upstream commits\n\n### evalchemy (`9447eed90c92` → `5becb4e44ee5`)\n\n-\n[`7416f4f29eee`](https://github.com/marin-community/evalchemy/commit/7416f4f29eeee376a1340de18d44bd4b09b57059):\nSend only token-sentinel stops on the chat route (#149)\n-\n[`791d41c70135`](https://github.com/marin-community/evalchemy/commit/791d41c701357e7ae47d208ad8139fe0f4cb882c):\n[graders] Add one bounded LiveCodeBench grader and route the variants\n(#150)\n-\n[`4d03c07d0d9c`](https://github.com/marin-community/evalchemy/commit/4d03c07d0d9c0014b23d4447b6b95c0a5e4191e6):\nForward local chat request body options (#152)\n-\n[`59bb22dee2f5`](https://github.com/marin-community/evalchemy/commit/59bb22dee2f5f6c417f9903c997c60246097a3b9):\n[graders] Reuse math and LLM answer equivalence (#153)\n-\n[`9b9093c8495a`](https://github.com/marin-community/evalchemy/commit/9b9093c8495a058d83a9dfeeb096a801870c1783):\nStabilize TruthfulQA MC2 probability normalization (#157)\n-\n[`c695707881b5`](https://github.com/marin-community/evalchemy/commit/c695707881b52283dfef7e47bffcbdc89802d6bb):\nKeep API sessions open through batch failures (#156)\n-\n[`29ff960858cc`](https://github.com/marin-community/evalchemy/commit/29ff960858ccdda593cea71a5c4a5cd4a2ad6e90):\nPreserve repeated evaluation trials (#159)\n-\n[`ab8e78f12abb`](https://github.com/marin-community/evalchemy/commit/ab8e78f12abb8ed0d1659f56c24f2e01f3c85b54):\nLoad Transformers 5 tokenizer exports (#160)\n-\n[`a9581062c629`](https://github.com/marin-community/evalchemy/commit/a9581062c629ca8bfa5238b91301e8b76d62bb06):\nAdd full and mini SimpleQA benchmarks (#162)\n-\n[`025cf9e1e737`](https://github.com/marin-community/evalchemy/commit/025cf9e1e73789a56d6c58960cec6748c7b96d3e):\n[e2e] Tolerate Iris worker preemption (#163)\n-\n[`e55d21fdc992`](https://github.com/marin-community/evalchemy/commit/e55d21fdc992f73e1941bef8991f6bcb86764ecf):\nAdd the NUPA numeracy benchmark (#76)\n-\n[`e683741b117d`](https://github.com/marin-community/evalchemy/commit/e683741b117d7262df92ee9b015cb43f16751b1c):\nAdd the deterministic NUPA5K panel (#166)\n-\n[`64a87bbabb06`](https://github.com/marin-community/evalchemy/commit/64a87bbabb06aa3c2d3402639260b022339355f2):\n[dependencies] Adopt automated marin-style updates (#168)\n-\n[`b61989e2e268`](https://github.com/marin-community/evalchemy/commit/b61989e2e268496adeefe230b89ba773d5642e2d):\n[dependencies] Require fixed marin-core wheel (#172)\n-\n[`e80fc88dba28`](https://github.com/marin-community/evalchemy/commit/e80fc88dba28843a51d6bc8e49780869f33e51ff):\n[MATH500] Grade equivalent answer forms correctly (#170)\n-\n[`1232d479f0a0`](https://github.com/marin-community/evalchemy/commit/1232d479f0a09426886f23402a2a6269fc9bec89):\nPreserve MRCR assistant reasoning fields (#164)\n-\n[`1eaf5c0e16d7`](https://github.com/marin-community/evalchemy/commit/1eaf5c0e16d7c35ee2b5b4c4e696a7b9cc077ba1):\n[eval] Reject scores from malformed chat responses (#173)\n-\n[`5becb4e44ee5`](https://github.com/marin-community/evalchemy/commit/5becb4e44ee5249d4ec347229f467e107075caa3):\n[AIME] Grade final answers with shared math equivalence (#174)\n\n### harbor (`dbe2f36e2ffc` → `6543ab6cf556`)\n\n-\n[`66a57e2e8531`](https://github.com/marin-community/harbor/commit/66a57e2e8531a1005594019b46b09ccc99890f6a):\nAdd a pinned Harbor Index policy (#171)\n-\n[`06a0c7739f85`](https://github.com/marin-community/harbor/commit/06a0c7739f85aac06234eec77405c766193d80b8):\nAdd ACP simulated-user support for tau3 (#173)\n-\n[`b78a0e52af98`](https://github.com/marin-community/harbor/commit/b78a0e52af98015fc8416d5bd5ee649a284e5a4c):\n[bixbench] Request the judge JSON schema explicitly (#174)\n-\n[`d8137ca89b9f`](https://github.com/marin-community/harbor/commit/d8137ca89b9f7091be06ff88dcb6bbc37db7e2d9):\nAdd a DeepSWE LiteContainer dataset versioner (#175)\n-\n[`bde5773b5da4`](https://github.com/marin-community/harbor/commit/bde5773b5da414a7b48af75a5ff75a7c04c30274):\nAdd the first reviewed BixBench correction set (#176)\n-\n[`47c4a4ab21dc`](https://github.com/marin-community/harbor/commit/47c4a4ab21dc4140cc49e02e0dc249c0b2c4f7e9):\nFix DeepSWE LiteContainer source download (#178)\n-\n[`1764f698834e`](https://github.com/marin-community/harbor/commit/1764f698834e8459a46768339443e23e134f3504):\nRegister Marin benchmark snapshots (#179)\n-\n[`cc64774adc39`](https://github.com/marin-community/harbor/commit/cc64774adc392b0abf8a00e556776b3299f83895):\nScale Pi compaction to configured model limits (#182)\n-\n[`1d5bcbf377b0`](https://github.com/marin-community/harbor/commit/1d5bcbf377b0c46a53bb7400f3b4143fc4f04b2c):\nPublish tau3-bench v1.0.1 dataset (#183)\n-\n[`ec9096392196`](https://github.com/marin-community/harbor/commit/ec90963921961071535469d276e794296ea3c565):\nAdd SOTOPIA benchmark adapter (#185)\n-\n[`ebdcfa9c90b8`](https://github.com/marin-community/harbor/commit/ebdcfa9c90b84cf311f184ee5aab47b5a6bb218d):\nConfigure hosted vLLM for pi-acp targets (#187)\n-\n[`028ad2941957`](https://github.com/marin-community/harbor/commit/028ad29419575a463b43f3129de06fad2059dc20):\nPin an amd64 BixBench runtime image (#188)\n-\n[`8a8774a025b9`](https://github.com/marin-community/harbor/commit/8a8774a025b92660e49ed64bf6f7448d4342bbbe):\nRegister amd64 BixBench correction tasks (#189)\n-\n[`0dcd65486c99`](https://github.com/marin-community/harbor/commit/0dcd65486c9956e7cbb561226ca78d2a8a1725cb):\n[bixbench] Add Phylo's BixBench-Verified-50 (#180)\n-\n[`d072bef08e54`](https://github.com/marin-community/harbor/commit/d072bef08e54050880b484eb81d892944d1d82fb):\n[terminus-2] Restore bounded summary fallbacks (#193)\n-\n[`1818cee10a19`](https://github.com/marin-community/harbor/commit/1818cee10a196dcab363c83d20f58fdc84f09ff5):\n[agents] Repair pi-acp and τ³ sandbox startup (#194)\n-\n[`00da23c60f17`](https://github.com/marin-community/harbor/commit/00da23c60f178cf517c032568024be2e7c47146a):\n[dependencies] Adopt automated marin-style updates (#196)\n-\n[`c7ea35ff06a4`](https://github.com/marin-community/harbor/commit/c7ea35ff06a4608b1ca9565ae9e3c0e7c5ca90ac):\n[bixbench] Register complete AMD64 correction tasks (#197)\n-\n[`052904f489e7`](https://github.com/marin-community/harbor/commit/052904f489e7307e73911a9da2b437893fe06402):\n[llms] Preserve empty interleaved reasoning fields (#195)\n-\n[`02bf5c7cb836`](https://github.com/marin-community/harbor/commit/02bf5c7cb83617276ad5be26f89fe15e735cc259):\n[artifacts] Preserve persistence errors through trial retries (#198)\n-\n[`7314b13f0eab`](https://github.com/marin-community/harbor/commit/7314b13f0eab53e2342aa3e45caf4421c066b0ce):\n[ds-1000] Keep expected-result code verifier-only (#199)\n-\n[`a3d04a6a7cf5`](https://github.com/marin-community/harbor/commit/a3d04a6a7cf553fadd753695e14dcc4e02ebaf18):\n[tau3] Inherit the Harbor agent timeout in the ACP relay (#200)\n-\n[`6ffcd63dafd3`](https://github.com/marin-community/harbor/commit/6ffcd63dafd371d6c61f23a82946f60e84ee9181):\n[daytona] Classify command polling failures (#201)\n-\n[`d035f74d5647`](https://github.com/marin-community/harbor/commit/d035f74d5647a786f9b36cb4524d2cb29d5870d6):\n[daytona] Normalize exhausted directory download failures (#203)\n-\n[`df8a574c2cce`](https://github.com/marin-community/harbor/commit/df8a574c2cce80a8d8b8b74c671c69ce784f756a):\n[tau3] Preserve relay failure semantics (#204)\n-\n[`8740479f6cab`](https://github.com/marin-community/harbor/commit/8740479f6cab55bdd5e2542a25ec1ad81092de87):\n[dependencies] Require fixed marin-core wheel (#205)\n-\n[`7b70b4add46a`](https://github.com/marin-community/harbor/commit/7b70b4add46a1518d2b21ddaddaa82f422c65792):\nTreat existing Daytona exec sessions as created (#206)\n-\n[`cb8071c6c2b0`](https://github.com/marin-community/harbor/commit/cb8071c6c2b08db38c5b9a5412c49f117a2708df):\nRetry Daytona compose builds throttled by registries (#207)\n-\n[`8abc63e3bdb3`](https://github.com/marin-community/harbor/commit/8abc63e3bdb37af1d345fcac123ef7d2122598f3):\n[verifier] Enforce sandbox test deadlines (#208)\n-\n[`db4bd91b90d2`](https://github.com/marin-community/harbor/commit/db4bd91b90d2317b0d9ef4fb499ec189c187cf27):\n[daytona] Classify compose-up registry throttling (#209)\n-\n[`6543ab6cf556`](https://github.com/marin-community/harbor/commit/6543ab6cf5562e690203ddffb40efac74ef4f45b):\n[tau3] Classify target service outages (#211)\n\n### MarinSkyRL (`5b6041c5f64c` → `5fe676b33f7b`)\n\n-\n[`5fcd8b465b7e`](https://github.com/marin-community/MarinSkyRL/commit/5fcd8b465b7e8fbc534d29bfe94ace9f170110cd):\nBatch rectangular routed-expert collation (#750)\n-\n[`5fe676b33f7b`](https://github.com/marin-community/MarinSkyRL/commit/5fe676b33f7b05a76948f7117cda82daf3ea4511):\n[runtime] Preserve tokenizer identity (#741)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "41aab2b4e69c48ff15a096dafbf476be7ee043c0",
+      "url": "https://github.com/marin-community/marin/commit/41aab2b4e69c48ff15a096dafbf476be7ee043c0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-23T20:51:51Z",
+      "committed_at": "2026-09-23T20:51:51Z",
+      "message": "[grug] Hand off the hero to native SM100 FA4 and mask-free ragged MLP (#9378)\n\nPoint trigger_hero.sh at checkpoint 146139, forced on hero-main-step121638 on 2026-09-23 and copied to s3://hero-checkpoints/marin/grug/hero-main-step121638/2026.08.19.2/checkpoints/step-146139. The new run, hero-fa4sm100-nomask-step146k, forks the parent's W&B history at _step 146138 and deploys the native SM100 FA4 kernels (#9332), ragged MLP tail-mask removal (#9333), and coordinated GC every 100 steps (#9266).",
+      "sha": "ad754c6d67555d6369a4a312ff7388e43cfd08c1",
+      "url": "https://github.com/marin-community/marin/commit/ad754c6d67555d6369a4a312ff7388e43cfd08c1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-09-23T20:01:35Z",
+      "committed_at": "2026-09-23T20:01:35Z",
+      "message": "[grafana] Add the async RL post-training dashboard (#9191)\n\nAdd the RL Post-training (async) dashboard for fully asynchronous\nMarinSkyRL runs. It shows whether rollout work is useful and fresh and\nwhether it keeps the policy trainer busy: loop and buffer state,\nstaleness, rollout and phase timing, learner memory, ratio diagnostics\nand evaluation, selected by cluster, run, training job and execution.\nThe existing RL dashboard becomes RL Post-training (sync), each\ndashboard's run picker offers only runs of its own training loop, and\nHome links each recent run to the dashboard that can select it.\n\nEvery panel reads one bounded dataset, `/v1/async-rl/overview`, which\nruns nine Finelog queries per page load and serves each panel its view;\nthe run, job and execution pickers stay on `/query`. Each source has a\nrow cap and the window is capped at 7 days; a request past either cap\nreturns a 400 that asks the operator to narrow the selection.\n\nPanels stay empty until a run exports the matching telemetry, and each\npanel's description names the setting it needs. Each view matched the\nper-panel query it replaced on two fixture stores, and the grafana suite\npasses 402 tests. Display buckets start at the window start and widen on\nlong windows, so they can differ from other dashboards' buckets over the\nsame window.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "275c264f1ca23a38285fc370f6e289c70e31d675",
+      "url": "https://github.com/marin-community/marin/commit/275c264f1ca23a38285fc370f6e289c70e31d675",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-23T19:59:42Z",
+      "committed_at": "2026-09-23T19:59:42Z",
+      "message": "Keep MarinSkyRL external lock installable on Linux (#9390)\n\n[Marin #9313](https://github.com/marin-community/marin/pull/9313)\nalready pinned SkyRL to `5b6041c5`, which contains the [compiled rollout\ndefault](https://github.com/marin-community/MarinSkyRL/pull/732). This\nPR keeps that pin and fixes its external lock on Linux.\n\nOn Linux, the main-branch lock fails with:\n\n```sh\nuv sync --project config/external/MarinSkyRL --frozen --no-dev\n# marin-finelog-server==0.2.55.dev35451177481 has no source distribution or Linux wheel (exit 2)\n```\n\nThe [base lock\nentry](https://github.com/marin-community/marin/blob/98700c7ada61aa1bdb3b1bb475110640d012f871/config/external/MarinSkyRL/uv.lock#L1136-L1141)\ncontains only a macOS wheel. Requiring Linux-compatible packages makes\nuv select Finelog `0.2.54.dev35409391246`, which has Linux x86_64 and\naarch64 wheels. Allowing prereleases lets the external updater resolve\nMarin development packages.\n\nThe same frozen sync and package imports pass after this change. The\ngenerated pin check, 31 targeted tests, and lint also pass.\n[#9360](https://github.com/marin-community/marin/issues/9360) records\nthe completed SkyRL activation.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "c1b22e8f3a8b9c20a75aa1643a12841a7ac9daac",
+      "url": "https://github.com/marin-community/marin/commit/c1b22e8f3a8b9c20a75aa1643a12841a7ac9daac",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-23T19:40:34Z",
+      "committed_at": "2026-09-23T19:40:34Z",
+      "message": "[rl] Use one Hydra document for SkyRL launches (#9313)\n\nBuild every SkyRL artifact as one complete Hydra launch document and\nhand that document to MarinSkyRL unchanged. The same resolved\nconfiguration drives preflight validation, Iris allocation and\nsubmission, Ray bootstrap, task staging, training, checkpoint export,\nand the persisted run manifest.\n\nReject topology mismatches before GPU allocation, including inconsistent\npolicy and rollout geometry, invalid tensor-parallel attention-head\ndivisibility, runtime strategy mismatches, and unequal training batches\nfor fully asynchronous entrypoints. Experiment choices are rendered\ndirectly into the `skyrl` mapping instead of dotted command-line\noverrides.\n\nMove Iceball Micro, curriculum RL, and TaskTrove smoke to\nartifact-producing experiment mains. Add the `launch-rl` operating skill\nand a reference guide that documents the complete configuration flow and\nthe division between launch configuration and derived role planning.\n\nKeep canonical portable model export independent from optional,\nexplicitly configured Hub publication. Pin the companion launcher after\nits current-main rebase so object-store rollouts inherit distributed\nRunAI loading and whole-gang startup retries.\n\nCompanion launcher change:\nhttps://github.com/marin-community/MarinSkyRL/pull/734\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "98700c7ada61aa1bdb3b1bb475110640d012f871",
+      "url": "https://github.com/marin-community/marin/commit/98700c7ada61aa1bdb3b1bb475110640d012f871",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-23T19:36:01Z",
+      "committed_at": "2026-09-23T19:36:01Z",
+      "message": "[loom] Select GPT-6 Sol for production profiles (#9384)\n\nSet all eight managed Codex profiles to `gpt-6-sol` without changing\neffort settings. New `@loom` GitHub sessions still use the `github`\nprofile at `xhigh`. Set production's startup versions to Claude Code\n2.1.280, Codex CLI 0.156.1, `claude-agent-acp` 0.81.1, and `codex-acp`\n1.13.1. [Loom #354](https://github.com/marin-community/loom/pull/354)\nadds the version checks.\n\nFor rollout, record the current Loom image digest and commit, Marin\nstack revision, and numbered `LOOM_DOTENV` secret version. Deploy the\nmerged Loom runtime with the old profiles and verify startup, then apply\nthe Marin Loom stack through `marin-deploy loom rollout`. Verify all\neight profile models and `github` selection; check new Claude and Codex\nACP sessions for effective models, Claude's one-million-token context\nwindow, tool use, and resume.\n\nOn failure, restore the previous Marin revision before the prior Loom\nimage. The image rollback leaves native CLIs on the persistent volume;\ndowngrade them separately if needed. Keep active sessions running; do\nnot use `docker compose down`.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "b11671bae8bdc4666452fe3a28ecd7ef61195972",
+      "url": "https://github.com/marin-community/marin/commit/b11671bae8bdc4666452fe3a28ecd7ef61195972",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-23T19:33:49Z",
+      "committed_at": "2026-09-23T19:33:49Z",
+      "message": "[levanter] Coordinate fused CE block selection across ranks (#9368)\n\nCoordinate fused cross-entropy block selection across the processes that\nexecute each kernel. Ranks compare their selection plan, cache state,\ncandidates, and compile viability. During JAX tracing, they choose the\nfirst candidate that compiles on every rank, starting with the inferred\nsizes. Eager callers benchmark runtime and choose the candidate with the\nlowest mean across ranks. A pipeline stage coordinates only its concrete\nmesh.\n\nIn the Snowball 67B SFT smoke run, ranks selected different blocks when\nno shared cache key could be built; compilation then stalled in XLA's\ndistributed `ConfigAssigner`. The source schema now invalidates cached\nwinners that may have been selected by compile time. An eight-node rerun\nhas not validated the change.\n\nFixes #9038",
+      "sha": "49b128f65bc5d12fd638b5d37f37fd5044c1c69b",
+      "url": "https://github.com/marin-community/marin/commit/49b128f65bc5d12fd638b5d37f37fd5044c1c69b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-23T19:19:17Z",
+      "committed_at": "2026-09-23T19:19:17Z",
+      "message": "[grug] Skip unused tail masks in the ragged expert MLP (#9333)\n\nRemove the three tail masks from the QuACK expert MLP on the ragged\nall-to-all EP path: the forward output, the output gradient, and the\ninput gradient. Each mask was a full pass over the receiver buffer. The\ngrouped GEMMs bound their reads by the segment boundaries, and the\nreturn transport sends only active rows, so unused rows never reach the\ncombine. The input-gradient tail flows only into the cotangent of the\ninteger-built dispatch buffer, which JAX discards. The local/FSDP expert\nMLP reads its whole buffer in the combine and keeps its masks. The\ntransport round-trip tests now fill unused receiver capacity with NaN,\nand the SM100 kernel test pads its inputs with NaN rows.\n\nOn 64 GB200 GPUs, removing the masks improves mean training throughput\nby 1.76% and full-iteration throughput by 1.77%. Each arm ran three\ntimes on the same rack, restoring the permanent hero\n`2026.08.19.2/checkpoints/step-30000` checkpoint with the production\ndata mixture, batch 1024, sequence length 4096, and one process per GPU.\nEach run discards 20 warmup updates and scores all 60 updates from 30020\nthrough 30079. The control is #9366, which this PR is stacked on;\nwithout that fix, GPU gangs launched from `main` can fail NCCL\nbootstrap.\n\n| Configuration | Mean step time | Mean iteration time | MFU | Runs |\n| --- | ---: | ---: | ---: | --- |\n| Control | 14.176 s | 14.411 s | 27.69% |\n[a](https://wandb.ai/marin-community/marin_moe/runs/ep-maskab-control-a-20260922),\n[b](https://wandb.ai/marin-community/marin_moe/runs/ep-maskab-control-b-20260922),\n[c](https://wandb.ai/marin-community/marin_moe/runs/ep-maskab-control-c-20260922)\n|\n| Tail masks removed | 13.932 s | 14.161 s | 28.18% |\n[a](https://wandb.ai/marin-community/marin_moe/runs/ep-maskab-mask-a-20260922),\n[b](https://wandb.ai/marin-community/marin_moe/runs/ep-maskab-mask-b-20260922),\n[c](https://wandb.ai/marin-community/marin_moe/runs/ep-maskab-mask-c-20260922)\n|\n\nPaired gains were 2.01%, 1.62%, and 1.64%. Losses stayed finite, and the\nlargest matched-step loss difference from a control run was 0.00067,\nagainst 0.00045 between control repetitions. The runs cover one rack and\nexclude the hero's inter-rack collectives.\n\nReplaces #9315. That PR also registered NCCL symmetric buffers for\nall-gather and reduce-scatter; #9374 defers that change because it adds\nonly 0.32% on top of this one and has not been tested at hero scale\nacross racks or with interleaved evaluation.",
+      "sha": "a2edfcce689610adbcb699f73695fcc11fbb0b24",
+      "url": "https://github.com/marin-community/marin/commit/a2edfcce689610adbcb699f73695fcc11fbb0b24",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-23T19:13:52Z",
+      "committed_at": "2026-09-23T19:13:52Z",
+      "message": "[iris] Make endpoint search live and group results (#9386)\n\nReplace the submit-only endpoint prefix field with live search across\nendpoint names, addresses, task IDs, and endpoint metadata keys and\nvalues. The previous field only queried leading name prefixes, so terms\nsuch as a job name often returned no rows.\n\nGroup matches by the submitting user encoded in each task ID, then by\njob, and sort endpoint names naturally within each job. User and job\nheadings link to scoped dashboard views; endpoints without task\nownership stay under System.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "7369394f006a8e5dc0a935ee81e6bce304c4b8af",
+      "url": "https://github.com/marin-community/marin/commit/7369394f006a8e5dc0a935ee81e6bce304c4b8af",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-09-23T19:04:46Z",
+      "committed_at": "2026-09-23T19:04:46Z",
+      "message": "hero: rack-wide completion sampling and stable sample identity (#9387)\n\n* hero checkpoint completions were not finishing: an unrelated hero\nmodel change discarded every completed result, and the job needed more\nwall clock than its own timeout\n* sample identity no longer digests the hero model config\n* `sample_id` hashed the whole `SamplingSpec`, which embedded\n`draccus.encode(HERO_MODEL_CONFIG)`, so the `gpu_fa4_cute_wide` →\n`gpu_fa4_cute_sm100` rename in #9332 re-keyed all 23 requests and\norphaned the 8 completed sample sets (hourly summary went 8 completed /\n15 outstanding → 0 / 23) [^1]\n* `SamplingSpec` now carries only the fields that decide what a sample\nset contains; the architecture moves to `SampleRequest.model` as pinned\nprovenance\n* `release` stays the deliberate backfill knob, and the checkpoint\nalready pins the weight layout through `metadata_digest`\n* batch shape leaves the request for the same reason\n* one prompt row per GPU, so the sampler reads the batch from\n`jax.device_count()`; `generate` and `score_expected` take it as a\nparameter\n* dropless backend means filler rows cannot change another prompt's\nrouting, so the batch changes the pass count and not the output\n* sampling moves to 64 GB200 across 16 nodes, one NVL72 rack block\n* a 64-row batch covers the 46-prompt bank in one pass per sample, so a\njob runs 3 decode passes instead of 6: ~4h03m → ~2h\n* job `timeout` 4h → 6h\n* the 4h cap sat below the measured runtime: the last two attempts died\nat 4h00m during their 6th pass, and the two successes before them landed\nat 3h58m\n* a timeout burns one of 3 attempts, and the job keeps no partial result\n\n[^1]: this re-keys the requests once more. the 8 earlier results stay in\nthe published report as a previous sampling version, and their\ncheckpoints get sampled again.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "6551eda74ce0f642b759efcf7710de98712d0cdf",
+      "url": "https://github.com/marin-community/marin/commit/6551eda74ce0f642b759efcf7710de98712d0cdf",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-09-23T18:24:37Z",
+      "committed_at": "2026-09-23T18:24:37Z",
+      "message": "[iris] Allow CPU reservations to route to accelerator peers (#9356)\n\nAllow CPU jobs with `--reserve H100` to queue for an H100 peer without a\ncluster pin. Advertise availability markers and preemptibility to\nsatisfy `--reserve` and `preemptible=false` constraints. CPU placement\ndoes not require or reserve free GPUs.\n\nFocused tests and lint pass. The issue records the [local full-suite\nfailures](https://github.com/marin-community/marin/issues/9354#issuecomment-5786947167).\nLive validation awaits a peer controller deployment.\n\nFixes #9354\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "14eba8f1d0039a28b8e37ab365da4140019339e4",
+      "url": "https://github.com/marin-community/marin/commit/14eba8f1d0039a28b8e37ab365da4140019339e4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-23T17:51:53Z",
+      "committed_at": "2026-09-23T17:51:53Z",
+      "message": "Fix writer and prefetch thread hangs when a producer fails (#9376)\n\n`ThreadedBatchWriter.close()` in zephyr put its stop marker on the\nbounded queue with a blocking put. If the writer thread raised after the\nproducer filled the queue, nothing drained the queue, so `close()` hung\nand the writer's exception was never raised. `close()` now retries the\nput with a timeout while the thread is alive, as `submit()` already\ndoes, then joins and raises the stored error. This writer backs datakit\nnormalize and the levanter store cache, so a writer failure wedged the\nshard instead of failing it.\n\nlevanter's `BackgroundIterator` producer put exception wrappers on its\nbounded queue with a blocking put that ignored the stop event. If the\nproducer raised after `stop()` while the queue was full, the thread\nblocked forever and `stop(wait=True)` (and `__del__`) hung on join.\nExceptions now go through `_enqueue`, which gives up once stop is\nsignaled.\n\nAlso removes two pieces of dead code: iris's `on_loop` RPC decorator and\nits inline-dispatch branch in `AsyncServiceAdapter`, unused since #5988,\nand marin's `with_pack` helper, whose last caller was removed in #9241.\n\n---------\n\nCo-authored-by: nightshift <nightshift@localhost>\nCo-authored-by: marin-ops-agent[bot] <276375779+marin-ops-agent[bot]@users.noreply.github.com>",
+      "sha": "9ddfa104292d7282b0b2e90c87a91da85ebb302c",
+      "url": "https://github.com/marin-community/marin/commit/9ddfa104292d7282b0b2e90c87a91da85ebb302c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-23T16:05:46Z",
+      "committed_at": "2026-09-23T16:05:46Z",
+      "message": "Reuse Echo context during active investigations (#9381)\n\nReuse relevant Echo results throughout one logical investigation. Search\nagain when the incident, question, repository scope, or freshness\nrequirement changes, or when the user or a workflow explicitly requires\nit.\n\nIncident logging now skips a redundant duplicate search when the current\nincident's Echo record is already known, while retaining\nsearch-before-write for new incidents.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "36390fa2b78c2d0473f8dd5cf6ff24a57e263357",
+      "url": "https://github.com/marin-community/marin/commit/36390fa2b78c2d0473f8dd5cf6ff24a57e263357",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-23T16:03:26Z",
+      "committed_at": "2026-09-23T16:03:26Z",
+      "message": "[iris] Keep executable bits in uv task installs (#9366)\n\nInstall Iris task environments with uv's `copy` link mode instead of\n`clone`. Since #9340 switched to clone mode, GPU tasks on CoreWeave have\ninstalled wheel binaries without their executable bit: the task image's\nuv 0.10.3 creates XFS reflinks with mode `0644`. The CUDA toolchain step\nthen found no executable `ptxas`, printed `no CUDA toolchain to stage`,\nand exited before it restored CUDA 13 NCCL precedence. Pods in one gang\nkept whichever of `nvidia-nccl-cu12` 2.28.9 and `nvidia-nccl-cu13`\n2.31.2 uv wrote last to `nvidia/nccl/lib/libnccl.so.2`. A 64-GPU grug\nrun on `main` failed NCCL bootstrap with `Message truncated : received\n176 bytes instead of 172`, and a second run failed the same way.\n\nOn a GB200 node, `ptxas` in `nvidia-cuda-nvcc` and in Triton kept its\nmode in every link mode except clone under the image's uv:\n\n| uv | clone | copy | hardlink | symlink |\n| --- | --- | --- | --- | --- |\n| 0.10.3 (task image) | `-rw-r--r--` | `-rwxr-xr-x` | `-rwxr-xr-x` |\n`-rwxr-xr-x` |\n| 0.11.21 | `-rwxr-xr-x` | `-rwxr-xr-x` | `-rwxr-xr-x` | `-rwxr-xr-x` |\n\nCopy mode keeps what #9340 wanted from clone. On the node's XFS the copy\nshares extents with the cache: a 4.3 GB PyTorch install added 44 MB of\nused space, and the GPU environment synced in 2.98 s versus 2.99 s with\nclone. A copied environment survives `uv cache clean`. Hardlink mode\nfalls back to a full copy with a warning for every install, because\n`/uv/cache` and `/app` are separate mounts. Upgrading uv in the task\nimage would also fix clone mode, but the images rebuild weekly and tasks\npull `iris-task:latest`, while setup scripts ship with each job.\n\nThe toolchain step now restores cuDNN and NCCL precedence before it\nlooks for `ptxas`, and it fails when `ptxas` exists without the\nexecutable bit, so this class of install damage stops setup instead of\nsurfacing as an NCCL bootstrap error. On a GB200 node with this branch,\nsetup restored both packages, staged the toolchain, and left NCCL\n2.31.2+cuda13.3 on disk. The setup tests pass in a CoreWeave CPU pod,\nand the new cases fail against the previous script.",
+      "sha": "566e68fa0dc0514fb78b3307f84ec139e7f97209",
+      "url": "https://github.com/marin-community/marin/commit/566e68fa0dc0514fb78b3307f84ec139e7f97209",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-23T10:22:21Z",
+      "committed_at": "2026-09-23T10:22:21Z",
+      "message": "[sft] Train Snowball through Levanter (#9316)\n\nFine-tune the Snowball Hugging Face base weights with Levanter's\nregistered `SnowballLMHeadModel` through the shared chat SFT launcher.\nOpenThoughts Agent conversations use assistant-only loss. The recipe\nkeeps conversations separate because Snowball does not yet consume\nLevanter's packed-document attention mask.\n\nThe 32 H100 recipe configures 32,768-token sequences with four-way\ncontext parallelism and eight-way expert parallelism. Snowball keeps\nactivations split across context ranks, gathers full keys and values for\nattention, and shards dense and expert weights over the context mesh.\nIts scan body is checkpointed during reverse mode. On two H100s, a\nbounded attention probe matched the data-sharded value and input\ngradient within 1.2e-12 and 1.5e-8 after restoring execute permission on\nthe task-local CUDA compiler binaries. With the current Iris setup, the\nsame probe fails before model execution because JAX cannot execute the\ninstalled CUDA compiler. The full 67B SFT recipe has not completed an\naccelerator run; the prior 32 H100 Snowball training run (PR #9144) used\n4,096-token sequences.",
+      "sha": "2163b2b4e50bdeb697f17433e296ad9fe842008f",
+      "url": "https://github.com/marin-community/marin/commit/2163b2b4e50bdeb697f17433e296ad9fe842008f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-23T04:50:21Z",
+      "committed_at": "2026-09-23T04:50:21Z",
+      "message": "Use native SM100 FA4 forward and backward kernels (#9332)\n\nAdd the `gpu_fa4_cute_sm100` attention backend, which runs upstream\nFlashAttention-4 (FA4)'s native SM100 forward and backward kernels\nthrough Marin's JAX and packed-token mask adapters, and select it in the\n`moe_hero_ep` hero configuration. It supports BF16, head dimension 128,\nand GQA ratios 4, 6, and 8 on SM100, and rejects other shapes and\nhardware.\n\n**Expected hero training-step throughput: about +8%** over `main`'s\n`gpu_fa4_cute_wide`. This compounds the two paired studies below, each\non 64 GB200 GPUs: the native backward (+4.03%) and then the native\nforward on top of it (+4.02%). No single run compared `main` with the\nfull change.\n\n| Change | Result | Setup |\n|---|---|---|\n| Native backward vs. previous backward port | **+4.03%** training-step\nthroughput (15.81 → 15.19 s/step, 95% CI 1.42–6.69%) | 64 GB200, 3-pair\nstudy stopped after interim results ([protocol and\nmeasurements](https://github.com/mcwitt-agent/marin/tree/9cf80aafb65b1b146e9655b3f9d4346e96252ed8/experiments/benchmarks))\n|\n| Native forward vs. previous forward | **+4.02%** training-step\nthroughput (95% CI 1.11–6.92%) | [3 matched pairs, 64\nGB200](https://iris.oa.dev/#/job/%2Fmwittmann%2Ffa4-forward-e2e-20260921d),\n20 measured steps per arm, native backward in both arms |\n| Forward tile 128×64 vs. default 128×128 | **2.74 → 2.10 ms** on\n[packed short\ndocuments](https://iris.oa.dev/#/job/%2Fmwittmann%2Ffa4-tiles-forward-20260922c),\n**3.25 → 3.58 ms** on [long full-causal\ndocuments](https://iris.oa.dev/#/job/%2Fmwittmann%2Ffa4-tiles-forward-20260922b)\n| attention microbenchmark; 128×128 kept |\n\nIn the forward benchmark, all six runs completed 28 updates with finite\nlosses, and matched-step losses differed by at most 0.00031 nats. On\nGB200, 18 packed-attention output and gradient parity cases pass for GQA\nratios 4, 6, and 8, with changing segment boundaries, padding, and\nsliding windows ([GPU\ntest](https://iris.oa.dev/#/job/%2Fmwittmann%2Fep-opt-d768-sm100-gqa6-parity-d-20260922)).\nThe training benchmarks ran on earlier revisions of the adapter code.\n\nContext-sharded queries use #9117's layout: each shard keeps the full\nK/V, the kernels apply global query offsets, and partial K/V gradients\nare summed across shards.\n\n`gpu_fa4_cute` keeps its behavior, including the H100/SM90 path, and now\nshares mask, sparse-metadata, and backward pre/postprocessing code with\nthe new backend. The unused `gpu_fa4_cute_wide` backend is removed.\n\nThe native kernels need FA4 4.0.0b27 or newer, which `marin-core[gpu]`\nand `levanter[gpu]` already require. #9353 raises the `--extra pipeline`\nenvironment to the same versions.",
+      "sha": "250d1e10c9a912b0063e6e29503141c03006df78",
+      "url": "https://github.com/marin-community/marin/commit/250d1e10c9a912b0063e6e29503141c03006df78",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-23T01:51:49Z",
+      "committed_at": "2026-09-23T01:51:49Z",
+      "message": "[serve] Show per-request vLLM data in Chat (#9342)\n\nKeep opt-in vLLM request stats on the assistant reply produced by each\nmodel request. A collapsed Request stats block appears below Thoughts.\nTool rounds retain their own timing and token counts instead of\nreplacing a single last-request panel.\n\nStats persist with the browser's conversation history. Raw chat and\nShare chat omit them. The checkbox remains off by default. Streaming\nrequests include token usage only while it is enabled, and timings\nrequire `--vllm-arg=--enable-per-request-metrics` when launching the\nserving job.\n\nChat requests also set `skip_special_tokens: false` so the response\nparser receives model-native thinking and tool-call delimiters. This\nmatches the live Grug rollout recorded in #9343. This PR does not change\nthe server; #9345's CUDA fix remains separate.\n\nThe current head passed the dashboard type check, production build, and\n23 Node tests.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "054142676a0f11a589557131da3495de76038a1e",
+      "url": "https://github.com/marin-community/marin/commit/054142676a0f11a589557131da3495de76038a1e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-09-23T00:58:26Z",
+      "committed_at": "2026-09-23T00:58:26Z",
+      "message": "[grug] Add fast_track 16k dense-vs-MoE H100 scaling ladder (#9287)\n\nAdds `experiments/grug/fast_track/` — a self-contained grug variant for\nthe 16k-vocab (BPE)\ndense-vs-MoE comparison and MFU study on 8×H100. Rungs\nd512/d768/d1024/d1280 wire the model,\noptimizer, and data; the step budget data- or compute-matches each\nvariant's baseline (dense at\n20 tokens/active-param, MoE at 60) at a per-rung batch, or is set\nexplicitly with `--num-steps`.\nEntry point is `launch.py`; the folder README covers the ladder and\nlaunch commands and `agent.md`\nthe experiment workflow.\n\nThe variant is a trimmed descendant of the moe_hero_ep grug work:\nHF-config integration, the\nragged-all-to-all transport, host offload, and several always-on config\nknobs were removed, and the\nrouter-metrics telemetry was split into `router_metrics.py`, leaving\njust the H100\nfixed-pooled-wave-EP path.\n\nIt also lands the in-region 16k data pipeline the variant depends on:\n\n- `experiments/datakit/shuffle_cache.py` — document-level shuffle of the\nv16384 flat cache so\n  sequential reads interleave domains.\n- `experiments/datakit/paloma_detok.py` — byte-lossless in-region\nreconstruction of the Paloma eval\n  sets, avoiding the gated out-of-region download.\n- `experiments/datasets/{paloma,uncheatable}.py` — eval caches gain a\ntokenizer `tag` (and Paloma a\ndetok `raw_prefix`/`version`) so a non-llama3 tokenizer builds its own\ncache instead of silently\n  reusing the llama3-vocab cache and evaluating on the wrong vocab.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "d8327f5fcfc77db636b3ad06466f866b4c4741e3",
+      "url": "https://github.com/marin-community/marin/commit/d8327f5fcfc77db636b3ad06466f866b4c4741e3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-09-23T00:14:08Z",
+      "committed_at": "2026-09-23T00:14:08Z",
+      "message": "Guard explicit vLLM eager serving (#9345)\n\n## Why\n\n`--enforce-eager` disables `torch.compile` and CUDA graphs. In a\ncontrolled Snowball Grug-67B A/B, eager decode took **44.0 ms/token**,\nversus **6.52 ms/token** with vLLM's compiled default (6.75× slower).\nTime to first token was 245 ms versus 83.7 ms. Compilation cost 25\nseconds on the first run, and CUDA graphs used about 0.84 GiB per H100.\nSee #9339 for the setup, logs, and limits of this comparison.\n\n## Changes\n\n- Require `--i-know-i-am-making-vllm-slow` when Marin's native vLLM\nserver receives `--enforce-eager`. Warn about the throughput cost.\nReject `--config`/`--config=...` and abbreviated eager flags so the\nguard can see the effective setting.\n- Remove unproven eager settings from ten model configs, Iceball\nevaluation and rollouts, and two TPU tests. [MarinSkyRL\n#732](https://github.com/marin-community/MarinSkyRL/pull/732) changes\nthe separate rollout engine's default.\n- Require the promoted wheel's CUDA PyTorch build from its release\nmanifest. Let PyTorch select compatible NVRTC, so an incompatible CUDA\ndependency fails resolution instead of selecting CPU PyTorch.\n\n## Validation and follow-ups\n\n- Focused server tests passed (31 on the latest commit), as did the CUDA\nlauncher tests and generated release pin check.\n- The promoted wheel compiled, captured CUDA graphs, and served bounded\nrequests in\n[one-H100](https://iris.oa.dev/#/job/%2Fromain%2Feval-20260922-192721-sera-8b-8a47)\nand\n[two-H100](https://iris.oa.dev/#/job/%2Fromain%2Feval-20260922-193417-sera-32b-0bc3)\nsmoke checks.\n- [#9349](https://github.com/marin-community/marin/issues/9349) tracks\nTPU validation of the changed tests.\n[#9351](https://github.com/marin-community/marin/issues/9351) tracks\nGB200 FlashInfer JIT validation and later CUDA install cleanup. Iceball\nconvergence remains unmeasured.\n\nFixes #9339\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "d11b410eb31ad098b35e3d134e23762e5313309e",
+      "url": "https://github.com/marin-community/marin/commit/d11b410eb31ad098b35e3d134e23762e5313309e",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-24T00:00:00Z",
+    "start": "2026-09-23T00:00:00Z"
+  }
+}

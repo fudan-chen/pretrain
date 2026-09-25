@@ -1,0 +1,197 @@
+{
+  "commit_count": 17,
+  "commits": [
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-24T22:44:50Z",
+      "committed_at": "2026-09-24T22:44:50Z",
+      "message": "[grug] Bound hero checkpoint storage across cutovers (#9427)\n\nChanges that came out of post-mortem for the [9/23\nincident](https://github.com/marin-community/marin/issues/8506#issuecomment-5817400840):\n\n1. The training-control endpoint accepts a\n`request-permanent-checkpoint` header value, which saves the next step\nas a permanent checkpoint in the run's output root. Hero handoffs no\nlonger need a forced temporary save that is then protected by hand and\ncopied to a durable prefix. The dashboard button still saves only\ntemporary checkpoints.\n2. Temporary checkpoints expire after 3 days instead of 14. The live\nrun's newest one is at most an hour old, so the shorter TTL only removes\ncheckpoints left behind by replaced runs.\n`temporary_checkpoint_base_path` takes the TTL as a parameter; other\ncallers keep 14 days.\n3. The deploy-hero-change skill now hands off from a permanent\ncheckpoint created via the mechanism in (1), and checks object-storage\nheadroom first.\n\nPart of #8506",
+      "sha": "91156d765149fa148fb8b0a7d8e26a86a49eb46c",
+      "url": "https://github.com/marin-community/marin/commit/91156d765149fa148fb8b0a7d8e26a86a49eb46c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-24T22:27:38Z",
+      "committed_at": "2026-09-24T22:27:38Z",
+      "message": "[storage] Add resumable verified cross-backend copies (#8900)\n\nAdd `fsutil verified-copy` for publishing large multi-object artifacts\nacross storage providers. GCS exposes CRC32C and sometimes MD5, while\nmultipart R2 ETags encode the MD5 values of individual upload parts. The\nmetadata therefore does not provide one checksum that can be compared\ndirectly across the two systems. An ordinary recursive copy also has no\natomic prefix-level completion state: a preempted job can leave enough\ncheckpoint files for a loader to mistake a partial checkpoint for a\ncomplete one, and a retry can mix source generations.\n\nBind each object to its source generation and hash source bytes while\nuploading to a deterministic sibling staging prefix. R2 buckets declared\nby Marin's storage router use fixed-size multipart uploads; the copy\ncalculates the expected ETag from the same part boundaries and compares\nit with R2 metadata. Destinations without deterministic ETags are read\nback and checked against the source SHA-256.\n\nAfter every file from the initial source listing has a verified staging\nrecord, promote objects with server-side within-destination copies using\nthe same multipart boundaries, remove staging, and write\n`.verified-copy-manifest.json` last. Prefix promotion remains\nobject-at-a-time, so consumers must check the manifest before loading\nthe destination. Records under `<DST>.verified-copy-status` bind the\nsource identity, path, size, SHA-256, and staging identity; retries can\nuse them to reuse either a staged object or one already promoted before\nan interruption.\n\nFor the roughly 125 GiB 67B Grug model exports tracked in #8702, staging\nadds an internal R2 copy pass and transient duplicate storage. It adds\nno GCS traffic beyond the original GCS-to-R2 transfer and avoids a full\nclient-side R2 verification read. The original transfer still incurs\nretail GCS egress.\n\nPart of #8702",
+      "sha": "4630b8c367ca46bd64fce3c06992e396134b09f2",
+      "url": "https://github.com/marin-community/marin/commit/4630b8c367ca46bd64fce3c06992e396134b09f2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-09-24T22:20:32Z",
+      "committed_at": "2026-09-24T22:20:32Z",
+      "message": "[datakit] Solve fuzzy-duplicate clusters (#8723)\n\n- adds a cluster solver based on #8405's `v11-c075-restored` rule:\n3-word shingles, with at least 75% of the shorter document's shingles\npresent in a retained representative\n- separates ordered candidate discovery from cluster resolution so\nalternate generators can reuse representative selection and removal\nmetrics\n- keeps that run's input-order ties, probe selection, and candidate caps\nand documents cases where the indexed search can miss duplicates\n- returns containment, Jaccard similarity, comparison counts, and the\nnumber of distinct words absent from the representative\n- adds behavior tests for CI, while follow-up PR #8724 groups candidate\ntext and #8725 connects verification to the reference pipeline\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "020040e7a50164fccb8a8d62dc53ff82be4419f1",
+      "url": "https://github.com/marin-community/marin/commit/020040e7a50164fccb8a8d62dc53ff82be4419f1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-24T21:38:51Z",
+      "committed_at": "2026-09-24T21:38:51Z",
+      "message": "[dependencies] Advance external runtimes (#9429)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`d013e4290aab`](https://github.com/marin-community/evalchemy/commit/d013e4290aab10d332cbc9b0f5b45419e9db2afb)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`761fb516f6b9`](https://github.com/marin-community/harbor/commit/761fb516f6b9f05e8ff47cc3e6d91573c1496886)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`72cc492d3ba0`](https://github.com/marin-community/MarinSkyRL/commit/72cc492d3ba03941715786f558d6be6ae1a52238)\n|\n\n## Upstream commits\n\n### evalchemy (`abe6bb281c7e` → `d013e4290aab`)\n\n-\n[`d013e4290aab`](https://github.com/marin-community/evalchemy/commit/d013e4290aab10d332cbc9b0f5b45419e9db2afb):\nPreserve Unicode separators in generation artifacts (#176)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "a124ee307502cb05881aae31bf3d42b955d3f1d6",
+      "url": "https://github.com/marin-community/marin/commit/a124ee307502cb05881aae31bf3d42b955d3f1d6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-24T21:31:43Z",
+      "committed_at": "2026-09-24T21:31:43Z",
+      "message": "[sft] Generate curriculum-guided conversations (#9331)\n\nGenerate self-contained tasks and text-only conversations for a pinned\ncurriculum capability with GLM 5.3. Store accepted conversations as\nDatakit chat Parquet, with task audit rows and exact provider responses.\nStructural checks reject incomplete, malformed, and duplicate\nconversations. The answers are synthetic and unverified.\n\nThe batch transport and structured-output contract are shared with\nTaskTrove. This PR contains generation only; chat rendering, Snowball\nSFT, and evaluation remain follow-up work. The one-shot generation\nrecipe has not yet run.\n\nPart of #9193\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "04af9a94f042dc0fa7e2691bb0405913f0ef1163",
+      "url": "https://github.com/marin-community/marin/commit/04af9a94f042dc0fa7e2691bb0405913f0ef1163",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-09-24T19:20:02Z",
+      "committed_at": "2026-09-24T19:20:02Z",
+      "message": "[grafana] Project the training finish from the recent step rate (#9402)\n\nThe run status projected finish extrapolated a run's whole-life step\nrate, so every outage stayed in the average and a throughput change took\ndays to show. It now uses the last 1,000 logged steps, sampled by step\nand bounded below by a fork's branch point, from the first of them to\nthe last heartbeat.",
+      "sha": "8d70d9cbb0096b6eee2bb8875fb005986a5e33b6",
+      "url": "https://github.com/marin-community/marin/commit/8d70d9cbb0096b6eee2bb8875fb005986a5e33b6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-09-24T18:29:54Z",
+      "committed_at": "2026-09-24T18:29:54Z",
+      "message": "datakit: register v4 decontamination outputs (#8328)\n\n* depends on #8327\n* add `hero_data.decontaminated(source)` for all 292 registered sources\n* pin the 292 paths in `hero_data_decontam_paths.json` rather than\nresolve them from current code\n* a mark's hash covers its eval Bloom and drop-set dependencies, not\nonly its own config, so a change to the marking rule rekeys those two\nshared steps and repoints all 292 marks at once [^1]\n* same treatment the dedup stages and domain cluster assignment already\nget\n* confirmed every pin against the executor metadata under\n`s3://marin-us-east-02a/marin`\n  * 292/292 carry an `.executor_status` of `SUCCESS`\n* 292/292 have an `.executor_info` whose `output_path` and step name\nmatch the pin\n* one marking config across the whole run: 13-token n-grams, 0.5\noverlap, 2 matched features, feature filter 4, attribute schema 5\n  * marks completed between 08:58 and 20:57 UTC on 2026-08-15\n* `hero_data_paths.json` gains the 292 `decontam/<source>` entries,\nincluding `common_corpus/english_71a93726`, `finepdfs_413f223e`, and\n`stack-v3_86eaa592`\n\n[^1]: setting the matched-feature threshold moved the Bloom from\n`_combined_fixed_8c17764d` to `_combined_fixed_eca06d42` and the drop\nsets from `_combined_d6034157` to `_combined_e3b88134`, so `stack-v3`\nresolves to `stack-v3_c9cb24f9`. The run wrote `stack-v3_86eaa592`\nagainst the earlier pair, and none of the three new hashes exist in the\nstore.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "d29373a71e3cf315be6118dd8272f42c3d92fa6c",
+      "url": "https://github.com/marin-community/marin/commit/d29373a71e3cf315be6118dd8272f42c3d92fa6c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-09-24T18:29:34Z",
+      "committed_at": "2026-09-24T18:29:34Z",
+      "message": "[datakit] Scale and validate decontamination (#8327)\n\n* run decontamination as restartable Bloom-index, drop-set, mark, and\nreport stages\n* drop sets remove common features, and marks flag documents that match\nevaluation text\n* build Bloom indexes and drop-set samples on Zephyr workers, with\ndrop-set sampling partitions capped at four per worker\n  * use the shared drop-set pipeline for one or many sources\n* require two distinct matched features in one paragraph\n* allow one match when the full document has only one usable feature\nafter drop-set filtering\n* index short complete records and use whole-record n-grams when all\nparagraphs are short\n* two samples of 8,653 previously marked records each retained 18.71%\nand 18.64% of prior marks\n* separate worker, task, and coordinator resources while preserving the\nrequested worker size for dedicated pools\n* allow eight 2-CPU, 16-GiB tasks in each documented 16-CPU, 128-GiB\nGB200 worker\n* check decontamination prerequisites before worker allocation\n* generate reports from successful mark steps without starting a worker\npool\n* include exact counts of checked and marked documents, sampled\nexamples, benchmark attribution, and sample provenance\n* use the shared feature extractor for short-record and whole-record\nmatch evidence\n* measure drop-set preparation at 26 minutes for five sources, compared\nwith 85 minutes for the previous FinePDFs-only path\n  * the workloads differ and do not form an equivalent benchmark\n* validate the `v4-final-20260815` production run across 292 sources and\n162,535 shards\n  * 18,710,478,349 documents checked and 259,960 documents marked\n* all nine mandatory Artificial Analysis benchmarks had the expected\nrecord counts\n* every required record produced matchable features and matched an exact\ncopy\n* report:\n`s3://marin-us-east-02a/marin/datakit/decontam/reports/v4-final-20260815/report.html`\n* part of #8168\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "cb3b7d0b029f2a84a14ff26b6d7ffe32918bcbd2",
+      "url": "https://github.com/marin-community/marin/commit/cb3b7d0b029f2a84a14ff26b6d7ffe32918bcbd2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-24T18:13:49Z",
+      "committed_at": "2026-09-24T18:13:49Z",
+      "message": "[drafting] Train Snowball EAGLE drafts online (#9289)\n\nTrain Snowball's EAGLE-3 draft inside the SkyRL rollout loop. Every four\npolicy steps, vLLM captures at most 131,072 training tokens from\nverified proposal windows. A dedicated H100 DraftTrainer updates the\ndraft asynchronously. The promotion gate rejects a candidate if held-out\nloss rises by more than 0.05 or target-token agreement falls by more\nthan 0.01 relative to the incumbent, then vLLM loads accepted\ncheckpoints at the next rollout boundary. The six-node recipe uses four\nMegatron policy nodes, one DP8/EP8 rollout node, and one DraftTrainer\nnode. Captures and draft checkpoints live beneath the run's checkpoint\nroot, so the workflow does not materialize a separate hidden-state\ncorpus or depend on a Speculators fork.\n\nReusable Megatron and online-EAGLE configuration now lives in the\nartifact-free `marin.rl.drafting_sft` module. It accepts concrete target\nand initial-draft `StoragePath` values and returns a role plan plus\nlaunch recipe. The Snowball experiment owns artifact adoption, dataset\ndependencies, cluster placement, and graph construction. The completed\nlaunch document is handed to the pinned `marinskyrl iris launch\n--config` parser, which validates the upstream schema and derived role\nallocation before Iris submission.\n\nSkyRL runs now return `SkyRLRun` whether or not they export a policy.\n`skyrl_step` skips terminal HF conversion by default, exposes the online\ndraft checkpoint root, and accepts `export_hf=True` when a portable\npolicy is needed. All five Marin call sites were audited: curriculum,\nIceball, and async-RL evaluations request the export; the TaskTrove\nsmoke and online-EAGLE run do not.\n\nThe clean seven-step smoke completed in 25 minutes. At step 4, the\nonline trainer fitted 18 sequences and held out six prompt-disjoint\nsequences. The accepted candidate improved holdout target-token\nagreement from 14.37% to 23.37% and reduced holdout loss from 21.10 to\n17.75. Draft training took 8.39 seconds; capture, training, validation,\npublication, and refresh took 31.92 seconds. All eight vLLM engines\nloaded `draft-step-4` without a failed install.\n\nThe rollout counters moved from 1.2867 mean acceptance and 9.56%\nproposal acceptance at step 1 to 1.3766 and 12.55% at the first fully\npost-refresh step, then 1.3925 and 13.08% at step 7. These steps sampled\ndifferent prompts and generated different output lengths, so this is an\nonline smoke result rather than a controlled before/after speedup\nestimate. The prompt-group-disjoint holdout comparison is the stronger\nevidence that this update improved the draft.\n\nThe accepted 237.5 MB serving bundle is durable at\n`s3://marin-us-east-02a/marin/users/power/snowball-online-eagle-draft/2026.09.24.3`.\nThe run's capture and resumable trainer state remain under the default\n14-day scratch prefix. MarinSkyRL #762 establishes that default, and the\nsmoke itself writes neither a full policy checkpoint nor a terminal HF\nexport.\n\nThe previous 12.51M-token offline fit selected its epoch-1 validation\ncheckpoint and changed held-out AIME mean acceptance from 1.5356 to\n1.5414 in one run. [MarinSkyRL\n#550](https://github.com/marin-community/MarinSkyRL/pull/550) separately\nqualified the managed capture, update, promotion, and refresh machinery;\nits matched benchmark reported 2.0561 mean accepted tokens for the final\ndraft and 21.4% higher throughput than its target-only baseline.\n\nPart of #9312\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "abff95d98892a97b952c4386067134f92f8880af",
+      "url": "https://github.com/marin-community/marin/commit/abff95d98892a97b952c4386067134f92f8880af",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-24T17:20:39Z",
+      "committed_at": "2026-09-24T17:20:39Z",
+      "message": "[dependencies] Advance external runtimes (#9413)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`abe6bb281c7e`](https://github.com/marin-community/evalchemy/commit/abe6bb281c7e48c12ad6183d5fe55104e4c9d7c4)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`761fb516f6b9`](https://github.com/marin-community/harbor/commit/761fb516f6b9f05e8ff47cc3e6d91573c1496886)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`72cc492d3ba0`](https://github.com/marin-community/MarinSkyRL/commit/72cc492d3ba03941715786f558d6be6ae1a52238)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`5fe676b33f7b` → `72cc492d3ba0`)\n\n-\n[`5d7fdbd97e67`](https://github.com/marin-community/MarinSkyRL/commit/5d7fdbd97e671f9367e4b2070d29f8ab98fe3e5e):\n[train] Record shared W&B history for async training (#758)\n-\n[`8f09bf176a98`](https://github.com/marin-community/MarinSkyRL/commit/8f09bf176a981b625c33748ca9effec8e6c730e3):\n[train] Separate async batch processing timers (#759)\n-\n[`fe5002ccada9`](https://github.com/marin-community/MarinSkyRL/commit/fe5002ccada96594f38613a2fb542c6b5ecd163e):\n[checkpoint] Upload FSDP snapshots in the background\n-\n[`72cc492d3ba0`](https://github.com/marin-community/MarinSkyRL/commit/72cc492d3ba03941715786f558d6be6ae1a52238):\n[iris] Restore the HF draft cache TTL (#762)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "628a2edb57c3993757e215815c47659ac5349b8e",
+      "url": "https://github.com/marin-community/marin/commit/628a2edb57c3993757e215815c47659ac5349b8e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-24T16:20:26Z",
+      "committed_at": "2026-09-24T16:20:26Z",
+      "message": "Add write-pipeline guidance for Marin experiments (#9408)\n\nDefine a write-pipeline skill and repository guidance that place\nreusable concrete work in `lib/**`, artifact graph construction and\none-off wiring in `experiments/**`, and experiment-specific tests beside\nthe pipeline.\n\nThe guidance draws on the lazy-artifact migration (#6649), dataset\ncatalog conventions (#6777), and current reference, Nemotron, and\nTaskTrove pipelines. It explains `apply` and direct `ArtifactStep`\nbinding while identifying library step builders that still cross the\nplacement boundary. Migrating those builders and older `StepSpec`\nfactories requires call-site and artifact-identity work and remains a\nseparate change.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "1f48f1265ea2b7fa209fa27b5cd6320cebae934a",
+      "url": "https://github.com/marin-community/marin/commit/1f48f1265ea2b7fa209fa27b5cd6320cebae934a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-24T11:57:51Z",
+      "committed_at": "2026-09-24T11:57:51Z",
+      "message": "[dependencies] Advance external runtimes (#9405)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`abe6bb281c7e`](https://github.com/marin-community/evalchemy/commit/abe6bb281c7e48c12ad6183d5fe55104e4c9d7c4)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`761fb516f6b9`](https://github.com/marin-community/harbor/commit/761fb516f6b9f05e8ff47cc3e6d91573c1496886)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`5fe676b33f7b`](https://github.com/marin-community/MarinSkyRL/commit/5fe676b33f7b05a76948f7117cda82daf3ea4511)\n|\n\n## Upstream commits\n\n### evalchemy (`5becb4e44ee5` → `abe6bb281c7e`)\n\n-\n[`abe6bb281c7e`](https://github.com/marin-community/evalchemy/commit/abe6bb281c7e48c12ad6183d5fe55104e4c9d7c4):\nBound Evalchemy generation retries by one deadline (#175)\n\n### harbor (`e358887ae5f5` → `761fb516f6b9`)\n\n-\n[`d1f24f941c9c`](https://github.com/marin-community/harbor/commit/d1f24f941c9ce6501874fc8f65b2e5dcc88271bc):\n[agents] Preserve reasoning fields in Pi chat history (#214)\n-\n[`761fb516f6b9`](https://github.com/marin-community/harbor/commit/761fb516f6b9f05e8ff47cc3e6d91573c1496886):\n[pi] Bound remote event-log reads (#215)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "0bc678157513032ff98840c6f05c682a346a9591",
+      "url": "https://github.com/marin-community/marin/commit/0bc678157513032ff98840c6f05c682a346a9591",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-09-24T08:52:55Z",
+      "committed_at": "2026-09-24T08:52:55Z",
+      "message": "[RL] Add the async RL entry point launcher (#9256)\n\nAdd a launcher that trains the Snowball policy with MarinSkyRL's fully asynchronous RL loop on the curriculum pool and scores the terminal export on the curriculum evaluations. It renders the complete recipe, including values MarinSkyRL's base config already holds, and `--set key=value` changes one setting and gives the run its own output path.\n\nThe default preset is sized for 40 GPUs and evaluates every ten updates; smoke runs two short updates, and on_policy admits only groups the current weights sampled. The engine's data and expert parallelism go through the typed role plan.\n\nThe curriculum and iceball launchers build their SkyRL evaluation through the shared `skyrl_eval_step`, which resolves the completed policy export.\n\nLaunching this recipe needs a MarinSkyRL pin that includes marin-community/MarinSkyRL#654 and #685, which declare its fully asynchronous loop, telemetry and chat-template settings.",
+      "sha": "623b7b67a53c60704f7b53e6a39b045155129a33",
+      "url": "https://github.com/marin-community/marin/commit/623b7b67a53c60704f7b53e6a39b045155129a33",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-09-24T05:38:49Z",
+      "committed_at": "2026-09-24T05:38:49Z",
+      "message": "[fast-track] Select H100 peers with an Iris reservation (#9398)",
+      "sha": "30b08d39dcbfd9fa42169d679cdeaae7af7ef10a",
+      "url": "https://github.com/marin-community/marin/commit/30b08d39dcbfd9fa42169d679cdeaae7af7ef10a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-24T05:02:55Z",
+      "committed_at": "2026-09-24T05:02:55Z",
+      "message": "[dependencies] Advance external runtimes (#9404)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`5becb4e44ee5`](https://github.com/marin-community/evalchemy/commit/5becb4e44ee5249d4ec347229f467e107075caa3)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`e358887ae5f5`](https://github.com/marin-community/harbor/commit/e358887ae5f5dd71d513fde5b388653fea3d6a8b)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`5fe676b33f7b`](https://github.com/marin-community/MarinSkyRL/commit/5fe676b33f7b05a76948f7117cda82daf3ea4511)\n|\n\n## Upstream commits\n\n### harbor (`6543ab6cf556` → `e358887ae5f5`)\n\n-\n[`23dcf6a0c211`](https://github.com/marin-community/harbor/commit/23dcf6a0c211e61985bde140cb781c005b2df12d):\n[jobs] Allow endpoint drift in resume locks (#212)\n-\n[`e358887ae5f5`](https://github.com/marin-community/harbor/commit/e358887ae5f5dd71d513fde5b388653fea3d6a8b):\n[sotopia] Retry transient evaluator omissions (#213)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "c4af79e12e1f110bd0152e85a965afe3c8481c18",
+      "url": "https://github.com/marin-community/marin/commit/c4af79e12e1f110bd0152e85a965afe3c8481c18",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-24T02:00:59Z",
+      "committed_at": "2026-09-24T02:00:59Z",
+      "message": "[eval] Add vLLM speculative-decoding evaluation (#9383)\n\nEvalchemy and Harbor use Marin's shared `remote_inference` lifecycle. An\nevaluation step accepts a plain `ModelConfig`. Experiments that produce\na target or EAGLE-3 draft declare those producer steps as dependencies\nand resolve their URIs and identities in the evaluation step's config\nbuilder. Existing external models can be adopted in place. No\nmetadata-only model step runs.\n\nEach evaluation record stores the target and optional draft identities,\ntokenizer URI and revision, per-run token counts, generation throughput,\nand speculative-token acceptance metrics. Evalchemy reconstructs native\ngeneration prompts before FineStore normalizes rollouts, preserving user\nturns in nested request arguments. Pipeline results expose the sealed\nFineStore archive paths for offline draft SFT.\n\nPR #9289 can use this evaluation step for its control, initial-draft,\nand trained-draft arms. Its experiment-specific model and draft\nconfiguration remains there. Secret forwarding for a CoreWeave-root\nlauncher remains in #9312.\n\nPart of #9312\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "1d4f0c544f83ef32a9775e0ba827b4bdea4ddac9",
+      "url": "https://github.com/marin-community/marin/commit/1d4f0c544f83ef32a9775e0ba827b4bdea4ddac9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-24T01:36:54Z",
+      "committed_at": "2026-09-24T01:36:54Z",
+      "message": "[inference] Honor proxy timeout in broker workers (#9361)\n\nBrokered serves now scale the worker and request-lease deadlines with\n`--proxy-timeout`, keeping both below the proxy deadline. Previously\nthat option changed only the proxy: a 3600-second setting still left the\nworker at 180 seconds and the lease at 240 seconds, so long generations\nreturned 504.\n\nThe replacement GLM-5.3 serve completed a request in 383 seconds with\nstatus 200. The incident record is [Echo\n#510](https://marina.oa.dev/echo/wiki/510).\n\nThe timeout regression test passed. In a fresh macOS worktree, the full\ntest file had 60 passes and eight unrelated loopback-interface failures\n(`No local network interface owns IPv4 address '127.0.0.1'`); the\naffected safe suite passed all 212 tests in the original checkout.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "208516fdf1c31682baf5ef3d225b4ad1fbd25bea",
+      "url": "https://github.com/marin-community/marin/commit/208516fdf1c31682baf5ef3d225b4ad1fbd25bea",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-25T00:00:00Z",
+    "start": "2026-09-24T00:00:00Z"
+  }
+}

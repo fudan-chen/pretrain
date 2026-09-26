@@ -1,0 +1,373 @@
+{
+  "commit_count": 33,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T23:25:40Z",
+      "committed_at": "2026-09-25T23:25:40Z",
+      "message": "[iac] Limit hero checkpoint deletion deny to east-02a (#9395)\n\nKeep the hero checkpoint delete deny on `marin-us-east-02a` only. Other\nmanaged CoreWeave buckets retain organization-wide S3 access without\nthat deny.\n\nThe previous policy also blocked deletion of checkpoints in\n`hero-checkpoints`, including a checkpoint selected for cleanup. The\nbucket stack continues to manage each bucket's complete access policy.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "9afc69a80d2dcf89ac4dfda534ac888e9d7cd9a6",
+      "url": "https://github.com/marin-community/marin/commit/9afc69a80d2dcf89ac4dfda534ac888e9d7cd9a6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T23:24:49Z",
+      "committed_at": "2026-09-25T23:24:49Z",
+      "message": "[loom] Raise automation caps and stop repeat PR reviews (#9468)\n\nRaise the `pr-review` and `prose-cleanup` profile limits to 16\nconcurrent sessions to accommodate bursts of automation runs.\n\nPR review launches on open, reopen, and ready-for-review events.\nRemoving `synchronize` stops each later head commit from launching\nanother review of the same PR. Reopening a PR retries its latest head if\na push made an in-progress review stale.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "412473edba4cd4b4d4227982138eaa6a62fb4055",
+      "url": "https://github.com/marin-community/marin/commit/412473edba4cd4b4d4227982138eaa6a62fb4055",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T23:24:39Z",
+      "committed_at": "2026-09-25T23:24:39Z",
+      "message": "[iris] Allow 30 minutes for GPU compile rendezvous (#9469)\n\nAllow distributed GPU ranks up to 30 minutes to reach the\ncompile-fingerprint rendezvous. A 67B checkpoint load reached the same\ncompile fingerprint on every rank, but one rank arrived about 72 seconds\nafter the others and tripped the former 60-second limit. The guard still\nrejects missing or divergent ranks.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "47d2958d1720bf361a3bed3970dc38a2c85be572",
+      "url": "https://github.com/marin-community/marin/commit/47d2958d1720bf361a3bed3970dc38a2c85be572",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T21:18:36Z",
+      "committed_at": "2026-09-25T21:18:36Z",
+      "message": "[levanter] Load HF safetensors shards concurrently (#9464)\n\nLoad indexed Hugging Face safetensors shards concurrently through up to\n16 workers. Their range reads share a 16 GiB staging target for each\ncheckpoint load. Each read reserves twice its byte count until the JAX\ntransfer completes. Streaming loads also avoid a serial existence\nrequest for every shard.\n\nThe 2× reservation is an estimate: expanding dtype conversions can\nexceed the target. Loaded model arrays still require their normal device\nmemory. A matched 32-GPU load time has not been measured yet.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "c06e3b9875d9ad4c0241055cd224474c491dd4ca",
+      "url": "https://github.com/marin-community/marin/commit/c06e3b9875d9ad4c0241055cd224474c491dd4ca",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T21:12:25Z",
+      "committed_at": "2026-09-25T21:12:25Z",
+      "message": "[loom] Archive one-off automation sessions after a minute idle (#9466)\n\nOne-off automation profiles (`pr-review`, `agentic-lint`,\n`prose-cleanup`,\n`fork-ferry`, `codehealth-refinement`) now archive sessions after 60\nidle\nseconds, and `github-automation` after 30 minutes. `ops` keeps its hour\nbecause its alert coordinators stay alive between alerts.\n\nA session holds its profile's concurrency slot until it is archived.\nWith\nidle timeouts of 15 to 60 minutes, sessions that had already posted\ntheir\nresults kept slots long enough for later launches to fail with\n`profile '<name>' has reached its max_concurrent limit`, even though\neach\nprofile launches only about 6 to 13 sessions a day. `github-automation`\nkeeps a longer window because it serves user `@weaverbot` mentions,\nwhere\nfollow-up replies benefit from staying in the same session. Concurrency\nlimits are unchanged.\n\nThe PR-review launcher test is updated for the write-access step added\nin\n#9457; it failed on main because it expected two workflow steps.\n\nThe change takes effect when the `marin-loom` stack is applied.",
+      "sha": "6437c3067bcdf6d62ffe932bca7e6453a2c7b0de",
+      "url": "https://github.com/marin-community/marin/commit/6437c3067bcdf6d62ffe932bca7e6453a2c7b0de",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T20:51:07Z",
+      "committed_at": "2026-09-25T20:51:07Z",
+      "message": "Run agentic lint once per PR as a best-effort review (#9463)\n\nThe Loom lint review now runs once per PR, only while the PR lacks the\n`agentic-lint` label, and is no longer enforced by a required check. The\nlabel records that a lint pass happened, either from the author's local\n`./infra/pre-commit.py --review` (the commit skill applies it at PR\ncreation) or from the Loom session, which adds it after posting\nfindings.\nPushes to a reviewed PR no longer start another review; removing the\nlabel\nrequests a fresh review of the current head.\n\nThe previous design reviewed every head and gated merging on a per-SHA\ncompletion marker. That posted a new round of comments on every push,\nblocked fork PRs and PRs from authors without write access forever, and\nleft a PR stuck when a Loom run failed, since the per-SHA idempotency\nkey\nprevents a retry. The review is now best effort: a failed run leaves the\nlabel off and does not block merging.\n\nThe `agentic-lint` policy job is removed, as is its entry in the\ndependency\nupdater's required checks. The `lint-review` skill no longer names a\nClaude-specific inline-comment tool; the Loom agent posts inline\ncomments\nwith its own GitHub tools.\n\nBefore merging, remove `agentic-lint` from the required status checks in\nthe \"require main CI\" ruleset. Otherwise this PR, and every PR after it,\nwaits on a check that no longer reports.",
+      "sha": "b81581f8672a4d58b71180cd47fdecb23398e042",
+      "url": "https://github.com/marin-community/marin/commit/b81581f8672a4d58b71180cd47fdecb23398e042",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T20:50:45Z",
+      "committed_at": "2026-09-25T20:50:45Z",
+      "message": "Limit agent prose cleanup to trusted authors (#9465)\n\nProse cleanup now launches only when the issue or PR author has write\naccess or is `marin-ops-agent[bot]` or `loom-oa-dev[bot]`, using the\nsame\n`check-write-access` action as the other Loom launchers.\n\nPreviously the only gate was the `agent-generated` label. A triage user\nlabeling an external issue or PR would send text written by an untrusted\nauthor to a Loom agent that can edit the description. External issues\nand\nPRs no longer get prose cleanup.",
+      "sha": "abb3376d8ee702565c58c00ace4e213c2c618190",
+      "url": "https://github.com/marin-community/marin/commit/abb3376d8ee702565c58c00ace4e213c2c618190",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-25T19:58:45Z",
+      "committed_at": "2026-09-25T19:58:45Z",
+      "message": "Revert \"[execution] Redact remote environment values from step representations\" (#9459)\n\nReverts marin-community/marin#9446",
+      "sha": "4ebc2ffd4a048ad8559c8bf952c2367a6270611b",
+      "url": "https://github.com/marin-community/marin/commit/4ebc2ffd4a048ad8559c8bf952c2367a6270611b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ayushnangia",
+      "author_name": "Ayush Nangia",
+      "authored_at": "2026-09-25T19:58:25Z",
+      "committed_at": "2026-09-25T19:58:25Z",
+      "message": "[execution] Redact remote environment values from step representations (#9446)\n\nRemote `ArtifactStep` representations included the values of `env_vars`,\nwhich could expose credentials in logs. A direct remote `StepSpec` could\nalso write them to `.executor_info`. Show environment variable names\nwith `<redacted>` values in `RemoteCallable.__repr__`; keep the original\nvalues available for Fray submission.\n\nA fake-secret regression checks both representations and persisted\nexecutor metadata. Local checks: 433 safe tests, `uv run pyrefly check`,\nrepo pre-commit checks, and advisory lint review (no findings).\n\nPart of #9312.",
+      "sha": "36ef11ac202a8702f26e77370967b1024600cfdc",
+      "url": "https://github.com/marin-community/marin/commit/36ef11ac202a8702f26e77370967b1024600cfdc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mridulagarwal03",
+      "author_name": "mridulagarwal03",
+      "authored_at": "2026-09-25T19:58:12Z",
+      "committed_at": "2026-09-25T19:58:12Z",
+      "message": "[levanter] Pass pinned tokenizer revisions to Hugging Face (#9450)\n\nTokenizer staging and `as_hf_tokenizer()` now split a `repo@revision`\nref and pass the revision to `snapshot_download` and\n`AutoTokenizer.from_pretrained` as a separate argument. Before, the\ncombined string reached Hugging Face as a repo ID and failed validation,\nso a job pinned to a model revision (which `HFCheckpointConverter`\nalready supports) crashed while staging its tokenizer:\n\n```\nHFValidationError: Repo id must use alphanumeric chars, '-', '_' or '.' ... 'openai-community/gpt2@607a30d7...'\n```\n\nThe split matches `RepoRef.from_string`, which cannot be imported here\nwithout a cycle. Cache and mirror paths keep the full ref, so each\nrevision stages separately.\n`load_tokenizer(\"openai-community/gpt2@607a30d783dfa663caf39e06633721c8d4cfcd7e\")`\nand `.as_hf_tokenizer()` now load against the live Hub.\n\nThe change and its regression test follow `dfd8a1518f` by @penfever,\nwhich has not landed on `main`.\n\nFixes #9033",
+      "sha": "e8628f4a22e145286ffcbd1c17b6b1c4aa215d61",
+      "url": "https://github.com/marin-community/marin/commit/e8628f4a22e145286ffcbd1c17b6b1c4aa215d61",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T19:51:32Z",
+      "committed_at": "2026-09-25T19:51:32Z",
+      "message": "Gate Loom launches on live repository permission (#9457)\n\nLoom launch jobs for issue triage, mentions, review autofix, PR review,\nand agentic lint now decide eligibility with a shared\n`check-write-access` action. It asks GitHub for the event author's\neffective repository permission using the workflow token and allows\nwrite, maintain, or admin. A lookup failure logs the API error and\ndenies the launch. The `marin-ops-agent[bot]` login is passed to the\naction's `allowed-bots` input by the two pull-request launchers.\n\nThe previous guards compared the event payload's `author_association`\nagainst OWNER, MEMBER, and COLLABORATOR. That payload hides private\norganization membership, so every regular member with the default\nprivate visibility resolved to CONTRIBUTOR and was skipped. Over the\nlast two weeks issue triage ran for four issues, all opened by\norganization admins, and never for a regular member. Issue #9192 is one\nof the skipped ones.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "07fa418140b6cbfc48708350c93f79e540d3f2fd",
+      "url": "https://github.com/marin-community/marin/commit/07fa418140b6cbfc48708350c93f79e540d3f2fd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ayushnangia",
+      "author_name": "Ayush Nangia",
+      "authored_at": "2026-09-25T19:35:38Z",
+      "committed_at": "2026-09-25T19:35:38Z",
+      "message": "[eval] Exclude scratch attempts from record measurements (#9419)\n\nIgnore Evalchemy's `tmp...` scratch keys when deriving task scores and\ncoverage from stored run records. A retried single-task record\npreviously combined the canonical 2/30 attempt with a 4/30 scratch\nattempt, displaying 10.0% over 60 items. It now displays the canonical\n6.67% over 30 items, even when the scratch key appears first.\n\nThe reader applies the producer's existing scratch-path rule to legacy\nmetrics, declared metrics, and coverage entries. All 50 evaluation\nstatistics tests pass on current `main`.\n\nFixes #9192",
+      "sha": "0c8ed89d0216ea4c0ca691118f878757669451f7",
+      "url": "https://github.com/marin-community/marin/commit/0c8ed89d0216ea4c0ca691118f878757669451f7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-25T19:34:20Z",
+      "committed_at": "2026-09-25T19:34:20Z",
+      "message": "Resolve local IPv4 interfaces on macOS and Linux (#9442)\n\nLocal inference startup can now resolve its Gloo network interface on\nmacOS. The previous lookup used a Linux-only ioctl and rejected even\n127.0.0.1 on macOS. Use psutil's interface addresses and declare it as a\nrigging dependency; addresses absent from the host still raise an error.\n\nAll eight previously failing inference lifecycle cases pass on macOS.\nThe full safe suite passes 2,157 tests, and the Rigging suite passes 618\ntests. The loopback test no longer assumes the interface is named `lo`,\nand a regression case covers secondary IPv4 addresses on an interface\nwith IPv6.",
+      "sha": "388acaca574d9fe27c8ea8f341a5968bd6ffb887",
+      "url": "https://github.com/marin-community/marin/commit/388acaca574d9fe27c8ea8f341a5968bd6ffb887",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T19:33:39Z",
+      "committed_at": "2026-09-25T19:33:39Z",
+      "message": "[loom] Run prose cleanup on a dedicated low-effort profile (#9456)\n\nAgent prose cleanup now launches the new `prose-cleanup` Loom profile\ninstead of the shared `github-automation` profile. The profile runs\nCodex at low effort with a ten-minute idle archive, a forty-turn budget,\nand three concurrent sessions. The GitHub stack publishes it as\n`LOOM_PROSE_CLEANUP_PROFILE`.\n\nWithin half an hour of the Loom routing deploy, prose cleanup had filled\nall eight `github-automation` slots because every edit and label event\non\nan agent PR started a fresh session. The workflow now ignores edit\nevents\nand keys each launch on the issue or PR number alone, so later label and\nreopen events return the existing run. The shared profile cap rises to\ntwelve so nightshift, canary triage, and mention sessions can overlap.\n\nBoth the Loom and GitHub stacks are already applied with this\nconfiguration.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "0ceb0a136bc515c1281c9ee6d1227536d85c0337",
+      "url": "https://github.com/marin-community/marin/commit/0ceb0a136bc515c1281c9ee6d1227536d85c0337",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-25T19:26:55Z",
+      "committed_at": "2026-09-25T19:26:55Z",
+      "message": "[deps] Update vulnerable locked dependencies (#9262)\n\nUpdate the root lock to patched AnyIO, GitPython, and Mistune releases.\nKeep Levanter's lm-eval environment available, including its current\nrouge-score and NLTK dependency.\n\nUpgrade Dupekit's Arrow and Parquet stack to 60 so it can use patched\nPyO3 0.29.2. The native classes now declare their PyO3 extraction\nbehavior explicitly. Update Finelog's locked quinn-proto to 0.11.16.",
+      "sha": "50f8d58df07033a7f78d5c422033ab48e1458ca6",
+      "url": "https://github.com/marin-community/marin/commit/50f8d58df07033a7f78d5c422033ab48e1458ca6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-25T19:25:34Z",
+      "committed_at": "2026-09-25T19:25:34Z",
+      "message": "[levanter] Defer Snowball attention backend selection (#9454)\n\nKeep Snowball HF config parsing independent of JAX backend\ninitialization. Select the GPU CuTe attention implementation when the\nmodel executes, after distributed setup, while preserving explicit\nattention overrides.\n\nA fresh-process regression failed at jax.distributed.initialize() after\nHF config loading before this change and passes afterward. The affected\nsafe suite passed 36 tests. Four-node training was not rerun for this\nPR.\n\nFixes #9372\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "4a352e9691dee938e6a14e87539710bd4ca511aa",
+      "url": "https://github.com/marin-community/marin/commit/4a352e9691dee938e6a14e87539710bd4ca511aa",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T19:11:20Z",
+      "committed_at": "2026-09-25T19:11:20Z",
+      "message": "[github] Limit organization-admin ruleset bypass to pull requests (#9453)\n\nOrganization administrators can now bypass the main-branch review and\nrequired-CI rulesets only when merging a pull request. Direct pushes to\nmain remain blocked for everyone.\n\nThe review ruleset already carried this setting live; the required-CI\nruleset still declared an unconditional bypass. Both rulesets share one\nadministrator actor, so the declaration now matches the intended policy.\nThe GitHub Pulumi stack preview shows a single bypass-mode update on the\nrequired-CI ruleset.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "a1b7f7549adf319e7f043bbe8ae2cdbef33c1671",
+      "url": "https://github.com/marin-community/marin/commit/a1b7f7549adf319e7f043bbe8ae2cdbef33c1671",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-25T18:38:52Z",
+      "committed_at": "2026-09-25T18:38:52Z",
+      "message": "Route GitHub agent workflows through Loom (#9449)\n\nRoute GitHub mentions, issue triage, autofix, nightshift jobs, canary\ntriage, and prose cleanup through workload-federated Loom sessions. Each\nActions workflow launches a named profile from trusted code and passes\nrun identifiers instead of Claude credentials.\n\nPR #9447 exposed a gap in the existing lint policy: its check required\nan `agentic-lint` label, but no workflow ran the lint review, and the\nLoom PR review skipped the nightshift bot author. A new PR-head launch\nruns the lint catalog review for same-repository maintainer and\nnightshift bot PRs, requires a Loom completion marker for the exact head\nSHA and refreshes the label only after review. This keeps an old label\nfrom passing a new head. The PR review launcher now admits the\nnightshift bot and runs again after head updates.\n\nCanary failure notification remains in Actions while Loom diagnoses from\nuploaded artifacts and durable logs. The Iris smoke test continues to\nupload screenshots for inspection without launching an LLM review. The\nnightshift goals retain their selection rules; the uncalled Claude\nrunner and cron entrypoints are removed.\n\nAfter merge, deploy the Loom stack and then the GitHub Pulumi stack. The\npolicy accepts a local review label for PRs whose base revision predates\nthe trusted launcher; a base with the launcher requires a completion\nmarker for the current PR head.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "71968a4ad9b3d1ce2f4fc0860905b3110d07e974",
+      "url": "https://github.com/marin-community/marin/commit/71968a4ad9b3d1ce2f4fc0860905b3110d07e974",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-09-25T18:30:59Z",
+      "committed_at": "2026-09-25T18:30:59Z",
+      "message": "[iris] Route CPU reservations by peer accelerator capacity (#9399)\n\nCPU jobs with `--reserve H100` now prefer an eligible peer with more\neffective H100 capacity when other placement scores tie. The marker\nrequires an H100-capable peer but supplies no numeric GPU gate. In\n#9396, five identical CPU reservations all chose `cw-rno2a`; a later\nreport showed 7 free H100s there and 160 at `cw-us-east-02a`. That\nreport does not establish the counts at each placement decision.\n\nAmong eligible backends with capacity metrics, placement first prefers\nno preemption and a tighter fit for any numeric gate. It then compares\ncapacity for the reserved variant: reported free capacity plus\nreclaimable capacity held by lower-priority jobs, less prior\nreservations. This affects placement order only. The CPU job charges no\nGPUs, later GPU child jobs have no capacity guarantee, and zero reported\ncapacity does not prevent placement. Peers without a readable capacity\nmetric rank after measured peers; a peer reporting no capacity for the\nvariant scores zero.\n\nA stable hash of job and peer IDs now breaks ties before peer ID, so\ndistinct jobs can choose different peers on one unchanged availability\nreport. Explicit peer pins and local placement keep their existing\nbehavior.\n\nFixes #9396\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "c6aac5a6ec9b69564dd610c7e9d8e617df1e2132",
+      "url": "https://github.com/marin-community/marin/commit/c6aac5a6ec9b69564dd610c7e9d8e617df1e2132",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-25T18:28:11Z",
+      "committed_at": "2026-09-25T18:28:11Z",
+      "message": "[iris] Group JAX GPU startup and detect divergent compiles (#9364)\n\nGroup Iris's JAX startup code under `iris.jax`: the multi-process GPU\nhook and supervisor, compilation and autotune cache setup, distributed\ninitialization, and compile guard. Levanter, Fray, Grug, and Iris\ncallers use the new entrypoints. The supervisor launches children before\nthey import JAX. `initialize_jax()` configures caches before joining the\ndistributed world and installs the guard after multi-process GPU\ninitialization.\n\nBefore a multi-process GPU compile enters native XLA, the guard compares\nJAX compile keys across participating processes. Mismatched keys raise\nwith each process index and observed key; a missing peer fails after 60\nseconds. On `origin/main` at `054142676a`, a two-host H100 probe with a\nrank-dependent constant left one rank in\n`ConfigAssigner::AssignConfigs`, while the matching control compiled on\nboth. With the guard, divergent probes failed promptly and matching\nprobes succeeded on JAX 0.11.0 and 0.11.1. The [issue research\ncomment](https://github.com/marin-community/marin/issues/9042#issuecomment-5789182658),\n[JAX 0.11.0 divergent\nrun](https://iris.oa.dev/#/job/%2Fdlwh%2Fissue-9042-pipeline-divergent-20260922),\nand [JAX 0.11.0\ncontrol](https://iris.oa.dev/#/job/%2Fdlwh%2Fissue-9042-pipeline-control-20260922)\ncontain the evidence. The 67B Snowball train step was not rerun.\n\nThe guard compares JAX's pre-compile key; differences introduced only\ninside native XLA remain outside its coverage. Focused Iris, Levanter,\nand Fray tests passed (140). The safe affected suite had 5,132 passes, 7\nskips, 6 expected failures, and two Tasktrove/Zephyr 30-second timeouts;\nboth timed-out tests passed in isolation. Repository lint and type\nchecking passed.\n\nPart of #9042\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "4d351e2f11c182afac94685d7fabed0d62439c15",
+      "url": "https://github.com/marin-community/marin/commit/4d351e2f11c182afac94685d7fabed0d62439c15",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T18:27:14Z",
+      "committed_at": "2026-09-25T18:27:14Z",
+      "message": "Add Marin Shellbox execution backends (#9433)\n\nAdd `marin-shellbox`, a pip-installable execution layer for Harbor\ntrials and direct machine use. The shared `Machine` API creates a\nwritable environment from an image source, runs one-shot commands,\ntransfers files, and owns cleanup.\n\nQEMU and ShellSim have Harbor environment adapters. The Harbor agent\nstays in the Harbor process and sends Bash tool calls to a persistent\nsession. QEMU stages Linux amd64 OCI images from registry references or\nDockerfiles, boots a private microVM, and keeps a PTY-backed Bash\nsession across agent calls. It probes `/dev/kvm` and falls back to TCG.\nShellSim uses its built-in shell and ignores image instructions.\n\nThe machine API also has local Docker and gVisor, Daytona, and Iris\nbackends. Local gVisor selects a Docker daemon's registered `runsc`\nruntime. Daytona creates a sandbox from a registry image. Iris submits a\nCPU-only job with its gVisor container profile and uses the existing\nexec RPC. Daytona and Iris preserve binary command input and output\nthrough remote files and bound output retrieval. These three backends\ncurrently provide one-shot commands; they need Harbor environment and\npersistent shell adapters before `BashAgent` can use them. Iris rejects\nnetwork denial because Iris does not expose per-job network policy.\n\n`[qemu]`, `[shellsim]`, `[gvisor]`, `[daytona]`, and `[iris]` select\noptional backend dependencies. The gVisor extra does not install or\nregister `runsc` on the host. The QEMU extra supplies the emulator\nthrough `quicksand-qemu`; a guest kernel, BusyBox, microVM firmware, and\nOCI staging tools still need separate provision. QEMU guests have no\nnetwork, only Linux amd64 images are supported, and KVM behavior has not\nbeen measured on an eligible host. ShellSim currently shares interpreter\nstate with verifier actions; its rewards remain exploratory until shell\nisolation is available. Task requirements and backend routing are\nhandled separately from this execution layer.\n\nThe shared Python library release builds and checks `marin-shellbox`\nalongside the other eight general libraries. They share the daily\ndevelopment release, the `marin-libs-v*` stable tag, and one version;\nShellbox’s Iris extra pins to that version. Publication uses the\nexisting OIDC job and the `marin-shellbox` PyPI trusted publisher.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "97704d9c74c877355351404caca230d1262eb481",
+      "url": "https://github.com/marin-community/marin/commit/97704d9c74c877355351404caca230d1262eb481",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-25T18:26:01Z",
+      "committed_at": "2026-09-25T18:26:01Z",
+      "message": "[sft] Connect curriculum generation to Snowball SFT (#9430)\n\nConnect curriculum-generated Datakit conversations to Levanter's\nSnowball SFT path and matched evaluations. A preparation step writes\nOpenAI `messages` Parquet, and the shared SFT launcher consumes those\nartifacts with assistant-only loss and unpacked conversations. The\ntrainer initializes from\n`open-athena/Grug-67B-A2B-Datakit-SFT-262K-2026.09.20` at a pinned\nrevision, runs four updates on 32 H100s, and saves sharded bfloat16\nHugging Face weights. The after evaluation reads the training artifact's\n`hf/` directory; there are no separate model import or export jobs.\n\nGeneration uses GLM 5.3 beside the relay on cw-us-east-08a and writes\neast-region S3 artifacts for training on the RNO2A H100 cluster. Before\nand after SFT, the trial uses the same Math500 and\n`olympiadbench-deterministic` evaluation settings. The deterministic\nbenchmark grades symbolic equivalence without an LLM judge, so its\nscores are not comparable to the judge-backed OlympiadBench task. The\ntask is merged in marin-community/evalchemy#178; the runtime lock\nrecords that merge commit from Evalchemy `main`. The branch also retains\na native Grug trainer check that stops on non-finite updates.\n\nA prior native Grug run logged NaN loss at step 2. Its exported\ncheckpoint scored 0/500 on Math500; the pinned base model scored 306/500\nunder the same evaluation. The direct Snowball path has not run at full\nsize, so its accuracy and save time are unmeasured. Generated answers\npass schema, completion, and duplicate checks but are not\noracle-verified. There is no control trained on comparable\nnon-curriculum tasks; no curriculum effect has been established.\n\nPart of #9193.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "3350d90b650a6c5aff7135a12a23939c2449c4d3",
+      "url": "https://github.com/marin-community/marin/commit/3350d90b650a6c5aff7135a12a23939c2449c4d3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-25T17:27:20Z",
+      "committed_at": "2026-09-25T17:27:20Z",
+      "message": "Retry transient Hugging Face Hub errors when loading datasets (#9447)\n\n`load_dataset_with_backoff` now retries Hugging Face Hub 429 and 5xx\nresponses and httpx connection and timeout errors. huggingface_hub 1.x\nderives `HfHubHTTPError` from `httpx.HTTPError` instead of requests'\n`HTTPError`, so the status-code check never matched Hub errors.\nTransient Hub failures were retried only when the error text happened to\ninclude a keyword such as \"timeout\". The requests branch stays because\n`datasets` still raises requests errors for some URLs.\n\nAlso removes three unused Levanter functions: `cutlass_cute_available`,\n`require_cutlass_cute`, and the non-chunked\n`mamba3_mimo_apply_gate_and_collapse`. Their only references were their\nown `__all__` entries.\n\n---------\n\nCo-authored-by: Marin Nightshift <nightshift@marin.invalid>\nCo-authored-by: nightshift <nightshift@localhost>",
+      "sha": "febf5e945ba91eadee0fe603157dc73b5cf98e9b",
+      "url": "https://github.com/marin-community/marin/commit/febf5e945ba91eadee0fe603157dc73b5cf98e9b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-ops-agent[bot]",
+      "author_name": "marin-ops-agent[bot]",
+      "authored_at": "2026-09-25T17:25:48Z",
+      "committed_at": "2026-09-25T17:25:48Z",
+      "message": "Fingerprint class-valued config fields by qualified name (#9406)\n\nClass-valued config fields now fingerprint by their qualified name. The\nlazy-artifact fingerprint encoder called `np.dtype(o)` on class values\nand\nexpected a `TypeError` for anything that was not a dtype. But\n`np.dtype()`\nturns any class into the object dtype, so every class encoded as\n`{\"__dtype__\": \"object\"}`. Swapping one class for another in a config,\nsuch as\na model class, produced no drift warning. `utilities/json_encoder.py`\nalready\nfiltered on dtype kind. That filter is now a `scalar_dtype()` helper\nshared by\nboth encoders.\n\nDead code removed along the way:\n\n- The unused `fake_bundle` parameter of Iris's `InMemoryGcpService`. The\nlocal\nand Docker test clusters wrote a placeholder `pyproject.toml` for it on\nevery\n  startup, and nothing ever read it.\n- `ShortConvBlockSizes.as_key` in Levanter, which had no callers.\n\n---------\n\nCo-authored-by: nightshift <nightshift@localhost>\nCo-authored-by: nightshift <nightshift@users.noreply.github.com>",
+      "sha": "dcbdd4f8623d854db2b77f087a6b3f22f178e503",
+      "url": "https://github.com/marin-community/marin/commit/dcbdd4f8623d854db2b77f087a6b3f22f178e503",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-25T16:37:00Z",
+      "committed_at": "2026-09-25T16:37:00Z",
+      "message": "[eval] Co-host verifier judge models (#9128)\n\nAllow evaluation launches to provision one optional verifier-side judge\nmodel beside the candidate. The judge uses the existing pinned model\ncatalog and hardware policy, must share the candidate's cluster or\nregion, stays alive across the batch, and is recorded with its model\nrevision and hardware.\n\nHarbor receives the judge's Iris capability URL and model name only in\nthe verifier environment. Candidate agent authentication remains bound\nto the candidate endpoint. Judge startup or runtime loss produces\ninfrastructure-failure records with judge job diagnostics; launches\nwithout a judge retain the single-session path.\n\nThe checked-in Qwen3.5 122B A10B FP8 judge also needs FlashInfer to link\nNVRTC under CUDA 13. The vLLM entrypoint now exposes the versioned\nruntime through a process-private linker shim without modifying the\ninstalled wheel.\n\nRNO2A batch `/benfeuer/eval-20260913-112724-qwen3-0.6b-9d70` scored 2/2\nSimpleQA trials with a one-H100 candidate and eight-H100 judge, then\nremoved both inference sessions. The focused evaluation and vLLM suite\npasses 59 tests. The changed-file gate passes lint, formatting, type\nchecking, configuration validation, and repository checks.\n\nDesign: https://echo.oa.dev/wiki/421\n\nPart of #8083\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "f5997d27c6da0b21648d6bcee48e53e3fda2e6bd",
+      "url": "https://github.com/marin-community/marin/commit/f5997d27c6da0b21648d6bcee48e53e3fda2e6bd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-25T12:00:44Z",
+      "committed_at": "2026-09-25T12:00:44Z",
+      "message": "[dependencies] Advance external runtimes (#9444)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`1db36258ab0e`](https://github.com/marin-community/evalchemy/commit/1db36258ab0eb682768171b37623f6c2ab655b0d)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`21e0ea6a0cc1`](https://github.com/marin-community/harbor/commit/21e0ea6a0cc1a0b617aebd86988ea93e1795f84a)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`72cc492d3ba0`](https://github.com/marin-community/MarinSkyRL/commit/72cc492d3ba03941715786f558d6be6ae1a52238)\n|\n\n## Upstream commits\n\n### evalchemy (`beaa0e0de4b9` → `1db36258ab0e`)\n\n-\n[`1db36258ab0e`](https://github.com/marin-community/evalchemy/commit/1db36258ab0eb682768171b37623f6c2ab655b0d):\n[eval] Share seeded benchmark repeats (#182)\n\n### harbor (`5e26ffcf490c` → `21e0ea6a0cc1`)\n\n-\n[`07dd3ef3712e`](https://github.com/marin-community/harbor/commit/07dd3ef3712eaedc6145c2db2eac9888d7377270):\n[tau3] Package the Harbor relay adapter (#218)\n-\n[`42e3c7167c7a`](https://github.com/marin-community/harbor/commit/42e3c7167c7ae598569a3f089f43d17fab0915ac):\n[pi] Preserve the configured prompt budget (#219)\n-\n[`367d2b20dac8`](https://github.com/marin-community/harbor/commit/367d2b20dac863c5e88106749783b3e3ad25af40):\n[pi] Reserve headroom for tool output estimates (#220)\n-\n[`e7fc031707f3`](https://github.com/marin-community/harbor/commit/e7fc031707f3976f0fbc97b9f8a65715b49d0823):\n[pi] Restore total context-window semantics (#221)\n-\n[`637fbf11faaf`](https://github.com/marin-community/harbor/commit/637fbf11faafd7da5a520f3dfe07a472f06d84b0):\n[pi] Add explicit compaction reserve (#222)\n-\n[`21e0ea6a0cc1`](https://github.com/marin-community/harbor/commit/21e0ea6a0cc1a0b617aebd86988ea93e1795f84a):\nPreserve reasoning fields in Terminus summary history (#223)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "a795b1d4306c71b1f4fc52cdcac2b5b1f0ed70d4",
+      "url": "https://github.com/marin-community/marin/commit/a795b1d4306c71b1f4fc52cdcac2b5b1f0ed70d4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-09-25T10:30:35Z",
+      "committed_at": "2026-09-25T10:30:35Z",
+      "message": "[evals] Bound Evalchemy archive export memory (#9130)\n\nStream lm-eval JSONL normalization one record at a time and retain only\ncompact per-document grading summaries while computing coverage. A\ncompleted MMLU-Pro evaluation produced a 2.84 GB sample file and\nexhausted the 16 GiB orchestrator during archive export; a 34.2 MB\nregression fixture now peaks at 68.5 MB of traced Python memory instead\nof 105.9 MB.\n\nNumeric Evalchemy identity fields such as `sample_ordinal` and\n`source_id` no longer become sample metrics. Scoreless custom tasks may\nuse an aggregate item count as coverage evidence only when it is\nintegral and exactly matches the attempted extent; `n_correct` remains\nunknown without item-level verdicts. Extraction filters remain part of\nthe archive merge key even when a row has no grade, so rebuilding\npreserved sources supersedes the intended row without manufacturing a\nscore.\n\nThe affected archive, measurement, and evaluation suites pass 94 tests.\nThe changed-file gate passes lint, formatting, type checking, and\nrepository checks.\n\nPart of #8083\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "8f8e8a8b863e803ebca02afb653f4252e353c7b2",
+      "url": "https://github.com/marin-community/marin/commit/8f8e8a8b863e803ebca02afb653f4252e353c7b2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-25T08:40:16Z",
+      "committed_at": "2026-09-25T08:40:16Z",
+      "message": "[evaldash] Read records without tokenizer revisions (#9355)\n\nRead historical eval records with an omitted\n`model.config.tokenizer_revision` as having no tokenizer revision. New\nrecords continue to include the field.\n\nPR #9314 added the optional launcher field but made it required in the\nstored-record schema. Every historical record doesn't have\n`model.config.tokenizer_revision` so this caused the Evaldash dashboard\nto stop updating due to errors on missing tokenizer revision.",
+      "sha": "2e2d2753212c70de0bec6f1bc4edaadc87f39aab",
+      "url": "https://github.com/marin-community/marin/commit/2e2d2753212c70de0bec6f1bc4edaadc87f39aab",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-25T06:32:49Z",
+      "committed_at": "2026-09-25T06:32:49Z",
+      "message": "Allow unpadded expert stacks to retain Muon sharding (#9278)\n\nAllow Muon updates to retain expert sharding when the matrix stack needs\nno padding. Stacks that need padding still require a replicated target\naxis.\n\nThe regression runs with two emulated CPU devices in a subprocess,\nincluding from a single-device CI lane. It compares the update with the\nunsharded Newton–Schulz path and checks that the result retains expert\nsharding.\n\n---------\n\nCo-authored-by: Matt Wittmann <matt.wittmann@openathena.ai>",
+      "sha": "06da233d9a85735db5a81343fba228d1cb6a77e7",
+      "url": "https://github.com/marin-community/marin/commit/06da233d9a85735db5a81343fba228d1cb6a77e7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-09-25T05:07:56Z",
+      "committed_at": "2026-09-25T05:07:56Z",
+      "message": "[dependencies] Advance external runtimes (#9440)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`beaa0e0de4b9`](https://github.com/marin-community/evalchemy/commit/beaa0e0de4b9f5ae8df699185824c85637cfb2d8)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`5e26ffcf490c`](https://github.com/marin-community/harbor/commit/5e26ffcf490c7a5c990f22ad06f37cc7ec188ce0)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`72cc492d3ba0`](https://github.com/marin-community/MarinSkyRL/commit/72cc492d3ba03941715786f558d6be6ae1a52238)\n|\n\n## Upstream commits\n\n### evalchemy (`d013e4290aab` → `beaa0e0de4b9`)\n\n-\n[`8498349f8624`](https://github.com/marin-community/evalchemy/commit/8498349f86248277177875102d30642ee35b3bc2):\n[eval] Persist empty-message timeout failures (#177)\n-\n[`629d42cd37ec`](https://github.com/marin-community/evalchemy/commit/629d42cd37ecbf6c4c816260cc691c59c8dc2738):\n[eval] Classify endpoint timeouts as agent timeouts (#179)\n-\n[`6597869a9036`](https://github.com/marin-community/evalchemy/commit/6597869a90366e87e4fa3f09e0d36793d03b42e0):\nStop retries when evaluation requests time out (#180)\n-\n[`beaa0e0de4b9`](https://github.com/marin-community/evalchemy/commit/beaa0e0de4b9f5ae8df699185824c85637cfb2d8):\nScore GSM8K with Minerva math equivalence (#181)\n\n### harbor (`761fb516f6b9` → `5e26ffcf490c`)\n\n-\n[`474327113694`](https://github.com/marin-community/harbor/commit/474327113694eb8ed0b09c642e7dcd17d18d553b):\n[sotopia] Score missing episode summaries as zero (#216)\n-\n[`5e26ffcf490c`](https://github.com/marin-community/harbor/commit/5e26ffcf490c7a5c990f22ad06f37cc7ec188ce0):\n[sotopia] Allow missing post-run summaries (#217)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "ef0491f33fe1fc31880c35d58b7834dc80b49a42",
+      "url": "https://github.com/marin-community/marin/commit/ef0491f33fe1fc31880c35d58b7834dc80b49a42",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-09-25T02:41:40Z",
+      "committed_at": "2026-09-25T02:41:40Z",
+      "message": "[snowball] Expose June model stages for pipeline execution (#8978)\n\nExpose the June Snowball transformer through Levanter and split it into\ncontiguous pipeline stages that retain the original attention schedule.\nEach stage owns and loads only its HF tensor subset, including the\nembedding or output boundary when appropriate. Explicit position IDs,\ncausal segment masks, configurable expert capacity, and routing-drop\ncounters support packed expert-parallel execution.\n\nKeep the demonstrated RMS, embedding-gather, and router-sigmoid rounding\nboundaries. Model tests cover HF loading, masked values and gradients,\nuneven stage partitions, and exact parameter ownership. These model\nchanges are independent of the GRPO objective, pipeline scheduler, and\ncheckpoint lifecycle; the full migration also needs its scorer-only\ncompute-cast correction. Numerical evidence and its scope are recorded\nin https://marina.oa.dev/echo/wiki/363.\n\nThe original two-file model suite passed 31/31 on one CoreWeave H100 in\nIris job `/dlwh/pr8978-h100-20260924-retry8`. The worker preflight ran\nTorch and JAX GPU operations on that H100; deterministic XLA GPU\noperations keep the exact scoring and differentiated-forward comparisons\nreproducible.",
+      "sha": "9e7ef4bda2640eee36ae93e83a052554fe559f23",
+      "url": "https://github.com/marin-community/marin/commit/9e7ef4bda2640eee36ae93e83a052554fe559f23",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-25T02:16:56Z",
+      "committed_at": "2026-09-25T02:16:56Z",
+      "message": "Add Grug 2026.09.21 reasoning-aware serving config (#9431)\n\nRegister the September 21 Grug checkpoint for evaluation serving with\nits H100 configuration and the `grug` reasoning parser. The parser\nseparates `<|start_think|>` traces from final answers.\n\nServing requires a Marin vLLM wheel containing [the\nparser](https://github.com/marin-community/vllm/pull/79). Part of #9193.",
+      "sha": "c18106e5c892de4e00b96deed211b2c0354be7f7",
+      "url": "https://github.com/marin-community/marin/commit/c18106e5c892de4e00b96deed211b2c0354be7f7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-09-25T00:52:56Z",
+      "committed_at": "2026-09-25T00:52:56Z",
+      "message": "[datakit] Materialize fuzzy-duplicate cluster text (#8724)\n\n- adds library functions and StepSpec builders for large-cluster\nplanning and text materialization\n- follows #8405's v11 layout: samples every 256th candidate row and\nsplits components estimated above 100,000 members by MinHash over 5-word\nshingles, then by the document-ID hash modulo 16\n- keeps at most 64 Mi characters per document and sorts each group by\ndocument ID\n- records source-shard lineage and split parameters; rejects missing\ncandidate text and inconsistent text for repeated IDs\n- keeps command-line wrappers; follows #8723 and feeds verification in\n#8725\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "6f2d168b8ce4f11c23d188a02ad220eb8a9b750b",
+      "url": "https://github.com/marin-community/marin/commit/6f2d168b8ce4f11c23d188a02ad220eb8a9b750b",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-26T00:00:00Z",
+    "start": "2026-09-25T00:00:00Z"
+  }
+}

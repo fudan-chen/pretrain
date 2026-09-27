@@ -1,0 +1,65 @@
+{
+  "commit_count": 5,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-26T19:38:55Z",
+      "committed_at": "2026-09-26T19:38:55Z",
+      "message": "[deps] Require ShellSim 0.1.20 (#9477)\n\nRaise the marin-core ShellSim requirement from 0.1.10 to 0.1.20 and the\nshellbox `shellsim` extra from 0.1.17 to 0.1.20, and lock 0.1.20.\n\nThe new releases run WebAssembly executables as scheduled processes, add\nPIPESTATUS, a boot-time real-time clock mode, native complex numbers and\nNumPy complex128 arrays, and give shells exec'd from pipelines their own\n`$$`. The Python `Environment` API used by the Chat workspaces and the\nshellbox backend only gained additions since 0.1.10.",
+      "sha": "562d705673859548c58b46d8f2383ab8a053797f",
+      "url": "https://github.com/marin-community/marin/commit/562d705673859548c58b46d8f2383ab8a053797f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-26T17:24:23Z",
+      "committed_at": "2026-09-26T17:24:23Z",
+      "message": "[eval] Register the checked-in publication-policy benchmark configs (#9476)\n\nMMLU-Pro, GPQA Diamond, CRUXEval, FinanceBench, IFEval, IFBench and MRCR\nhave checked-in Evalchemy configs under\n`experiments/evaluation/configs/evalchemy/`, but no entry in `EVALS`.\nOnly `--evalchemy-config` could launch them, and experiment code that\ncalls `eval_step`, which resolves names through `EVALS`, failed with\n\"unknown eval(s)\" at run time.\n\nThe configs are registered by name. They remain outside every suite, so\nthe `chat` suite and the other named selections are unchanged.\nFinanceBench's judge block comes from its config file, as it does for\n`--evalchemy-config`.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/9476#issuecomment-5848254102)\n<!-- marin-prose-cleanup -->\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "639462c89f7dac2d2ed1d78c9fef39de9fc87c8b",
+      "url": "https://github.com/marin-community/marin/commit/639462c89f7dac2d2ed1d78c9fef39de9fc87c8b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-26T02:26:40Z",
+      "committed_at": "2026-09-26T02:26:40Z",
+      "message": "[iris] Give Docker setup at least one CPU (#9474)\n\nGive Docker setup containers the larger of one CPU and the task's CPU\nrequest. The run container keeps the task's requested allocation.\nReserved and preemptible workers enforce a quota; on-demand workers use\nrelative CPU shares.\n\nA task requesting 0.1 CPU previously ran dependency builds under a\n0.1-core quota on reserved workers. A [recent\njob](https://iris.oa.dev/#/job/%2Fpower%2Fcurriculum-math-generate-20260926?user=power)\nspent 1m47s preparing 19 packages, including 16 workspace builds. The\nsetup floor lets those transient builds use up to one core. Concurrent\nsetups can temporarily consume more CPU than their scheduler\nreservations.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "f97c9c5d08bea97415b1ae3741832ddee1e70b89",
+      "url": "https://github.com/marin-community/marin/commit/f97c9c5d08bea97415b1ae3741832ddee1e70b89",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-26T00:56:00Z",
+      "committed_at": "2026-09-26T00:56:00Z",
+      "message": "[levanter] Keep HF export shard writers out of multi-host collectives (#9473)\n\nConcurrent HF export (#9471) runs shard writers in a thread pool on\nprocess 0\nonly, but two calls inside the writer entered multi-host collectives:\nhaliax `save_state_dict` and `upload_to_hub` both end in\n`sync_global_devices`, a `psum`. Process 0 entered the collective from a\nworker\nthread while the other hosts moved on to the next shard's all-gather, so\nany\nmulti-host export diverged. Under the Iris GPU compile guard it failed\nwith\n`GPU compile fingerprint mismatch` (process 0 compiled `_psum` where the\nothers\ncompiled `_to_state_dict_with_dtype`); without the guard it would hang.\n\nShard writers now call `safetensors.numpy.save_file` directly, and Hub\nuploads\nfrom `save_pretrained` go through a process-0 helper that has no\nbarrier.\n`upload_to_hub` keeps its barrier for its other callers. For\nobject-store\ndestinations, `temp_dir_before_upload` still synchronizes all processes\nafter\nthe metadata upload.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "51735cc254721c9a883f1441265f6589fd682dd8",
+      "url": "https://github.com/marin-community/marin/commit/51735cc254721c9a883f1441265f6589fd682dd8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-26T00:23:26Z",
+      "committed_at": "2026-09-26T00:23:26Z",
+      "message": "[levanter] Export HF checkpoint shards concurrently (#9471)\n\nExport Hugging Face checkpoint shards through concurrent writers on\nprocess 0. Every process gathers tensor values in the same shard and\nparameter order, keeping multi-host collectives matched. A 16 GiB host\nbudget reserves twice each shard's payload until serialization and\nupload finish; a shard larger than the target runs alone. Metadata is\nwritten after all shard uploads complete. The export command exposes the\nbudget and writer count.\n\nA four-device CPU benchmark exported eight shards and 829,193 bytes with\nan 80 ms simulated upload delay per shard. One writer took 0.949\nseconds; four writers took 0.254 seconds. This measures local latency\noverlap, not the 67B multi-node export.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "ecc26793fef04aec0831fd17e34c438675295b91",
+      "url": "https://github.com/marin-community/marin/commit/ecc26793fef04aec0831fd17e34c438675295b91",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-27T00:00:00Z",
+    "start": "2026-09-26T00:00:00Z"
+  }
+}

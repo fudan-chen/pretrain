@@ -1,0 +1,54 @@
+{
+  "commit_count": 4,
+  "commits": [
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-27T23:59:32Z",
+      "committed_at": "2026-09-27T23:59:32Z",
+      "message": "[iris] Test proxy response routing under concurrency (#9492)\n\nReplace the proxy test's upstream TCP connection count with response\nchecks for sequential and concurrent requests. The old assertion fails\non clean main after every request succeeds. Distinct request paths now\nverify that each response reaches the correct caller without\nconstraining connection pooling.\n\nThe affected safe suite passes (13 tests). All-files lint, Pyrefly, and\nadvisory lint review pass.\n\nPart of #9487\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "dad4e2aa572403efcad0d8a4f28dab2d0e9cac04",
+      "url": "https://github.com/marin-community/marin/commit/dad4e2aa572403efcad0d8a4f28dab2d0e9cac04",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-09-27T19:28:10Z",
+      "committed_at": "2026-09-27T19:28:10Z",
+      "message": "[iris] Share uv cache files on TPU worker hosts (#9489)\n\nUse symlinks for Iris-managed uv installs on TPU worker hosts, including\nCPU tasks placed there. On the reported GCP v4 hosts, copied\nenvironments added about 6.5 GB per task; disk exhaustion caused\nworker-health failures and controller removal on 215 GB hosts.\nKubernetes keeps copy mode because its node agent may clean the shared\nuv cache while tasks run, which would break symlinked environments.\n\nA test with a local wheel verifies cache-backed symlinks and copy-mode\nimports after cache deletion. The affected safe suite (`uv run\n--no-project infra/ci/run_tests.py`) passed 4,846 tests and failed\n`test_native_proxy_reuses_upstream_connections`; the Iris CI unit job\nfailed the same test. It also fails in isolation on a clean main\ncheckout at `3a4e6506d4`, opening 16 upstream connections for 16\nsequential requests where the test expects one. The [incident\nrecord](https://marina.oa.dev/echo/wiki/540) has the production\nmeasurements. A live post-deploy disk measurement remains outstanding.\n\nFixes #9487\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "1ca8ce2ae09b7e97b8ed4cab577d3ecc45506b65",
+      "url": "https://github.com/marin-community/marin/commit/1ca8ce2ae09b7e97b8ed4cab577d3ecc45506b65",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-09-27T14:55:49Z",
+      "committed_at": "2026-09-27T14:55:49Z",
+      "message": "[iris] Route Evalchemy locally and reuse proxy connections (#9480)\n\nOn the serving Iris cluster, Evalchemy resolves each vLLM endpoint\nthrough Iris's endpoint API before an evaluation and sends requests to\nits in-cluster address, bypassing the public capability proxy. Harbor's\nexternal Daytona sandboxes keep capability URLs for candidate and hosted\njudge endpoints. The orchestrator scrapes vLLM metrics directly. The\nRust proxy retains up to 256 idle upstream connections per host and\ncloses them after 90 seconds idle.\n\nDuring five minutes of September 26 eval load, Finelog recorded 7,734\nadditional hub proxy 502s and 10,749 additional CoreWeave peer proxy\n502s. An affected JSON response said `upstream transport error: client\nerror (Connect)`, identifying the Rust proxy's upstream request path.\nIts upstream pool retained zero idle connections, forcing a new\nconnection after every completed request. Connection churn is a\nplausible contributor; the historical response does not expose the\nsocket error. In a later run, a serving task was preempted at 20:20:29\nUTC. The proxy returned `No endpoint` 404s after its 10-minute\nregistration lease expired and until a replacement registered at\n20:35:07. No ready endpoint was registered during that interval.\n[Incident record](https://marina.oa.dev/echo/wiki/529).\n\n[PR #9484](https://github.com/marin-community/marin/pull/9484) preserves\nEvalchemy transport failures in records and gates low-coverage runs. The\nRust proxy change requires an updated Iris controller image on the hub\nand `cw-rno2a` peer.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "3a4e6506d47b31d4e938bf9bb21540d7cac45307",
+      "url": "https://github.com/marin-community/marin/commit/3a4e6506d47b31d4e938bf9bb21540d7cac45307",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-09-27T14:40:18Z",
+      "committed_at": "2026-09-27T14:40:18Z",
+      "message": "[serve] Forward backend tokenization requests (#9482)\n\nForward `/tokenize` through the serving proxy. Harbor uses this endpoint\nto\ncount context tokens; the missing route returned HTTP 404 and forced its\nfallback token counter during agentic evaluations. See the incident:\nhttps://marina.oa.dev/echo/wiki/532\n\nThe proxy forwards request bodies unchanged and preserves the backend's\nHTTP\nstatus and response body. Existing serving jobs must be relaunched with\nthis\nchange to expose the route; Harbor's tokenization payload is unchanged.",
+      "sha": "578aacfc7899996b162c446b186b4aa6091b5fb0",
+      "url": "https://github.com/marin-community/marin/commit/578aacfc7899996b162c446b186b4aa6091b5fb0",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-09-28T00:00:00Z",
+    "start": "2026-09-27T00:00:00Z"
+  }
+}

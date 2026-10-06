@@ -1,0 +1,153 @@
+{
+  "commit_count": 13,
+  "commits": [
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-05T23:16:01Z",
+      "committed_at": "2026-10-05T23:16:01Z",
+      "message": "[levanter] Count full-attention layers explicitly in lm_flops_per_token (#9633)\n\nCount the 26-layer Snowball model's seven full-attention layers in the\nshared `lm_flops_per_token` estimate. The harness previously counted\nsix, as noted in #9613, because the June trainer used a private\nestimator with an explicit layer-count argument. The long-layer\nschedule, every fourth layer plus the last, was also specified in three\nplaces.\n\n`lm_flops_per_token` now accepts `num_full_attention_layers`, which\ntakes precedence over the `global_every` stride. The June trainer and\nSnowball synthetic harness use the shared helper, and the private\nestimator is deleted. For the Snowball shape, the shared helper matches\nthe deleted function exactly at 4096 and 65536 tokens. The Snowball\nmodel exposes `long_attention_layer_mask` for its scan and\n`num_long_attention_layers` for the harness; the June trainer counts\nlayers with its model's existing schedule function. A test confirms that\nthe harness and June trainer calculate the same FLOPs per example for\nthat shape.\n\nThe corrected estimate raises the harness's measured MFU by 0.4% at a\n4096-token context. The harness docstring's undercount note is removed.\n\nPart of #9462\n\n---\n\n<details>\n<summary>Verification: how the numbers were checked</summary>\n\nAll comparisons are exact float equality, not tolerances.\n\n1. **Deleted June helper against the shared helper.** The private\n`_lm_flops_per_token` from the pre-change\n`experiments/june_tpu_67b_a2b/moe/train.py` and the shared\n`lm_flops_per_token` with `num_full_attention_layers=7` were called with\nthe Snowball shape (hidden 2560, intermediate 1280, shared 2560, 26\nlayers, 20 heads, 5 KV heads, 256 experts, top-4, window 2048, vocab\n128256). Results: 5,305,917,440 FLOPs per token at 4096 tokens and\n9,735,741,440 at 65536 tokens from both functions. The old stride path\n(`global_every=4`, six full layers) gives 5,284,823,040 and\n9,081,815,040, the 0.4% and 7% undercounts.\n\n2. **June trainer before and after.** `_compute_flops` from the\npre-change module and from this branch were run on 36 configurations:\nlayer counts 1 through 12, 24 through 28 and 64, each at the June\ndefault shape and at the Snowball shape. FLOPs per example and\nfull-attention layer counts matched in all 36, which also confirms that\nsumming the model's schedule mask equals the arithmetic formula it\nreplaced.\n\n3. **Harness against the June trainer.**\n`experiments/grug/snowball_synthetic/test_flops.py` builds a June config\nfrom the Snowball shape and asserts both estimators give the same FLOPs\nper example and seven full layers. It runs in CI.\n\n4. **Model behaviour.** `lib/levanter/tests/test_snowball.py` (14 tests,\nexcluding slow, checkpoint and HF cases) passes with the scan using\n`long_attention_layer_mask`, and the harness tiny preset trains on CPU.\n\nTo reproduce item 1 on this branch:\n\n```bash\nuv run python -c \"\nfrom levanter.utils.flop_utils import lm_flops_per_token as f\nkw = dict(hidden_dim=2560, intermediate_dim=1280, num_layers=26, num_kv_heads=5, num_heads=20, vocab_size=128256, glu=True, num_experts=256, num_shared_experts=1, num_experts_per_tok=4, shared_intermediate_dim=2560, sliding_window=2048)\nfor s in (4096, 65536): print(s, f(**kw, seq_len=s, num_full_attention_layers=7), f(**kw, seq_len=s, global_every=4))\"\n# 4096 5305917440.0 5284823040.0\n# 65536 9735741440.0 9081815040.0\n```\n\n</details>\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/9633#issuecomment-5936953283)\n<!-- marin-prose-cleanup -->\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "a69e8fd87a525c080901ea907686a7092119e765",
+      "url": "https://github.com/marin-community/marin/commit/a69e8fd87a525c080901ea907686a7092119e765",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-05T22:09:30Z",
+      "committed_at": "2026-10-05T22:09:30Z",
+      "message": "Require Shellsim 0.1.29 for dataset shell compatibility (#9794)\n\nRequire Shellsim 0.1.29 in Marin and Shellbox's shellsim extra, and update the workspace lockfile and documented minimum. This brings in conventional `/bin` paths, NUL-safe restore helpers, `find -prune`, and the uv/pytest options used by the ingested dataset wrappers.\n\nShellsim release: https://pypi.org/project/shellsim/0.1.29/\nImplementation: https://github.com/rjpower/shellsim/pull/165\n\nLockfile regeneration also records taskcompendium's already-declared dependency on the workspace rigging package.",
+      "sha": "18e7b2434fcde0553afa985726eb4eec22111a4e",
+      "url": "https://github.com/marin-community/marin/commit/18e7b2434fcde0553afa985726eb4eec22111a4e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-05T20:14:46Z",
+      "committed_at": "2026-10-05T20:14:46Z",
+      "message": "Curate task sources with Zephyr artifacts (#9642)\n\nAdd an artifact pipeline that converts pinned task datasets into audited\nand filtered TaskSpec Parquet files. Library family modules provide\nnormalization, source-specific quality rubrics and grader checks as a\n`TaskPipeline`. Experiment bindings select pinned sources and downloads,\npair them with a policy in a `DatasetRecipe`, and construct the artifact\ngraph. Every selected input remains in the audit, including rejected\ntasks, reasons, model findings, checks and cleanup lineage.\n\n```mermaid\nflowchart TD\n    B[Experiment binding: source pins and download inputs] --> D[Download pinned source files to object storage]\n    R[Library TaskPipeline: normalizer, rubric, checks] --> A\n    D --> S[Read staged files: reshard 1, limit N, reshard 64]\n    R --> N[Normalize records into TaskSpec]\n    S --> N\n    N --> A[Audit: grader controls and GLM quality review]\n    Q[(FineStore: exact request and model revision)] <--> A\n    A --> P[Audit Parquet: inputs, tasks, checks, review evidence]\n    P --> F[Filter: final keep or reject with reasons]\n    F --> W[Optional selected-task repair with a separate rubric]\n    W --> V[Recheck, review and filter repaired candidates]\n    F -->|Repair disabled| C[Concatenate one final artifact per source]\n    V --> C\n    C --> M[Canonicalize: deduplicate, reject reference conflicts, prioritize eval]\n    M --> O[Parquet views: audit, accepted, train, eval, executable]\n```\n\nEach source follows the same graph for bounded and full runs. The limit\nis applied after download with\n`reshard(1).take_per_shard(N).reshard(64)`; changing it reuses\ndownloads. Zephyr owns row processing, shard reuse, serialization and\nreductions. FineStore caches schema-valid GLM completions by exact\nrequest and model revision across catalog versions. An unfinished mapper\ncan resubmit an in-flight remote batch; attempt-specific evidence is\nretained. Family and stage revisions, TaskSpec schema version and the\nrepair prompt digest scope artifact invalidation.\n\nFiltering makes a final quality decision independently of grader\nreadiness. Unbound evaluators are excluded from the executable view.\nWhen repair produces a candidate, it replaces the parent's row in that\nsource's final artifact, receives fresh checks and review, and retains\nthe original audit in its lineage. Rows without a replacement pass\nthrough. Canonical merging retains audit rows and records exclusion\ndecisions; accepted views omit exact-contract duplicates and conflicting\ntyped references and give evaluation records priority over matching\ntraining records. Private inputs remain part of duplicate identity for\nopaque source evaluators.\n\nFamily normalizers emit private grader packages using VerifyIT's\nexisting specifications and execution contract. Standard math, numeric,\nMCQ, schema and constraint tasks select reusable modes. Source-specific\nARC parsing, avoided-action rules, calendar postconditions and reference\ngates are recipe-owned scripts bundled with their configuration. A\nscript may use VerifyIT components or implement its own scoring; adding\none requires no TaskCompendium registration.\n\n```mermaid\nflowchart LR\n    R[Family normalizer] --> T[TaskSpec public task]\n    R --> P[Private grader package]\n    P --> S[Standard VerifyIT spec and fixtures]\n    P --> C[ScriptSpec plus grader.py and config.json]\n    S --> V[VerifyIT grading contract]\n    C --> V\n    E[Extracted answer or captured evidence] --> V\n    V --> O[Scored, invalid-task or infrastructure verdict]\n    O --> A[Pipeline controls and grader readiness]\n```\n\nTaskCompendium extracts submission evidence and stages private files.\nAnswer-file graders run through VerifyIT; coding graders use a fresh\nnetwork-disabled machine with a pinned private image. Controls run the\nsame emitted package. Grader scripts and fixture bytes participate in\ntask identity and GLM review evidence. Opaque script contracts\ndeduplicate only when their full private semantics match; distinct\nprivate script contracts do not establish conflicting typed answer keys.\nIncidental preference metadata remains in the raw audit.\n\nUnbound evaluators preserve their source contract and return an unscored\ninfrastructure verdict. Reasoning Gym remains unbound until an isolated\nruntime is supplied because its upstream scorers may execute candidate\nexpressions. Private tests are hidden from the solving environment, but\nsubmitted code can still read them within the grading machine. TaskSpec\nuses upstream role-grouped resources and named tool-provider\nrequirements; its optional episode prototype retains interaction-tool\ndeclarations and capture paths, which direct chat rejects.\n\nThe [source\ncatalog](https://github.com/marin-community/marin/blob/weaver/let-s-mock-up-a-clean-verify-fil/experiments/post_training/task_curation/atlas_catalog.json)\naccounts for 196 Atlas listings: 148 mapped, 45 explicitly excluded and\nthree KTO contributor selectors without recoverable membership metadata.\nThe registry exposes 150 source names, including two additional sources.\nA full-corpus release remains outstanding. Legacy TaskTrove converters\nfollow main.\n\nNemotron Ultra selections are grouped by family in the experiment. Each\ngroup binds a library policy explicitly, including math placeholder\ninputs and repository membership inputs where required. Direct-source\nand archive bindings use the same separation. Adding a source does not\nrequire a new execution path.\n\nThe [pipeline\nreference](https://github.com/marin-community/marin/blob/weaver/let-s-mock-up-a-clean-verify-fil/docs/references/task-curation.md)\ndescribes recipe definitions, artifact flow, caching and execution.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "50712dad6a3d456df6ff271dde0e6feef01f4ddf",
+      "url": "https://github.com/marin-community/marin/commit/50712dad6a3d456df6ff271dde0e6feef01f4ddf",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "himanshk96",
+      "author_name": "himanshk96",
+      "authored_at": "2026-10-05T19:52:56Z",
+      "committed_at": "2026-10-05T19:52:56Z",
+      "message": "[dedup] Send connected-components labels only from changed nodes (#9773)\n\nSend a node's component label to its neighbors only in the iteration\nafter\nthe label decreased, and carry only the key, the self flag and the\ncomponent\nid in that message. Each Hash-to-Min iteration re-sent every node's\nlabel to\nevery neighbor and packed the record id, an empty adjacency list and the\nother\nnode fields into messages whose reducer reads only the component id.\nLabels\nonly decrease and a node re-sends whenever its label drops, so a\nneighbor\nalready holds a label no larger than anything an unchanged node would\nre-send.\nEvery `it_N` row, the per-iteration change counts and the convergence\nround\nare unchanged; the self-message still carries the full node and is\nalways\nsent, so resume and the fuzzy-dedup consumer see the same files.\n\nOn a synthetic 285k-node graph with 26 bands per node that converges in\nsix\niterations under the local client with eight reduce shards:\n\n| | before | after |\n| --- | --- | --- |\n| iteration stages, wall | 166 s | 76 s |\n| messages per iteration from the third on | 4.64M | 0.29M |\n| scatter payload per iteration from the third on | 1,131 MiB | 232 MiB\n|\n| scatter payload, first iteration | 1,131 MiB | 778 MiB |\n| peak RSS, whole run | 9.0 GiB | 7.6 GiB |\n\nFinal labels are identical. Old and new also agree on 3,000 random\ngraphs\nwith shuffled message arrival (paths, stars, cycles, self-linked\nsingletons,\niteration caps from 1 to n+3, resume from every intermediate iteration)\nand on\na differential matrix over chains, stars and dense graphs with\n`preserve_singletons` on and off, one and four reduce shards, converged\nand\ncapped runs, and resume from a capped run. The dedup suite passes\nunchanged.",
+      "sha": "017c209511e582ec3530ae441dbf861a17547298",
+      "url": "https://github.com/marin-community/marin/commit/017c209511e582ec3530ae441dbf861a17547298",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-05T18:34:26Z",
+      "committed_at": "2026-10-05T18:34:26Z",
+      "message": "[codehealth] Catch consumer policy in shared libraries (#9754)\n\n# Agentic-lint catalog refinement\n\nAdd `ml-consumer-policy-in-shared-layer` for code that places one\nconsumer's UI or deployment choice in a reusable library. Require a\nvisible owner boundary and suppress generic shared APIs. Also grant the\nworkbench writer DELETE on the existing admin-owned lint findings table\nwhen that table exists, so a refreshed telemetry sync can replace\nfindings.\n\n## Evidence\n\n- The fixed sync covered 2026-09-05 17:23 UTC to 2026-10-05 17:23 UTC.\nThe post-sync rolling 30-day `list-prs --human` query returned 1,801\nhuman events across 320 pull requests. Three placement comments on three\ndistinct PRs support the new rule: [Zephyr-only UI in Iris,\n#9088](https://github.com/marin-community/marin/pull/9088#discussion_r3992072039),\n[a production applet URL in Zephyr,\n#9173](https://github.com/marin-community/marin/pull/9173#discussion_r4076493379),\nand [dataset-specific graders in a shared package,\n#9642](https://github.com/marin-community/marin/pull/9642#discussion_r4169325356).\nThe #9642 comment has no source anchor, so it is corroborating human\nfeedback, not a probe case.\n- These PRs have 9 recorded `review-pr` invocations and 12 generic\nfindings: #9088 has 3 invocations and 0 findings; #9173 has 3 and 3;\n#9642 has 3 and 9. A #9173 bug finding also identified a deployment URL\nproblem, so that feedback was partly surfaced in production. The new\nrule has no production exposure yet. The nearest existing import rule,\n`ml-reverse-layer-import`, had 0 findings in 500 current-catalog\neligible successful runs; the #9088 code has no reverse import.\n- [A shared Zephyr plan representation,\n#9173](https://github.com/marin-community/marin/pull/9173#discussion_r4076540419)\nis an allowed case. [Protocol decoding discussed in\n#9220](https://github.com/marin-community/marin/pull/9220#discussion_r4138276633)\nlacks a clear owner boundary in the available source window and is a\nsuppression case.\n\n## Probe results\n\nThe provisional catalog identity is\n`0764a93a0030f5002f7ec411faf4b6f5e1d24e11f1315fd2013a38c3155274ab`; the\nnew rule identity is\n`41b813bef715797851f6ff3df4109e496b824432abba79e64fa66fa3fb5e645f`. Each\nprobe used `gpt-6-sol` at medium effort against one stored context:\n\n| Context identity | Result | Recorded probe |\n| --- | --- | --- |\n| `inline_comment:3992072039` (#9088) | Fired, 0.92 |\n`89383ce7-81d8-40d8-b388-ecb1830b9307` |\n| `inline_comment:4076493379` (#9173) | Fired, 0.96 |\n`90c28974-b426-4ec0-8af4-f1433d3c73f4` |\n| `inline_comment:4076540419` (#9173) | Suppressed |\n`4f59726a-a8f6-4ea8-8a55-0aa5a4c17abb` |\n| `inline_comment:4138276633` (#9220) | Suppressed |\n`4f629b68-f3dd-4612-92fd-76ddfd71f79d` |\n\nThese are experiments on selected historical contexts, not a production\nrecall estimate.\n\n## Validation\n\n- `validate-rules`: 64 rules in 6 lanes.\n- `tests/codehealth/test_refinement_workbench.py`: 15 passed.\n- Changed-file pre-commit checks and Pyrefly: passed; the affected-test\nselector selected 0 package tests for the infra-only diff.\n- The conditional SQL grant executed against the existing table and the\nwriter's DELETE privilege was verified. The fixed 30-day sync completed\non attempt 2 after the grant, persisting 320 pull requests and 1,511\ninvocation and 5,900 finding rows.\n- The branch-wide advisory lint review identified one duplicate role\nconstant; the follow-up commit moved it to the shared database setup\nmodule. No other finding remained.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "36c462ae5cfb98f05dc8163e14a761879791f2de",
+      "url": "https://github.com/marin-community/marin/commit/36c462ae5cfb98f05dc8163e14a761879791f2de",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-05T18:33:13Z",
+      "committed_at": "2026-10-05T18:33:13Z",
+      "message": "Reduce duplicate work when loading Finelog dashboards (#9734)\n\nTraining charts load from their metric query without waiting for\nseven-day attempt history or Iris execution-health queries. Attempt\nhistory uses one ordered aggregate, and results of identical source\nqueries are shared for 20 seconds with a 128 MiB Arrow cache cap. Shared\ndashboard panels use explicit point budgets so panels with different\nwidths use the same query interval for the same window. The Training run\npicker refreshes on dashboard load.\n\nFinelog snapshots only namespaces referenced by a query, using\nDataFusion's table-reference resolver so joins, subqueries, and CTEs\nkeep working. Require `async-trait` 0.1.92 to remove redundant generated\n`#[must_use]` attributes rejected by Rust 1.99 Clippy.\n\nOn 11 copied immutable production segments (4.26 million rows, 60.5 MB),\nthe Training metric query's median warm execution time fell from 325 ms\nto 141 ms; metrics plus attempt history scanned 9.32 MB instead of 13.06\nMB. These are local debug-build measurements, not a production dashboard\nlatency forecast. A 31-namespace fixture reduced SELECT 1 latency from\n14–15 ms to 5 ms by avoiding unrelated snapshots.\n\nNo live dashboard, hub configuration, or storage layout was changed.\n[Incident and benchmark details](https://marina.oa.dev/echo/wiki/603).\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "73f280f72f47f0e3835c4c8993feddcc1e7ec7d2",
+      "url": "https://github.com/marin-community/marin/commit/73f280f72f47f0e3835c4c8993feddcc1e7ec7d2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-05T18:03:54Z",
+      "committed_at": "2026-10-05T18:03:54Z",
+      "message": "Forward the Together key to RL coordinators (#9725)\n\nForward `TOGETHER_API_KEY` through Marin's RL coordinator. The\n`2026.10.03.10` antidoom reference-KL run logged `Judge API key\nenvironment variable 'TOGETHER_API_KEY' is not set` from GenRM\ncomparisons. The submitting shell had the key, but the coordinator\ncredential allowlist dropped it before MarinSkyRL launched the training\njob.\n\nMarinSkyRL already forwards an available coordinator key into worker\npods. A live `RolloutWorker` actor in the corrected resume has the key;\ngrader behavior in that run remains to be checked.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "7190b39f183ed938b9e9d2711eb96468b94b3a84",
+      "url": "https://github.com/marin-community/marin/commit/7190b39f183ed938b9e9d2711eb96468b94b3a84",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-05T17:26:10Z",
+      "committed_at": "2026-10-05T17:26:10Z",
+      "message": "zephyr: remove the memory store (#9739)\n\nRemove the Zephyr memory store after its only user, `verify_fuzzy_dups`,\nwas removed in the base PR. This removes\n`ZephyrContext.load_memory_store`, `zephyr.memory_store`, and the table\nRPCs on `ZephyrCoordinator` and `ZephyrWorker`, including\n`register_memory_table`, `load_memory_table`, and `lookup_memory_table`.\n`register_worker` now returns `None` instead of table registrations.\nKeep `worker_handles` because pool startup waits on it.\n\nAlso remove `_require_resolvable_worker_handles`,\n`zephyr.testing.context`, the memory store tests, and the README\nsection.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/9739#issuecomment-5982678224)\n<!-- marin-prose-cleanup -->\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "b0c1b8f718904b33a97134453d9999254ee18475",
+      "url": "https://github.com/marin-community/marin/commit/b0c1b8f718904b33a97134453d9999254ee18475",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-05T17:22:15Z",
+      "committed_at": "2026-10-05T17:22:15Z",
+      "message": "[evaldash] Keep comparisons within the selected cohort (#9752)\n\nKeep the selected cohort in the URL across reloads and navigation. Scope\nmodel rows, benchmark protocols, and missing-score explanations to that\ncohort.\n\nCompare includes only models with a non-zero score on at least one\nselected benchmark in that cohort, including models supplied in the URL.\nReject `cohort=all` comparisons; retain all-cohort browsing on the home\nscreen.",
+      "sha": "53e0aa1d111d96a487bf72ff3cc7cf460580e60b",
+      "url": "https://github.com/marin-community/marin/commit/53e0aa1d111d96a487bf72ff3cc7cf460580e60b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-05T16:59:52Z",
+      "committed_at": "2026-10-05T16:59:52Z",
+      "message": "datakit: remove verify_fuzzy_dups (#9738)\n\nRemove `verify_fuzzy_dups()` and its helpers now that #9727 moved the\nferries to `cluster_verify_step`; no pipeline calls the old function.\nDelete `fuzzy_verification.py`, its tests, the\n`verify_fuzzy_dups_{smoke,testbed}.py` scripts, `dedup_report`, and\n`dedup.html`. Only those scripts rendered the report.\n\nMove `VerifiedFuzzyDupsArtifact` and `VerifiedFuzzyDupsPerSource` into\n`cluster_verify.py`. `datakit_store` still reads markers through the\nshared base type. `testbed/variants.py` now runs `large_clusters_step` →\n`cluster_text_step` → `cluster_verify_step`, as in\n`reference_pipeline.py`.\n\n`hero_data.py` keeps the `datakit/verify_fuzzy_dups_v11_c075` path [^1].\n\n[^1]: An object-store path for pinned data, not a code reference.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/9738#issuecomment-5982674553)\n<!-- marin-prose-cleanup -->\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "3043e83ec1977a26ea75bc37cec393969cabfed9",
+      "url": "https://github.com/marin-community/marin/commit/3043e83ec1977a26ea75bc37cec393969cabfed9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-05T16:58:28Z",
+      "committed_at": "2026-10-05T16:58:28Z",
+      "message": "[hero] Keep two completion jobs active (#9745)\n\nThe hourly hero-completions workflow now keeps up to two sampling jobs\nactive in its default `next` mode, not one.\n\nOne sample set takes about 40 hours from submission to result, mostly\nthe queue wait for 64 GB200 GPUs at batch priority. The hero writes a\npermanent checkpoint about every 28 hours. With one active job the\nbacklog grows, and the newest-first order never gets to the older\ncheckpoints: steps 156000 to 180000 have no attempts, while 186000 and\n192000 completed.\n\nAfter merge, one manual `submission=all` run clears the current backlog.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "c34665e2c75548bb2d07f884d4e969380b17c440",
+      "url": "https://github.com/marin-community/marin/commit/c34665e2c75548bb2d07f884d4e969380b17c440",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-10-05T16:06:21Z",
+      "committed_at": "2026-10-05T16:06:21Z",
+      "message": "Use the shared stale issue and PR policy (#9744)\n\nReplace Marin's existing daily stale cleanup with the shared workflow in\nmarin-style. Keep the same policy: close issues after 90 inactive days\nand pull requests after 30, with warnings seven days earlier. Preserve\nthe messages, label exemptions, and activity resets.\n\nManual runs now default to a preview without changing issues or pull\nrequests.\n\nReview the shared policy and full PR bundle in [marin-style\n#17](https://github.com/marin-community/marin-style/pull/17). After\n@rjpower approves this PR, merge it after marin-style #17.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "81315f6322d570092685d534d849316a6da48569",
+      "url": "https://github.com/marin-community/marin/commit/81315f6322d570092685d534d849316a6da48569",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-05T15:39:58Z",
+      "committed_at": "2026-10-05T15:39:58Z",
+      "message": "[iris] Forward task preemption to the execution peer (#9720)\n\nForward task preempt and fail requests for federated jobs to the\ncontroller running their tasks. The hub previously acknowledged\noverrides against mirrored tasks without stopping the peer runtime,\nleaving a hung trainer running.\n\nResolve descendant jobs and attempt qualifiers on the execution peer,\nand restrict forwarded actions to jobs handed off by the requesting\ncluster.\n\n[Incident record](https://marina.oa.dev/echo/wiki/599).\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "29588746f58c4b567f5c8f8c7278234439a75bb1",
+      "url": "https://github.com/marin-community/marin/commit/29588746f58c4b567f5c8f8c7278234439a75bb1",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-06T00:00:00Z",
+    "start": "2026-10-05T00:00:00Z"
+  }
+}

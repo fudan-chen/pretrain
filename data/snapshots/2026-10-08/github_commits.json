@@ -1,0 +1,340 @@
+{
+  "commit_count": 30,
+  "commits": [
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-10-08T23:21:01Z",
+      "committed_at": "2026-10-08T23:21:01Z",
+      "message": "[evaldash] Keep comparisons visible during refresh (#9956)\n\nevaldash would flicker on refresh and temporarily clear the loaded\nmodels & metrics which sucked.\n\n#### Agent Description\n\nKeep the model picker and comparison results visible while background\nrequests run. Previously, the 60-second poll and returning to a visible\ntab temporarily emptied the model selection while fetching available\nmodels, then hid the results again while fetching comparison scores.\nThis collapsed the page and disrupted scrolling.\n\nA Vue component regression probe reproduced the old behavior and\nconfirmed that the comparison ranking stays mounted through both\nrequests after the fix. Adding and removing models still works. The\nfrontend build, typecheck, and repository lint passed.",
+      "sha": "d65a1c09dd1ce6fce336411ab8ba71162d1c8416",
+      "url": "https://github.com/marin-community/marin/commit/d65a1c09dd1ce6fce336411ab8ba71162d1c8416",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-08T22:52:40Z",
+      "committed_at": "2026-10-08T22:52:40Z",
+      "message": "Reject conflicting NL2Bash counts and exclude two bad tasks (#9866)\n\nReject extra conflicting counts for the same normalized filename or\ntotal, and for output whose expected result is one standalone count.\nPreserve harmless logs and the existing tolerance for numeric lists.\n\nExclude NL2Bash tasks task_1492 and task_3002 through\nreviewed_defects.json. The first oracle passes reverse numeric input to\ncomm, producing the wrong file difference. The second compares\nsolver-chosen text against one fixed character dump.\n\nPart of https://github.com/marin-community/MarinSkyRL/issues/831.\n\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "af4665737abf72d358537dd451941ea00fa2a154",
+      "url": "https://github.com/marin-community/marin/commit/af4665737abf72d358537dd451941ea00fa2a154",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-08T22:44:01Z",
+      "committed_at": "2026-10-08T22:44:01Z",
+      "message": "Install mock for Python tests and exclude defective Stack tasks (#9871)\n\nInstall the standalone mock package when Python task tests import it.\nParse tests and optional oracle files with their declared encodings,\nrejecting malformed input without aborting conversion.\n\nExclude Stack tasks stack-pytest-0249, stack-pytest-0380, and\nstack-pytest-0474 through reviewed_defects.json. Their defects include\nan ambiguous alignment convention, incomplete Selenium checks, and\nmissing StreamFile test helpers.\n\nPart of https://github.com/marin-community/MarinSkyRL/issues/849.\n\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "69868539b8af87b3870b13ae2013990b410e917f",
+      "url": "https://github.com/marin-community/marin/commit/69868539b8af87b3870b13ae2013990b410e917f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-08T22:38:04Z",
+      "committed_at": "2026-10-08T22:38:04Z",
+      "message": "[zephyr] Add readable execution ID prefixes (#9959)\n\nAllow callers to name individual executions in a shared Zephyr context\nso dashboard entries and logs identify the pipeline. `execute(dataset,\nname=\"rlvr-ifeval-review\")` prefixes the timestamp/hash ID with a\nlowercase ASCII name, replacing punctuation with dashes and limiting the\nprefix to 64 characters. Shared and dedicated pools use the same format.\nIf the name is omitted or normalizes to an empty string, the existing ID\nformat is preserved.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "be77b27a607e80b38d9e9fd7ebe59f1eaddbe076",
+      "url": "https://github.com/marin-community/marin/commit/be77b27a607e80b38d9e9fd7ebe59f1eaddbe076",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-08T22:35:01Z",
+      "committed_at": "2026-10-08T22:35:01Z",
+      "message": "[tasktrove] Repair SweSmith test environment dependencies (#9870)\n\nKeep SweSmith task environments below pytest 9 so pytest-gitignore can\nload its legacy collection hook. A pip constraint permits project-pinned\npytest versions during later dependency installation. Install the\nmissing test dependencies for marshmallow, Conan, and OAuthlib during\nimage construction, with repository pytest plugins left enabled.\n\nAdvance the conversion pipeline version so rebuilt tasks use the\ncorrected environments.\n\nAddresses [MarinSkyRL\n#866](https://github.com/marin-community/MarinSkyRL/issues/866).\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "3b353a7a0779e6da0c56f551a95dc53f813d5707",
+      "url": "https://github.com/marin-community/marin/commit/3b353a7a0779e6da0c56f551a95dc53f813d5707",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-08T22:30:01Z",
+      "committed_at": "2026-10-08T22:30:01Z",
+      "message": "[taskcompendium] Require separate Harbor verifier mode (#9937)\n\n* reject Harbor shell tasks unless the verifier mode is explicitly\n`separate`\n* a declared `verifier.environment` does not make shared mode safe for a\nfresh private grader\n* part of #9612\n\n> A shared environment means that the agent and the grader execute in\nthe same running machine—not merely from the same container image. The\ngrader can inspect the workspace, services, and processes that the agent\nleaves behind.\n>\n> Our rollout engine uses a fresh, private verifier machine. It copies\nthe declared artifacts into that machine, but it does not copy running\nprocesses or other live state.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "14fa1a2efd3bdcc25a07ef1f00af325573b54005",
+      "url": "https://github.com/marin-community/marin/commit/14fa1a2efd3bdcc25a07ef1f00af325573b54005",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-08T22:24:45Z",
+      "committed_at": "2026-10-08T22:24:45Z",
+      "message": "[tasktrove] Exclude inconsistent E2EGit task contracts (#9869)\n\nExclude four E2EGit tasks whose requested behavior contradicts or\nexceeds their grading contract: inventory quantities and prices\n(`e2egit-0289`), factorial recursion and student tests (`e2egit-0328`),\ncalculator structure and arithmetic coverage (`e2egit-0359`), and\nJavaScript output graded as Python (`e2egit-0433`).\n\nRecord each exclusion in the reviewed-defect registry and advance the\nconversion pipeline version. Keep the source tasks intact and remove the\ntask-specific rewrites.\n\nPart of [MarinSkyRL\n#833](https://github.com/marin-community/MarinSkyRL/issues/833).\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "ff3126e627c1c9179bf65dc79af403927dfba496",
+      "url": "https://github.com/marin-community/marin/commit/ff3126e627c1c9179bf65dc79af403927dfba496",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-08T22:24:15Z",
+      "committed_at": "2026-10-08T22:24:15Z",
+      "message": "Score pytest failures from editable candidate code (#9923)\n\nScore pytest startup and collection failures only when they are\nattributed to editable candidate source. Missing dependencies, trusted\nsource failures, and genuine interruptions remain unscored. Inspect all\npytest batches before returning a candidate failure so a later\ninfrastructure error makes the entire attempt unscored.\n\nTreat workspace files restored by task setup as trusted source through\nexplicit manifests for SWE tasks with trusted tests or hidden test\npatches. Use the hook wrapper protocol supported by pytest 7 to capture\nexception provenance, preserving grading for candidate modules that\nshadow standard library names. Classify syntax errors from the pytest\ninterpreter without recompiling source in a different Python version.\n\n---------\n\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "bb1e418e16e3da178c6906e3d51140b81a9a859d",
+      "url": "https://github.com/marin-community/marin/commit/bb1e418e16e3da178c6906e3d51140b81a9a859d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-08T22:21:35Z",
+      "committed_at": "2026-10-08T22:21:35Z",
+      "message": "Track installed Gym grader revisions in the Atlas (#9925)\n\nRead SkyRL Gym's verifyit pin from its Marin monorepo dependency so\nAtlas refreshes follow the installed grader.\n\nInclude the installed package and relevant shared adapters in each\nverifyit route's identity. Resolve Harbor verifier history from the\ncommit pinned by SkyRL's `uv.lock`, and reuse that dependency snapshot\nwhile SkyRL is unchanged. Grader changes invalidate earlier quality and\ndifficulty results while preserving review history. Native ARC, RDKit,\nand GenRM scorers retain their environment code identity.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "2f035ae9c3014770fb164751f49cfae2f2c850b8",
+      "url": "https://github.com/marin-community/marin/commit/2f035ae9c3014770fb164751f49cfae2f2c850b8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-08T22:20:01Z",
+      "committed_at": "2026-10-08T22:20:01Z",
+      "message": "[iris] Bump image uv pins to 0.12.3 (#9957)\n\nUpgrade uv from 0.10.3 to 0.12.3 in the Iris and Marina images so local\ngrader environments on Zephyr workers can install CPython 3.12.13 by its\nfull version. uv embeds its downloadable Python catalog in the binary;\nthe old pin recognizes 3.12.12 but cannot install 3.12.13.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "bc37520f2fc996648a31d2b3c2d7b1a2241cd39c",
+      "url": "https://github.com/marin-community/marin/commit/bc37520f2fc996648a31d2b3c2d7b1a2241cd39c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-08T22:07:51Z",
+      "committed_at": "2026-10-08T22:07:51Z",
+      "message": "[tasktrove] Require grounded values in structured-output answers (#9868)\n\nGrade Nemotron structured-output answers against their supplied document\nafter validating the requested format. Existing XML and CSV checks\naccept fabricated values under the required field names; JSON, YAML and\nTOML schema checks also do not establish factual extraction. The script\ngrader requires both a successful format check and a PASS verdict from\nthe content judge. Unsupported values score zero; missing judge\nconfiguration or execution errors remain unscored.\n\nSome schemas require facts absent from their documents. Preserve these\nrows with an explicit `__MISSING__` convention in the instruction and\neffective schema. The judge rejects that marker when the document\nprovides the requested value. Install the schema and judge dependencies\nfor the composition and advance the pipeline version so rebuilding\ncreates repaired task archives.\n\nAddresses [MarinSkyRL\n#868](https://github.com/marin-community/MarinSkyRL/issues/868).\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "942f23705ce6ef05d7827c2ced798c950368eb2a",
+      "url": "https://github.com/marin-community/marin/commit/942f23705ce6ef05d7827c2ced798c950368eb2a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-08T21:54:58Z",
+      "committed_at": "2026-10-08T21:54:58Z",
+      "message": "[tasktrove] Derive sorting answers from the requested Unicode order (#9865)\n\nDerive alphabetical-sorting answers from the word list and ascending or\ndescending direction in the source instruction. Some descending tasks\nship ascending gold, causing the grader to reject the correct ordering.\nRecompute their gold and the packaged solution script with Python’s\ncase-sensitive Unicode ordering while retaining ordered answer\ncomparison.\n\nThe converter recognizes the source’s explicit sorting clause and\nreports an error for an unfamiliar clause. Advance the pipeline version\nso rebuilding creates archives with the corrected gold and solution\ninstead of reusing cached tasks. Addresses [MarinSkyRL\n#835](https://github.com/marin-community/MarinSkyRL/issues/835).\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "0039360e14863e93a48fed2a5395e65b905cc9f5",
+      "url": "https://github.com/marin-community/marin/commit/0039360e14863e93a48fed2a5395e65b905cc9f5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-08T21:53:47Z",
+      "committed_at": "2026-10-08T21:53:47Z",
+      "message": "[shellbox] Mount explicit read-only roots in local machines (#9955)\n\n`LocalMachineFactory` now mounts exactly the host directories it is\ngiven in `read_only`, read-only at their own paths, alongside the system\ndirectories. `bin_dirs` only sets `PATH`. The factory no longer follows\na venv's `python3` to the interpreter install it resolves to, or\nrecreates the symlinks on the way (#9954). A symlink that leads outside\nthe mounted directories does not resolve in the sandbox, so each\n`read_only` directory must be self-contained. A `read_only` path that is\nnot an existing directory raises `ValueError` when the factory is\ncreated.\n\n`build_python_environment(root, lock, python_version)` in\n`shellbox.backends.local.python_environment` builds such a directory\nwith uv. It installs a managed CPython of the given full version under\n`root/python`, creates a venv at `root/venv` from it, and runs `uv pip\nsync --require-hashes --link-mode copy` with the lock. The venv refers\nto its interpreter by absolute path inside the root, so the root must\nstay where it was built. An exclusive `flock` on a file beside the root\nand a completion marker let several processes on a host share one build.\nA root without the marker is removed and rebuilt. A finished root built\nfrom another lock or Python version raises `ValueError`. A failed uv\ncommand raises `UvError` with uv's error output.\n\nTests that run Python in the sandbox share one environment built per\nsession and skip only when uv reports that it failed to download CPython\n3.12.13.\n\n#9798 adds a task-curation local runtime that runs `uv venv` and `uv pip\nsync` itself and passes only `bin_dirs`. It will move to `read_only` and\nthis builder after this lands. The builder does not add that runtime's\npackages or NLTK data; the caller adds them after the build returns.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "9255e7ce4bed5c05fd9e8378f3b44e98037fffb5",
+      "url": "https://github.com/marin-community/marin/commit/9255e7ce4bed5c05fd9e8378f3b44e98037fffb5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-08T21:27:56Z",
+      "committed_at": "2026-10-08T21:27:56Z",
+      "message": "[shellbox] Recreate a venv's interpreter symlinks inside the sandbox (#9954)\n\nuv links a venv's `python` through a minor-version alias directory\n(`cpython-3.12-<platform>`, a symlink to the patch-versioned install).\nThe local backend mounted only the resolved install into the sandbox, so\ninside it the venv's `python` link dangled. The shell then fell through\n`PATH` to the system interpreter, and commands ran without the venv's\npackages on any host whose venv was built on a uv-managed Python; on the\ntask-curation workers this made about a fifth of grader trials fail with\n`ModuleNotFoundError`.\n\n`LocalMachineFactory` now walks the symlink chain from each venv's\n`python3` to its interpreter, keeps the links that lie outside the\nmounted roots, and recreates them in the sandbox with `bwrap --symlink`.\nA test builds a venv whose interpreter path goes through an alias\ndirectory and checks the command runs with the venv's prefix.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "2028a0e650f6fef2f651045d92e810f3ca824157",
+      "url": "https://github.com/marin-community/marin/commit/2028a0e650f6fef2f651045d92e810f3ca824157",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-08T21:19:45Z",
+      "committed_at": "2026-10-08T21:19:45Z",
+      "message": "Honor CodeContests output comparisons and execution limits (#9864)\n\nPreserve CodeContests grading for answers with outer whitespace: strip\nthe surrounding whitespace from each complete output, then compare its\nlines, while retaining explicit numeric-error tolerances.\n\nUse the problem statement's per-case time limit, including fractional\nprotobuf durations, instead of the uniform 30-second timeout. Retain\nthat timeout when the statement explicitly reports no time limit. A scan\nof all 8,222 released tasks parses every stated limit and changes 6,856\ntimeouts without removing tasks.\n\nRegression tests accept correct output, reject incorrect output, and\nreject correct output arriving after the declared deadline.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "ee493635841a088a9412505d7526ce17772174d8",
+      "url": "https://github.com/marin-community/marin/commit/ee493635841a088a9412505d7526ce17772174d8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-08T21:00:46Z",
+      "committed_at": "2026-10-08T21:00:46Z",
+      "message": "[shellbox,verifyit] Local grading backend and typed candidate grading (#9936)\n\nLibrary changes split out of #9798 so the RL data pipeline PR carries\nonly the pipeline.\n\nShellbox gains a `local` backend: commands run as subprocesses of the\nhost process for trusted scripts that need no container. Each command\ngets a scrubbed environment, a privilege drop when the host is root,\nprocess-group kill on timeout, and best-effort lockdown through\nno_new_privs, rlimits, and Landlock filesystem and TCP rules. A machine\nempties its owned roots per use and may write shared roots that outlive\nit. Iris machines accept a command user matching the container's own\nuser and exit promptly on the stop signal. Docker machines create the\nworking directory the spec names.\n\nVerifyit grades typed candidates against a mode's spec and the task's\nresources through `grade_candidate`, so in-process callers no longer\nrebuild a workspace. Pytest grading reports collection and bootstrap\nfailures as task errors, requires every listed test id to map to a\ndistinct reported case, and runs setup in the workspace under the shared\ndeadline.\n\nPart of #9798.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "0348ac3ad409520ae59778c9dc99803d175af05b",
+      "url": "https://github.com/marin-community/marin/commit/0348ac3ad409520ae59778c9dc99803d175af05b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-10-08T20:24:01Z",
+      "committed_at": "2026-10-08T20:24:01Z",
+      "message": "[grug] Fuse the expert dSwiGLU and skip recomputed pre-activation stores (#9834)\n\nTwo changes to the routed experts' QuACK kernels, each bitwise or within\nbf16 rounding:\n\n| Change | Kernel | Hero step |\n| --- | --- | --- |\n| SwiGLU backward and the routing-weight row dot in the dh GEMM's\nepilogue | 3.54 ms against 5.10 ms per expert chunk | 13.059 to 12.943 s\n(+0.89%) |\n| No gate/up pre-activation store in a forward whose residuals are\nrecomputed | 6.14 ms against 6.48 ms per median chunk, 96 chunks per\nstep | 12.652 to 12.611 s (+0.33%) |\n\nThe expert MLP backward wrote dh = dy @ W2^T to HBM and read it back\nwith the gate/up pre-activations in an elementwise pass for the SwiGLU\nbackward and the row dot <h, dh>. A QuACK epilogue on the grouped dh\nGEMM now unpacks the interleaved (gate, up) tile, applies the SwiGLU\nbackward to the fp32 accumulator, writes the packed (d_gate, d_up) and\nreduces the row dot, so dh is never materialized. Outputs, drops and dW2\nare bitwise unchanged; dx, dW13 and dS change at bf16 rounding (median\n~1 ulp), because the SwiGLU backward runs on the unrounded accumulator.\n\nUnder the hero's layer remat, the forward's gated GEMM wrote the [C, 2I]\npre-activations of every chunk, which the backward recomputes.\n`_routed_experts` declares `optimize_remat`, so such a forward runs a\nprimal that calls the expert MLP's new `apply`, which returns the output\nalone, and the gated GEMM gains a launcher that never writes the\npre-activations. Each chunk's dispatch still waits on the previous\nchunk's gate/up output. The forward is bitwise unchanged, and removing\nthe change from all of #9708 slowed the step by 0.47%.\n\nStep times are single runs on one 64-GPU hero rack (restore step-180000,\nseed 0, 100 steps) from #9708's measurements.\n\nSplit from #9708. Part of #9636.",
+      "sha": "9fa23ea1a1a316c6894fd3e38eb0a83c79d92fc8",
+      "url": "https://github.com/marin-community/marin/commit/9fa23ea1a1a316c6894fd3e38eb0a83c79d92fc8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-10-08T19:16:05Z",
+      "committed_at": "2026-10-08T19:16:05Z",
+      "message": "[grug] Compute the MoE routing-weight gradient on the expert side (#9833)\n\nWith QuACK's expert MLP, the ragged all-to-all MoE takes its\nrouting-weight gradient from the expert MLP's own backward, so the\nbackward needs neither the expert outputs nor their return transport,\nand the hero saves the routed output instead of recomputing the expert\ndown projection, the return all-to-all and the combine. The step\nshortens by 4.12% (13.541 to 13.005 s against #9832, over 26 scored\nsteps). Peak HBM rises to 125.4 GiB of the 143.75 GiB pool.\n\nThe backend chooses the gradient together with its expert MLP kernel;\n`moe_mlp` takes no option for it. QuACK's expert MLP (SM100, SiLU, QuACK\ninstalled) takes the expert-side gradient for bfloat16 and float32\ntokens, which is the hero's configuration. The portable `ragged_dot`\nexpert MLP takes the exact gradient, <dout, y> over the kept expert\noutputs: it keeps y anyway, so the expert-side gradient would save it\nonly the returned [TK, H] buffer and the return transport. QuACK with\nfloat16 tokens takes the exact gradient too. The expert-side gradient is\nzero at a zero weight, and zero or inexact wherever |w * dout| falls\nbelow the cotangent dtype's smallest normal number: 2^-126 in bfloat16\nand float32, which only output cotangents near underflow reach, and\n2^-14 in float16, which ordinary magnitudes reach. The hero's routing\nweights are positive renormalized sigmoids and its cotangents bfloat16.\nForward, dx, dW13 and dW2 are bitwise unchanged; the routing-weight\ngradient differs at bf16 rounding (median ~1 ulp) at nonzero weights.\n\nThe gradient with respect to the combine weight w[t,k] is dS[t,k] =\n<dout[t], y[t,k]>, the only backward consumer of the expert down\nprojection's output y. Since dy = w * dout and dh = dy W2^T, the same\nvalue is rowsum(dh * h) / w, built from tensors the expert MLP backward\nalready holds. One custom VJP from dispatch to combine returns s = <h,\ndh> per expert row, sends it back with one [C, 1] f32 all-to-all per\nchunk, and forms dS = s / w in f32; dropped and padded slots get 0 by\nselection. The backward's transports reuse the forward transfers'\noffsets, swapped, and on GPU its weighted output cotangents come from\n#9832's scatter kernel.\n\nThe saved routed output fits the 114 GiB remat budget that #9831 gives\nthe carry offload; the backward needs ~105 GiB. With the backward's\ntransports no longer ordered after the recompute's, several collectives\nin flight gave run-to-run different gradients or hung on GB200, so every\nragged run forces a collective overlap limit of 1.\n\nStep times are single runs on one 64-GPU hero rack (restore step-180000,\nseed 0), each head compiled fresh.\n\nSplit from #9708. Part of #9636.",
+      "sha": "3c94c2e78b07d67b1db524add9f696d1115506ee",
+      "url": "https://github.com/marin-community/marin/commit/3c94c2e78b07d67b1db524add9f696d1115506ee",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-08T18:19:57Z",
+      "committed_at": "2026-10-08T18:19:57Z",
+      "message": "[marina] Add a private object-storage data viewer (#9935)\n\nAdd Filer for browsing configured S3 and GCS buckets or opening a\nstorage URL. It provides paged Parquet tables, schema and column\nselection, expandable records, and previews for structured text,\ndocuments, media, and archive member lists. Read and response limits are\ndocumented in docs/references/filer.md. The private applet uses Marina\nauthentication and can read only buckets accessible to Marina's service\ncredentials.\n\nDeclare filer.marina.oa.dev in the Marina Pulumi stack and route it to\nthe private applet. The applet is published, and its DNS, domain\nmapping, and HTTPS certificate are provisioned.\n\nAll 132 infra/marina tests, final lint, type checking, and\ndocumentation-link checks passed. Browser checks covered live Parquet\nand folder browsing, CSV pagination, PDF rendering, and sanitized\nMarkdown.",
+      "sha": "2ccc67f50213c3726c67782ebc58dd2f4414fc0e",
+      "url": "https://github.com/marin-community/marin/commit/2ccc67f50213c3726c67782ebc58dd2f4414fc0e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-08T15:58:56Z",
+      "committed_at": "2026-10-08T15:58:56Z",
+      "message": "[levanter] Share partitioned_dims across kernel wrappers (#9882)\n\nMove the FA4/CuTe wrapper's private `_partitioned_dims` into\n`levanter.sharding` as `partitioned_dims`, and replace the near-copy in\nthe `short_conv` kernel wrapper with it. For each dimension of an array,\nthe helper returns the mesh axes of size greater than one that shard\nthat dimension. Kernel wrappers use it to check that inputs are sharded\nthe way their `shard_map` expects.\n\nBehavior does not change. The FA4/CuTe copy moves verbatim. The\n`short_conv` copy returned None for an array with no partition spec, and\nall three of its callers treated None as \"every dimension unsharded\",\nwhich is what the shared helper returns.\n\nThe Pallas-Triton flash attention in #9853 also uses the helper. #9853\nis stacked on this branch, so merge this PR first.\n\nPart of #9812\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "33efc10f13319ae88d4bd71d0b3451b2971615c1",
+      "url": "https://github.com/marin-community/marin/commit/33efc10f13319ae88d4bd71d0b3451b2971615c1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-10-08T14:28:35Z",
+      "committed_at": "2026-10-08T14:28:35Z",
+      "message": "[grug] Leave ragged MoE transport rows unwritten when nothing reads them (#9832)\n\nThe ragged all-to-all MoE stops zero-filling and overwriting transport\nrows that no consumer reads, and on GPU builds its dispatch buffer with\none scatter. Outputs, drops and gradients are bitwise unchanged. One MoE\nlayer's forward and backward is 4.4-4.8% faster and its compiler temp\n1.37 GB smaller, and the hero step shortens by 1.41% (13.732 to 13.541 s\nagainst #9831, over 26 scored steps).\n\nThe expert chunks write disjoint rows of the dispatch and return\nbuffers, but the custom VJP around `ragged_all_to_all` differentiated\neach write as an overwrite, so every layer's backward spent a [TK, H]\nselect, add and zero fill on rows the next chunk would ignore. Each\nwritten row holds nothing before its one write, and for such a row an\noverwrite has the derivative of an add, so the transpose passes the\noutput cotangent through unchanged. With every consumer reading only\nrows a collective wrote, the buffers need no fill: on GPU they come from\na Triton kernel that writes nothing, elsewhere they are zero-filled.\nEach buffer is tied to a loop-carried value, because XLA would otherwise\nhoist an input-free buffer out of the layer loop and copy it into every\nlayer's output slot. Dropped and padded slots get combine weight 0, and\nthe combine and dispatch-gradient sums skip them. A GPU test fills every\nbuffer with NaN instead of zero and requires identical outputs, drop\ncounts and gradients under 22 routings, among them an expert no token\nselects, a receiver chunk and a whole receiver with no rows, a sender\nwith only padding, and near-total drops, with two chunks of three\nexperts per GPU as on the hero.\n\nOn GPU, a Triton kernel builds the expert-sorted dispatch buffer by\nreading each token's row once and writing it to the token's accepted\nslots, where a gather read every row topk times: 0.535 ms (6.6 TB/s) at\nthe hero's per-GPU routed shape (TK = 524288 rows of the 3072-wide\nlatent). Its weighted form serves #9833's backward. The gather-sum's\nforward loops over 1024-wide hidden tiles, which keeps more programs\nresident: 0.508 ms against 0.574 ms.\n\nStep times are single runs on one 64-GPU hero rack (restore step-180000,\nseed 0), each head compiled fresh.\n\nSplit from #9708. Part of #9636.",
+      "sha": "e11ab28f592d3716c43b1e607efa98f5694fc95e",
+      "url": "https://github.com/marin-community/marin/commit/e11ab28f592d3716c43b1e607efa98f5694fc95e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-08T13:26:37Z",
+      "committed_at": "2026-10-08T13:26:37Z",
+      "message": "[ci] Mount the pre-populated uv cache on TPU runners (#9910)\n\nMount `/var/cache/uv` into the `levanter-tpu` container instead of\n`/tmp/uv-cache`. The runner's startup script in\n`infra/tpu-ci/vm_manager.py`\ncreates `/var/cache/uv`, gives it to the container user, and fills it\nwith\n`uv sync --all-packages --extra tpu --extra gcp --group test`, but the\nworkflow\nnever mounted it. The job now fails fast if `/var/cache/uv` is missing,\nand\nprints its size so runs show whether the pre-populated cache was\npresent.\n\nThis PR's run\n([113043572809](https://github.com/marin-community/marin/actions/runs/37694563649/job/113043572809))\nwas the first to mount `/var/cache/uv` on runner `1e471e5d`. The cache\nheld\n4.6 GB, uv downloaded nothing, and the 218 packages installed in 1.55 s.\n\nThe saving is small. A runner's first jobs with the empty\n`/tmp/uv-cache`\ndownloaded about 40 packages, in under 20 s. This does not address the\noccasional 10-17 minute stall before uv prints anything on some TPU\njobs:\nrunner `338e6215`'s job at 2026-10-07 22:30 UTC stalled 618 s with\nnothing to\ndownload, and runner `c7f77071`'s first job downloaded 40 packages\nwithout\nstalling. That stall's cause is still unknown.\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "4c7fedb78bc126e0330882a5112c974f0a021d06",
+      "url": "https://github.com/marin-community/marin/commit/4c7fedb78bc126e0330882a5112c974f0a021d06",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-10-08T05:22:13Z",
+      "committed_at": "2026-10-08T05:22:13Z",
+      "message": "[grug] Correct hero remat and collective scheduling; build PGLE profiles (#9831)\n\nCarry-offloaded hero runs stop recomputing ~10 GiB of backward values\nper step that already fit in HBM, which shortens the step by 1.04%\n(13.874 to 13.732 s against #9830 on one 64-GPU hero rack, restore\nstep-180000, seed 0, 100 steps). Ragged runs without the carry offload\nrun their collectives one at a time, and `pgle_profile` builds an XLA\nPGLE profile from one trace of the train step. No model code changes.\n\nWith the layer carry offloaded to pinned host memory, XLA's\n`HloRematerialization` charged the 36 GiB carry stack against the device\nmemory limit and recomputed values that fit (143 remat clones, 0.63\ns/step of compute). The launcher now defaults\n`--xla_gpu_enable_host_memory_offloading=true` whenever the carry is\noffloaded, so remat counts host buffers as host memory. Only the remat\npass reads the flag, after scheduling and copy insertion, so it cannot\nreorder the carry reload against its consumer. The flag also lets remat\noffload values to host itself when its estimate of the step exceeds its\nbudget, and that path aborts compilation in XLA's `OffloadInstruction`\n(hlo_rematerialization.cc:2118) when it picks the operand of a\ncollective still in flight. At memory fraction 0.75 and slop factor 85\nthe budget is 87.7 GiB and remat estimates the step at 96.8 GiB, so the\nhero crashed at compile. The carry offload therefore also defaults to\n0.78 and 105, a 114 GiB budget, and remat then leaves the step alone\n(\"Rematerialized 0 instructions\").\n\nA ragged run without the carry offload keeps the latency-hiding\nscheduler off, and the collective overlap limit binds only that\nscheduler, so XLA's default scheduler can start two ragged transports at\nonce. Compiled for a mocked EP64 topology, the program does so in the\nforward and in the backward, and on GB200 several collectives in flight\nhave hung the ragged transport or given run-to-run different gradients.\nThe launcher now forces\n`--xla_gpu_disable_async_collectives=ALLCOLLECTIVES` for that\nconfiguration.\n\nXLA's default latency estimator gives every collective the same small\nlatency, so with one collective in flight it treats a multi-millisecond\nragged transport as hidden under one GEMM. A profile built by\n`pgle_profile` from the program's own trace shortened the hero step with\nall of #9708 from 12.611 to 12.515 s (+0.77%). A profile applies only to\nthe program it was traced from, so nothing uses one by default; the\nREADME describes the trace, build and rerun loop, and #9879 tracks using\none in production.\n\nSplit from #9708. Part of #9636.",
+      "sha": "3c62e65f8f56c2f4bb6f290a8e27dbc294bec848",
+      "url": "https://github.com/marin-community/marin/commit/3c62e65f8f56c2f4bb6f290a8e27dbc294bec848",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-08T03:42:53Z",
+      "committed_at": "2026-10-08T03:42:53Z",
+      "message": "[dependencies] Fix notebook and virtualenv security alerts (#9918)\n\nUpgrade Notebook to 7.6.3 and JupyterLab to 4.6.4 to fix clipboard-cell\ncross-site scripting in [Notebook alert\n#707](https://github.com/marin-community/marin/security/dependabot/707)\nand [JupyterLab alert\n#706](https://github.com/marin-community/marin/security/dependabot/706).\nUpgrade virtualenv to 21.7.13 to fix activation-script command injection\nthrough [Windows prompts\n(#704)](https://github.com/marin-community/marin/security/dependabot/704)\nand [bash/fish paths\n(#705)](https://github.com/marin-community/marin/security/dependabot/705).\n\nNotebook 7.6.3 requires JupyterLab >=4.6.4, so the JupyterLab 4.5.11\nsecurity backport cannot satisfy the paired upgrade. Raise the workspace\nsecurity floors. Add jupyter-builder 1.0.2 for the notebook\napplications; add python-discovery 1.6.0 and update filelock to 3.24.2\nfor virtualenv's new requirements. Preserve unrelated locked packages.\n\nThe lockfile passes `uv lock --check`. The Notebook, JupyterLab,\nvirtualenv, and pre-commit CLIs report the expected versions. Fresh\nvirtualenv creation and a pre-commit Python hook passed; relocated Bash\nactivation printed the missing-path warning without executing command\nsubstitution embedded in the environment path. Windows and fish\nactivation were not executed locally.\n\nThe safe root suite reached 2,385 passing tests before an isolated SkyRL\nlauncher test failed to install its pinned native Finelog package on\nmacOS ARM64. The same test fails on the unchanged base commit.\nAccelerator and browser suites remain delegated to CI.",
+      "sha": "be1f5f15f0a0a47888a8e5696672eb6d64e147f9",
+      "url": "https://github.com/marin-community/marin/commit/be1f5f15f0a0a47888a8e5696672eb6d64e147f9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-08T01:20:20Z",
+      "committed_at": "2026-10-08T01:20:20Z",
+      "message": "[rolloutengine] Show the origin of each reward source (#9921)\n\n* follow-up to\nhttps://github.com/marin-community/marin/pull/9623#discussion_r4211513561\n* add an \"Origin / reason\" column to the reward-source table in\n`task-rollouts.md`\n  * `StdoutReward` and `ExitCodeReward` are Marin API choices\n  * `FileReward` is for compatibility with Harbor task graders [^1]\n\n[^1]: the file order (`reward.json` before `reward.txt`) comes from the\n[Harbor\nverifier](https://github.com/marin-community/harbor/blob/main/src/harbor/verifier/verifier.py)\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "3a08820548d1d2a86bc5465b3b98b667a70bc0da",
+      "url": "https://github.com/marin-community/marin/commit/3a08820548d1d2a86bc5465b3b98b667a70bc0da",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-08T00:41:14Z",
+      "committed_at": "2026-10-08T00:41:14Z",
+      "message": "[grug] Exit instead of hanging when a June train step stalls (#9903)\n\nGrugTrainerConfig.step_timeout arms Python's faulthandler timer around\neach train step\nexcept the first one in the process, which compiles, and watch steps,\nwhich can compile a variant. If a step runs past the timeout, the\nprocess dumps every thread's traceback and exits with status 1. The\ndefault is None, which leaves training unchanged. The synthetic\nbenchmark sets it with --step-timeout: 300 s by default, 0 disables it.\n\nWhen one GPU fails inside a step, for example because the BFC allocator\ncannot place the step's temp buffer, the other GPUs wait in XLA's\nper-step collective rendezvous. On ROCm with JAX 0.11 that rendezvous\nnever times out. The Python thread blocks on the step's outputs, and the\njob sits until its Slurm time limit. In a forced out-of-memory run with\nthe flag, the job exited 120 s after the out-of-memory error.\n\nStacked on #9852, which adds the neighboring --watch-interval flag.\n\nPart of #9812\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "5adb389763c78aa6d391ecdb3e2053765466f0ba",
+      "url": "https://github.com/marin-community/marin/commit/5adb389763c78aa6d391ecdb3e2053765466f0ba",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-08T00:38:20Z",
+      "committed_at": "2026-10-08T00:38:20Z",
+      "message": "[grug] Require NVIDIA before the SM100 check in ragged all-to-all (#9777)\n\nThe ragged all-to-all MoE backend checks for an SM100 GPU before\nchoosing the QuACK grouped-GEMM expert MLP, and parsed the device's\n`compute_capability` as a float. ROCm devices report an architecture\nname such as `gfx942`, so every expert-parallel run with `--moe-impl\nragged_all_to_all` on AMD failed with `ValueError: could not convert\nstring to float: 'gfx942'` while tracing the first step. The check now\nrequires an NVIDIA device before it reads the compute capability, and\nother GPUs fall back to `ragged_dot`, as non-Blackwell NVIDIA GPUs\nalready do.\n\nThe backend still does not run on ROCm. With this change, the June\nSnowball model on 8× MI300X (JAX 0.11, ROCm 10) compiles and then fails\nin the first step with `UNIMPLEMENTED: Device communicator is not\nimplementing`, which points to XLA's RCCL communicator lacking ragged\nall-to-all. The `ring` and `fixed_all_to_all` backends run on the same\nnode.\n\nPart of #9462.\n\nhttps://claude.ai/code/session_01PZs4sGd5C8VHUqYfT8ssix\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "c38286ecee6f1a4d0102333be6956394786c76a1",
+      "url": "https://github.com/marin-community/marin/commit/c38286ecee6f1a4d0102333be6956394786c76a1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-08T00:31:25Z",
+      "committed_at": "2026-10-08T00:31:25Z",
+      "message": "[haliax] Run the ragged_dot custom VJP test at highest matmul precision (#9922)\n\n`test_triton_custom_vjp_routes_backward_through_triton_layouts` now\ncomputes both of its paths under\n`jax.default_matmul_precision(\"highest\")`. With Triton monkeypatched to\n`jax.lax.ragged_dot_general`, the test compares the custom VJP's value\nand gradients against XLA autodiff of `ragged_dot(...,\nimplementation=\"xla\")` at rtol 1e-5, then checks the exact list of\nlayouts passed to the Triton call.\n\nOn MI300X (gfx942, JAX 0.11.0, ROCm 10) the test failed in 5 of 5 runs\nin job 454691, in 1 run in job 454775, and in 9 of 10 runs in job 454927\non `main`. The failing assertion varied between the value, the input\ngradient, and the weight gradient. The exact loss is 4693.8768. The\nfailing runs compared 4693.877 against 4690.7314, a relative error of\n6.7e-4.\n\nAt default precision, f32 dots on MI300X can run on xf32 matrix\ninstructions, and XLA's GEMM autotuner decides per process whether they\ndo. On this backend XLA lowers each of the test's dots to a Triton GEMM\nfusion. The autotuner then times candidate tile configs and keeps the\nfastest. In job 454942, optimized-HLO and LLVM IR dumps from a fully\nexact run and a fully reduced run showed:\n\n- Exact run: every dot used a tile with N=8 (e.g. 16x8, 2 warps). The\nkernels used scalar FMA and no MFMA instructions.\n- Reduced run: every dot used a tile with N=32 (e.g. 16x32, 4 warps).\nThe kernels lowered `tl.dot` to `llvm.amdgcn.mfma.f32.16x16x8.xf32`.\n\nOver 40 processes in the same job, the output tile size predicted the\nresult for every dot. All 70 dots with an N=8 tile were exact. All 50\ndots with an N=32 tile had 4.7e-4 to 7.7e-4 relative error.\n\n| Autotuning | value exact | dlhs exact | drhs exact |\n|---|---|---|---|\n| Default, 20 processes | 12 / 20 | 12 / 20 | 6 / 20 |\n| `--xla_gpu_autotune_level=0`, 20 processes | 20 / 20 | 20 / 20 | 0 /\n20 |\n\nWith autotuning off, every process uses the same configs, so results\nstop varying, but the drhs config it picks still loses precision. We did\nnot measure the timing gap between configs. Timing noise on these tiny\nshapes is the likely reason the pick changes between processes. The\npadded 512-row XLA call in the test lost precision in 8 of 8 earlier\nprobe runs (job 454926). Under `highest`, all paths were exact in 8 of 8\nruns. The same applies outside this test: any default-precision f32 dot\nthat XLA lowers to a Triton GEMM fusion on MI300X can differ by about\n1e-3 relative between runs of the same program. We have not checked dots\nthat XLA sends to hipBLASLt.\n\nWith the change, the test passed 10 of 10 runs on MI300X (job 454928)\nand 3 of 3 on MI350X (gfx950, job 454929). Tolerances are unchanged. The\nexact call-list assertion passed under JAX 0.11.0 whenever the numeric\nchecks passed, so this PR leaves it unchanged.\n\nPart of #9812\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "74d9fe644684e555a171bf62f64c22a0314e5b96",
+      "url": "https://github.com/marin-community/marin/commit/74d9fe644684e555a171bf62f64c22a0314e5b96",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-08T00:29:34Z",
+      "committed_at": "2026-10-08T00:29:34Z",
+      "message": "[grug] Add remat, watch and pooled-wave flags to the June benchmark (#9852)\n\nAdd the June synthetic benchmark flags used for the MI350X measurements\nin #9812.\n\nThe synthetic benchmark supports `--remat-mode\n{recompute_all,save_moe}`. At batch 8, `save_moe` reduced step time from\n0.716 s to 0.610 s while using 10 GiB more memory\n([results](https://github.com/marin-community/marin/issues/9812#issuecomment-6025360841),\njobs 453346-453411). `--watch-interval N` sets the gradient watch\ninterval; 0 turns off the watch step. Turning it off reduced batch 8\npeak memory from 164.3 to 150.2 GiB. The batch 8-64 sweep used this\nsetting\n([results](https://github.com/marin-community/marin/issues/9812#issuecomment-6026123091),\njobs 453351-453384).\n\nThe benchmark also accepts `--capacity-factor`,\n`--pooled-transport-capacity-factor`, and `--num-expert-waves` to run\n`--moe-impl fixed_pooled_wave_all_to_all`. The June `GrugModelConfig`\npasses the latter two settings to the Grug MoE layer. Before building\nany state, the benchmark rejects a missing transport factor or a wave\ncount that does not divide the local expert count. At batch 64 with 1\nwave, pooled-wave took 2.459 s per step versus 2.427 s for ring\n([results](https://github.com/marin-community/marin/issues/9812#issuecomment-6027494656),\njobs 453584, 453635, 453658). The pooled-wave validation was added after\nthese runs and has not been rerun on GPU.\n\nThe Slurm wrapper used for these runs is in #9877, and the collective\nbandwidth benchmark is in #9886.\n\nPart of #9812\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "b24aa4d5e02cac2095a3a47fa59bb8fe76b3c875",
+      "url": "https://github.com/marin-community/marin/commit/b24aa4d5e02cac2095a3a47fa59bb8fe76b3c875",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-08T00:21:09Z",
+      "committed_at": "2026-10-08T00:21:09Z",
+      "message": "[experiments] Turn off allocator preallocation in the HPC Fund wrapper (#9901)\n\nrun_gpu.sh now exports XLA_PYTHON_CLIENT_PREALLOCATE=false unless the\ncaller sets it, and the README lists the failure under known issues.\n\nWith preallocation, the BFC allocator pool is one fixed range. XLA\nreturns a step's large temp buffer to the pool while the step is still\nrunning. A small buffer allocated in that window can land right after\nthe temp and stay live. The next step's temp is then 1 KiB larger than\nthe free space before that buffer and does not fit after it either.\nSteps with 94-97 GiB temps hit this around step 5: batch 96 with\nreference attention, and ring_dedup with save_moe at batch 64. Without\npreallocation the pool grows by region.\n\nA forced reproduction that keeps such small buffers alive ran out of\nmemory on 7-8 of 8 GPUs in each of two runs with preallocation. Three\nruns without it passed. Step time is unchanged: 3.35 s at batch 96 with\nreference attention and 1.58 s for ring_dedup with save_moe. Flash\nattention at batch 96 with save_moe still fits at 235.8 GiB.\n\nPart of #9812\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "d27c4859fd6fd85b6c454e020c1c8fddf0ec508d",
+      "url": "https://github.com/marin-community/marin/commit/d27c4859fd6fd85b6c454e020c1c8fddf0ec508d",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-09T00:00:00Z",
+    "start": "2026-10-08T00:00:00Z"
+  }
+}

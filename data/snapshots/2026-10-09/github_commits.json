@@ -1,0 +1,318 @@
+{
+  "commit_count": 28,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T23:49:19Z",
+      "committed_at": "2026-10-09T23:49:19Z",
+      "message": "[rl-data] Run all curation modes through the campaign driver (#10012)\n\nRun curation through the campaign driver with an explicit --mode quick,\nsample, or full. Every mode prints a plan unless --run is supplied.\nQUICK runs locally without review-model or controller settings and\nsupports pinned downloads plus local primary and auxiliary input\noverrides. SAMPLE/FULL reject local-only options and retain the reviewed\nartifact graph and grader preparation.\n\nRemove the standalone QUICK CLI and keep local staging and conversion in\nlocal.py. QUICK processes sources in the order supplied on the command\nline and ignores repeated source names; SAMPLE/FULL keep catalog order\nand allow the full catalog when no source is named. Both execution paths\nretain source failure accounting and the shared campaign report format.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "8ac1a2c5133d033359f6f15381fefc62a3a6561d",
+      "url": "https://github.com/marin-community/marin/commit/8ac1a2c5133d033359f6f15381fefc62a3a6561d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-09T23:33:52Z",
+      "committed_at": "2026-10-09T23:33:52Z",
+      "message": "[verifyit] Restore ARC rewards after JSON transport (#10007)\n\nRestore full reward for correct `arc_agi` and `rearc` grids after JSON\ntransport. Reasoning-gym 0.1.25 parses replies into tuple grids but\ncompares them with list grids from metadata, giving correct answers 0.05\ninstead of 1.0.\n\nNormalize the output grid before scoring and remove Task Curation's\nTaskTrove exclusion. Advance the source version to refresh conversion\nartifacts. Synthetic controls for both variants return 1.0 for correct\ngrids, 0.05 for wrong valid grids, and 0.0 for malformed replies through\nVerifyit and converted tasks. The 282 staged rows have not been\nreconverted.\n\nFixes #10004\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "933b8e1006592f63d45d4a78c85dfea53f25f81a",
+      "url": "https://github.com/marin-community/marin/commit/933b8e1006592f63d45d4a78c85dfea53f25f81a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T23:29:53Z",
+      "committed_at": "2026-10-09T23:29:53Z",
+      "message": "[verifyit] Consolidate mode registration (#10011)\n\nEach Verifyit mode has one descriptor for its spec type, lazily imported\ngrader\nmodule, and optional candidate validator and grader. Spec parsing, file\ndispatch,\nand in-process admission use that descriptor, so adding a mode needs one\nruntime\nregistration.\n\nKeep `Mode` and the `Spec` union explicit for static typing. Preserve\ncandidate\nshapes, file-specific extraction, and optional dependency loading. A\nmissing\nschema resource remains invalid even for empty answers; supplied schema\nbytes\nare parsed only after the empty-output gate.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "552e471e6ac274058ef477808f348eae7ac36e9a",
+      "url": "https://github.com/marin-community/marin/commit/552e471e6ac274058ef477808f348eae7ac36e9a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T22:51:44Z",
+      "committed_at": "2026-10-09T22:51:44Z",
+      "message": "Remove the retired TaskTrove conversion pipeline (#9973)\n\n`experiments/post_training/task_curation` now owns source declarations,\nconversion, Harbor export and the RL smoke graph. Delete\n`experiments/post_training/tasktrove` and its unused template registry\nwhile retaining the shared conversion functions used by curation\nsources.\n\nFollows #9970.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "67ea870454134aaee03657382f71f7f65eb18983",
+      "url": "https://github.com/marin-community/marin/commit/67ea870454134aaee03657382f71f7f65eb18983",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T22:46:10Z",
+      "committed_at": "2026-10-09T22:46:10Z",
+      "message": "[rl-data] Run TaskTrove conversion locally from declared sources (#9970)\n\nRun declared RL sources locally with Zephyr. QUICK downloads pinned\ninputs or accepts local files, then stops after the TaskSpec conversion\nshared with SAMPLE and FULL. Export tasks as Harbor-compatible TaskTrove\nParquet and bind the RL smoke consumer to it. Builds on #9969; legacy\npipeline deletion is stacked in #9973.\n\nPreserve source actor/grader environments, repository delivery, private\ntests, fractional reasoning-gym rewards, structured-output grounding,\nand selection tags/modes/language. Keep canonical TaskSpecs independent\nof legacy delivery conventions. Verifyit accepts a standalone option\nletter or `Answer: D`; prose merely ending in a letter still scores\nzero.\n\nThe baseline comparison covered all 43 sources and 1,526,908 inputs\nagainst frozen converter `61bb85cc5231d8ac9344696ef51766257940538d`,\nusing TaskTrove revision `02923004846e4e73862c20962f823a6d05100e7a`.\nComparisons include accept/reject decisions, instructions, private\ntests, source/oracle files, permissions, environment recipes and parsed\nsettings. Subsequent parser, metadata and grader repairs have targeted\nfollow-up checks; final totals are not a fresh full-corpus census.\n\nRetained conversion differences relative to the frozen converter:\n\n| Source | Accepted difference |\n|---|---|\n| MCQA | 275 extra exclusions: 216 missing references, 42 conflicting\nduplicate-label answers, 17 missing A-starting choice blocks. Final\ntotals inferred from the baseline and a 971-row repair check: 613,005\naccepted / 3,883 rejected. |\n| structured | Accept 86 valid schemas corrupted by the old normalizer;\nexclude 195 required-but-forbidden and 50 malformed schemas. |\n| structured_outputs | Exclude 302 unsatisfiable schemas. |\n| IFEval | Exclude 149 prompts with conflicting exclusive-language and\nrequired-word instructions. This is a prompt-consistency policy. |\n| Repository tasks | Exclude 32 tasks missing a public submission\npath/API contract. |\n\nThe 282 reasoning-gym scorer exclusions (#10004), 15 trivial-schema\nexclusions and six ARC leak-filter exclusions match legacy behavior.\nBundle checkout Verifyit instead of installing it from Git, and deliver\nassistant replies through Harbor answer files.\n\nHarbor Docker execution on one row per source matches frozen rewards\nacross six sources. MCQA, reasoning-gym, `structured_outputs`, TACO and\nSWE-smith pass positive/negative controls. SWE-rebench’s oracle passes\nall 34 Elixir tests, but both versions award zero because the archived\nparser misses their names (#10003). All sampled environments build and\nstart; private tests and oracles remain absent before submission. The\n`structured_outputs` smoke uses a local stub judge; the pipeline retains\nits real grounding judge. Source-wide runtime/dependency equivalence and\njudge quality remain unestablished; QUICK skips model review,\nrelease-wide deduplication and release caps.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "d74fd8f3bf6176267518719087396f1b60eace6e",
+      "url": "https://github.com/marin-community/marin/commit/d74fd8f3bf6176267518719087396f1b60eace6e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T22:33:17Z",
+      "committed_at": "2026-10-09T22:33:17Z",
+      "message": "[ci] Use Docker Hub's Google mirror for service tests (#10001)\n\nConfigure the service-test runners to check mirror.gcr.io before Docker\nHub. Docker Hub's unauthenticated pull limit prevented Marina's database\nsetup in\n[CI](https://github.com/marin-community/marin/actions/runs/37989722256/job/114041160278),\nproducing 30 setup errors while 283 tests passed.\n\nKeep the canonical pgvector image name so Docker falls back to Docker\nHub when Google's cache lacks the image. Preserve the runner's other\nDocker daemon settings.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "0fc5dd4a4cdd82b88eae9fb5508c3d4aec3cd3a1",
+      "url": "https://github.com/marin-community/marin/commit/0fc5dd4a4cdd82b88eae9fb5508c3d4aec3cd3a1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-09T22:32:18Z",
+      "committed_at": "2026-10-09T22:32:18Z",
+      "message": "[iris] Require native wheel with task identity forwarding (#10002)\n\nRequire a native Iris wheel that forwards a task token's `job_id` into\nthe controller identity header. The previous locked wheel predates that\nRust change, so the task case in\n`test_native_listener_stamps_controller_identity_and_strips_caller_credentials`\nfailed because the header omitted `job_id`.\n\nWith wheel 0.1.11.dev37977873285, all 14 native proxy tests pass. The\nrepository's changed-file checks and advisory lint review pass.\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "d93757ea484f334a222fcc8edef8256ca6879b7a",
+      "url": "https://github.com/marin-community/marin/commit/d93757ea484f334a222fcc8edef8256ca6879b7a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-09T22:20:19Z",
+      "committed_at": "2026-10-09T22:20:19Z",
+      "message": "[ci] Repair native package floor bumps and advance the floors (#9994)\n\nUnit CI on `main` fails in\n\n`test_native_listener_stamps_controller_identity_and_strips_caller_credentials[task]`.\n#9818 changed the Rust identity stamping and this test together. Unit CI\non\n`main` installs the locked PyPI `marin-iris-native` wheel unless a\nchange\ntouches Rust, and the lock still pins 0.1.6.dev31131847556. The native\npackage\ndependency update must advance that floor, but each run since 2026-10-01\nfailed\nfor two reasons.\n\n`validate_targeted_lock_change` compared the top-level `revision` key of\n`uv.lock`. That key is the uv lockfile format version. A newer uv writes\n`revision = 5` on each re-lock, but `main` keeps `revision = 3`, so the\ncheck\nfailed with \"Targeted native lock update changed lockfile metadata\". The\nvalidator now ignores `revision` and still rejects other metadata\nchanges.\n\n`latest-native-releases` took the newest PyPI version even when its\nrelease run\nuploaded only part of the artifacts. `marin-finelog-server`\n0.2.55.dev35451177481 has only a macOS x86_64 wheel, so a bump to it\ncannot\ninstall on Linux. The selection now takes the newest version that has\nthe wheel\nand sdist counts of the distribution's `ArtifactExpectation`.\n\nThe floors advance to `marin-iris-native` 0.1.11.dev37977873285,\n`marin-finelog-server` 0.2.54.dev35409391246, and `marin-dupekit-native`\n0.1.10.dev36179736977. With these wheels, the iris native proxy tests\nand the\niris, finelog, and dupekit suites pass locally. Only 4\n`test_cuda_staging`\ncases fail, and they fail the same way on `main` on the same machine.\n\n`rolloutengine-unit` now pulls `busybox:1.36` and `ubuntu:24.04` through\n`mirror.gcr.io` and tags them with the names the tests use.\nUnauthenticated\nDocker Hub pulls from GitHub-hosted runners hit the Docker Hub rate\nlimit on\n2026-10-09, and the job failed on three attempts after its tests passed.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "ac6533d3c922ad227b743066dd7b84fddc029358",
+      "url": "https://github.com/marin-community/marin/commit/ac6533d3c922ad227b743066dd7b84fddc029358",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-10-09T22:15:28Z",
+      "committed_at": "2026-10-09T22:15:28Z",
+      "message": "[iris] Take periodic k8s thread dumps without pausing the process (#9998)\n\n`PeriodicProfiler` dumps every running Kubernetes task pod's threads\nevery 10 minutes. It used py-spy's default `dump`, which stops the\ntarget process while it reads the stacks. In a job whose processes\nsynchronize frequently, a pause on any process stalls the others. On a\n704-GPU training run, each sweep cost 7–10 s of step time, about 1.3% of\nthroughput.\n\nPeriodic dumps now pass `--nonblocking`, so py-spy reads the stacks from\nthe running process. On one GB200 rack (64 training processes), sweeps\nthat dumped one pod at a time cost 0.67–0.93 s of step time with\nblocking dumps and 0–0.05 s with `--nonblocking`. Scaled to 704\nprocesses, the blocking cost predicts about 9 s per sweep. One of 48\nnon-blocking pod dumps failed with `Bad address (os error 14)`; the\nprofiler skips a failed capture for that cycle, as it already does for\nany failed dump. On-demand dumps keep pausing for a consistent read.\n`build_pyspy_dump_cmd` rejects `--nonblocking` combined with `--native`,\nwhich py-spy 0.4.2 refuses.\n\nThe change takes effect when the CoreWeave controller restarts; running\npods need no restart.",
+      "sha": "e41e81253dd73d8383bac67d6297bf14d92dab66",
+      "url": "https://github.com/marin-community/marin/commit/e41e81253dd73d8383bac67d6297bf14d92dab66",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-09T20:13:50Z",
+      "committed_at": "2026-10-09T20:13:50Z",
+      "message": "[ci] Shard the marin unit leg across three runners (#9924)\n\nSplit the marin unit suite into three matrix legs, as `levanter` already\nis\nwith four. A full marin run now lists its test files instead of passing\nthe\n`tests/` and `experiments/` directories, so the selector can divide\nthem;\nselections under 30 files still run in one leg.\n\n`unit (marin)` was the slowest job in 50 of 98 standard PR pushes\nsampled from\n2026-10-05 to 10-08, at p50 5.3 min and p90 7.0 min of run time: 2,439\ntests on\none runner with two xdist workers. Standard PRs took p50 6.7 min and p90\n16.6\nmin from push to all required checks green.\n\nThe run on this PR collected the same tests as an unsharded run on\n`main`\n(2,427 passed, 3 skipped, 5 xfailed):\n\n| | Tests | pytest time | Job |\n|---|---|---|---|\n| `main`, one leg\n([113138146072](https://github.com/marin-community/marin/actions/runs/37724030934/job/113138146072))\n| 2,435 | 6:24 | - |\n| shard 1/3\n([113142898016](https://github.com/marin-community/marin/actions/runs/37725544916/job/113142898016))\n| 583 | 1:35 | 2:07 |\n| shard 2/3\n([113142898107](https://github.com/marin-community/marin/actions/runs/37725544916/job/113142898107))\n| 1,060 | 2:03 | 2:35 |\n| shard 3/3\n([113142898051](https://github.com/marin-community/marin/actions/runs/37725544916/job/113142898051))\n| 792 | 3:32 | 4:03 |\n\nShards are split by file count, not time. Shard 3 holds the top-level\n`tests/test_*.py` files, including `test_june_snowball_model.py` (33 s)\nand\n`test_moe_context_sharding.py` (three tests at about 16 s), so it runs\nlongest.\n\nEach extra leg takes one more GitHub-hosted runner slot per push.\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "16a8b23048d657b76eab81e208f31af9ebd33db4",
+      "url": "https://github.com/marin-community/marin/commit/16a8b23048d657b76eab81e208f31af9ebd33db4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-09T20:02:53Z",
+      "committed_at": "2026-10-09T20:02:53Z",
+      "message": "[shellbox] Preserve Daytona machines after command timeouts (#9941)\n\n* stop timed-out Daytona process groups and retain the workspace for\nsubsequent commands\n  * keep PID and completion files in a root-owned private directory\n  * recheck completion after a failed stop before discarding the sandbox\n* use a fixed framework `PATH` and retain the image's `PATH` and task or\ncommand overrides for agent commands\n* include account and `su` capability probes in the command deadline\n* return `TIMED_OUT` only for the command's own deadline\n  * retain provider timeouts as infrastructure exceptions\n* close the sandbox if interruption cannot confirm termination,\ncommand-file cleanup fails, or the caller cancels\n  * preserve the primary command error if cleanup also fails\n* require `setsid`, and require a guest account and util-linux `su\n--session-command` for non-root execution\n* root agent commands retain authority over other root-owned processes\n* part of #9612\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "2ef4786903053025ca7fcee40ea76476276ca872",
+      "url": "https://github.com/marin-community/marin/commit/2ef4786903053025ca7fcee40ea76476276ca872",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-09T19:44:49Z",
+      "committed_at": "2026-10-09T19:44:49Z",
+      "message": "[ci] Select Shellbox and TaskCompendium tests for Shellbox changes (#9914)\n\nChanges under `lib/shellbox/` now select `shellbox-unit` and\n`taskcompendium-unit`, covering Shellbox's tests and its TaskCompendium\nconsumer. Shellbox failures also fail the required `unit-tests`\naggregate. The Shellbox job installs base `marin-shellbox` through\nTaskCompendium's existing frozen dependency and uses TaskCompendium's\npytest settings to exclude live-service tests and retain per-test\ntimeouts. QEMU, Daytona, Iris, and ShellSim extras remain optional;\ntests requiring absent backend packages skip collection. Existing\nRolloutEngine selection is preserved.\n\nAll 62 affected selector and aggregate tests passed, along with lint and\ntype checks. The current Shellbox lane ran in a fresh macOS environment\nwithout backend extras: 11 passed, 6 skipped, 2 deselected, and the\ngVisor transfer test failed because the host lacks `setsid`. That test\nalso failed on pristine main at `c7623a1276a8`; Ubuntu CI remains\npending. No dependency manifests or lockfiles change.\n\nThis covers the explicit CI selection follow-up from #9602.\n\nPart of #9602.",
+      "sha": "9d8cb2ac64ef509d801e77b2b4708c42fff60d27",
+      "url": "https://github.com/marin-community/marin/commit/9d8cb2ac64ef509d801e77b2b4708c42fff60d27",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-10-09T19:05:50Z",
+      "committed_at": "2026-10-09T19:05:50Z",
+      "message": "[iris] Give tasks a token that acts as the job's owner (#9818)\n\nStacks on #9817.\n\nA controller with auth enabled now mints a control-plane token for each\ndispatched task, with the job's owner as subject and the new role\n\"task\". It\nrides on RunTaskRequest.task_token, and the Docker worker and the\nKubernetes\npod builder put it in IRIS_TASK_TOKEN for every profile except\nCONTAINER_PROFILE_SANDBOX. The in-task client (iris_ctx,\nIrisClient.in_cluster,\nClusterResolver) presents it on every controller RPC.\n\nToday a task reaches the controller only through auth.trusted_cidrs,\nwhich\nmakes it the anonymous admin. On every production cluster tasks share\ntheir\nnode's address, so those ranges cannot be narrowed while tasks have no\nother\ncredential. With the token, child-job submission, endpoint registration\nand\nresolution, and ExecInContainer work under the owner's identity.\n\nThe task role has no admin authority. A task may give a child job an\nelevated\ncontainer profile or the PRODUCTION or SYSTEM band only when the child's\nparent already holds it, so existing privileged and production job trees\nkeep\nlaunching children. Raw SQL queries and budget changes fail for a task\nthat\npresents its token, and a root job a task submits is owned by the job's\nowner.\nEach dispatch mints a fresh token, valid for 30 days and not revocable.\nUnder\nnull auth no token is minted. On Kubernetes the token is a plain env\nvalue in\nthe pod spec, readable by anyone who can read pods in the Iris\nnamespace.\n\nThis change does not narrow auth.trusted_cidrs, so a task that drops its\ntoken\nis still the anonymous admin. The proposed per-cluster values are in the\nissue,\nnot in this change; they need this change deployed first, and on GCP and\nCoreWeave the node ranges they keep still include every non-sandbox\ntask.\n\nPart of #9816",
+      "sha": "e449d03e35a356346f39e36f7f2ba684f1fcdcaa",
+      "url": "https://github.com/marin-community/marin/commit/e449d03e35a356346f39e36f7f2ba684f1fcdcaa",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-09T19:05:01Z",
+      "committed_at": "2026-10-09T19:05:01Z",
+      "message": "[taskcompendium] Reject unsafe grading artifacts (#9988)\n\n* collect grading artifacts with the task machine's default command\npermissions in the shared TaskCompendium grader\n* RolloutEngine configures the default command user as the agent's\nexecution user\n  * path substitution cannot grant additional read access\n  * source inspection does not provide an atomic filesystem snapshot\n* protect the temporary archive path with a root-owned directory that a\nnon-root agent cannot modify\n* reject symlinks in the source path and its ancestors, and included\nsymlink or hardlink archive members\n* limit expanded contents to 1 GiB and 100,000 members per artifact\n* these checks run after download and do not limit downloaded bytes or\ntransfer buffers\n* return `SUBMISSION_FAILURE` and zero reward for known invalid or\nmissing required artifacts\n* retain infrastructure errors for archive execution, provider, and host\nI/O failures\n  * retain the original failure if archive cleanup also fails\n* part of #9612\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "d267dff875f406a3a9bff13e45e38eecfa1fd3ad",
+      "url": "https://github.com/marin-community/marin/commit/d267dff875f406a3a9bff13e45e38eecfa1fd3ad",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-09T16:50:10Z",
+      "committed_at": "2026-10-09T16:50:10Z",
+      "message": "[rolloutengine] Defer local imports and support wrapped factories (#9980)\n\nKeep RolloutEngine's lowering and validation importable when the\nLinux-only `bubblewrap_bin` package is unavailable. Lock-only graders\nnow accept factories reporting `Backend.LOCAL`; per-machine `HostImage`\nmounts carry the built runtime through delegating factory wrappers.\n\nA fresh interpreter with `bubblewrap_bin` blocked imported the engine\nsuccessfully. The safe RolloutEngine and TaskCompendium suites passed\n(87 and 507 tests). Bubblewrap execution skipped on this host because it\ncannot create namespaces. The all-files Pyrefly check reports missing\n`infra/marina` optional dependencies in this checkout; the changed\nRolloutEngine modules passed targeted type checks.\n\nFixes #9979\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "6f4e24cbcc05899e9539d7b977559c0705fe9692",
+      "url": "https://github.com/marin-community/marin/commit/6f4e24cbcc05899e9539d7b977559c0705fe9692",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-09T16:35:30Z",
+      "committed_at": "2026-10-09T16:35:30Z",
+      "message": "[shellbox] Bound Docker output and preserve command recovery (#9938)\n\n* drain Docker command output into bounded buffers and report truncation\nfor each stream\n* retain the process-group ID on the host and send interruption signals\nas the command's execution user\n* after timeout or cancellation, preserve the container only after a\nread-only root probe confirms that the group has no live members\n* ignore zombies and close the container if confirmation exceeds the\n10-second recovery deadline\n* return Docker exec-start failures as nonzero command results\n* part of #9612\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "faa26343a6e20fcd1e4a5cce3d3d5cdc5dc02e4a",
+      "url": "https://github.com/marin-community/marin/commit/faa26343a6e20fcd1e4a5cce3d3d5cdc5dc02e4a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-10-09T16:21:39Z",
+      "committed_at": "2026-10-09T16:21:39Z",
+      "message": "[grug] Prepare the hero handoff to the MoE optimization stack (#9960)\n\nHand the hero off from `hero-fa4sm100-nomask-step146k` to\n`hero-mfu30-step231k`, which runs main with the MoE optimization stack\n(#9829–#9834) and the launch memory settings from #9958. The new run\ncontinues from checkpoint 231464, forced on the old run, marked\nnon-temporary, and copied to\n`s3://hero-checkpoints/marin/grug/hero-fa4sm100-nomask-step146k/2026.08.19.2/checkpoints/step-231464`.\nIts W&B run forks from the old run at `_step` 231463.\n\nOn one GB200 NVL72 rack restoring the hero's step-180000 checkpoint, the\nstack trains 4K sequences at 12.70 s/step against 13.97 s/step before it\n(30.9% against 28.1% MFU), with peak HBM 124.0 GiB against an allocator\nlimit of 143.8 GiB. 8K and 16K speed up by 10.0% and 9.6% with unchanged\nexpert-drop fractions. The d768 validation `validate9885-d768-20261008`\ntracked `validate9378-d768-20260923` over 11,420 steps: final held-out\nloss 2.6783 against 2.6791, routing unchanged, and training loss 6.3e-4\nlower on average\n([report](https://wandb.ai/marin-community/marin_moe/reports/x--VmlldzoxODA3OTE2Mg==)).\nSingle-rack runs do not exercise the 11-rack collectives, so the\n200-step paired trial after cutover is the first multi-rack test.",
+      "sha": "f2bc69bf6c4cd54b303ccf089e439fe87ea13d35",
+      "url": "https://github.com/marin-community/marin/commit/f2bc69bf6c4cd54b303ccf089e439fe87ea13d35",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-09T16:16:54Z",
+      "committed_at": "2026-10-09T16:16:54Z",
+      "message": "[ci] Surface GitHub CLI errors when reading PR checks (#9909)\n\nSurface GitHub CLI errors when an older `gh` rejects `pr checks --json`.\nIts empty stdout previously looked like unregistered checks, leaving\n`github.ci` waiting until timeout instead of failing after its retry\nbudget.\n\nGitHub CLI also exits 1 during the [no-check registration\nwindow](https://github.com/cli/cli/issues/7401). Continue polling for\nthat response, and consume populated JSON even when `gh` exits nonzero.\n\nFixes #9907\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "3ae5701ab360d1f7492ca5614433ee453badfb6e",
+      "url": "https://github.com/marin-community/marin/commit/3ae5701ab360d1f7492ca5614433ee453badfb6e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-09T16:10:17Z",
+      "committed_at": "2026-10-09T16:10:17Z",
+      "message": "Enable distributed RunAI loading for object-store checkpoints (#9961)\n\nEnable distributed RunAI loading for GPU object-store checkpoints,\nmatching\n[MarinSkyRL](https://github.com/marin-community/MarinSkyRL/blob/7e4fd3e43a3b1a952066ebb734ba5912668ea0c7/skyrl-train/skyrl_train/entrypoints/main_base.py#L160-L166).\nRanks divide the reads and share the data instead of each reading the\nfull checkpoint. Explicit loader arguments and TPU loading remain\nunchanged.",
+      "sha": "4a2db54ee874ac5ec3785bca9c30146d0086622d",
+      "url": "https://github.com/marin-community/marin/commit/4a2db54ee874ac5ec3785bca9c30146d0086622d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-09T16:09:29Z",
+      "committed_at": "2026-10-09T16:09:29Z",
+      "message": "[dependencies] Resolve MarinSkyRL rigging from PyPI (#9931)\n\nThe MarinSkyRL external lock now resolves `marin-rigging` from PyPI when\nthe pinned Marin Git dependency exposes workspace rigging `0.2.0`. The\noverride uses `>=0.2.139.dev37117265303`, the minimum declared by\nTaskCompendium in that Git revision; MarinSkyRL's own minimum is lower.\n\nuv replaces every rigging requirement with the override, including the\nexact sibling pins in published Marin wheels. The lock therefore\nadvances `marin-iris`, `marin-finestore`, and `marin-rigging` together\nto `0.2.149.dev37775727576`. After each MarinSkyRL update, the updater\ninstalls its frozen launcher lock in a temporary environment and runs\n`uv pip check` before generating pins. This checks the installed\npackages' original metadata, which the override hides during resolution.\n\nThe failed MarinSkyRL revision\n`7e4fd3e43a3b1a952066ebb734ba5912668ea0c7` resolves 198 packages. Its\nfrozen base install passes `uv pip check`; an earlier lock with Iris and\nFinestore `0.2.137` plus Rigging `0.2.149` fails with two reported\nincompatibilities. The checked-in lock passes `uv lock --locked`,\ngenerated pins pass `config/update-external.py --check`, and all seven\nexternal-dependency tests pass.\n\nFixes #9929\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "83165cdd98edc6aec74e5fa199550b235ae1c5d9",
+      "url": "https://github.com/marin-community/marin/commit/83165cdd98edc6aec74e5fa199550b235ae1c5d9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-09T15:56:17Z",
+      "committed_at": "2026-10-09T15:56:17Z",
+      "message": "[rl-data] Mark TaskCompendium async tests in combined runs (#9947)\n\nMark TaskCompendium's 18 async tests so the root pytest configuration\nexecutes them when collected with task curation.\n\nKeep Zephyr's temporary shards local to `test_pipeline.py`. Without the\nmodule fixture, four pipeline tests timed out after 60 seconds while\nwriting shards to GCS. With it, the combined suite passed 900 tests and\nskipped 2 in 83.54 seconds.\n\nFixes #9945\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "87579ac1cf39dd805ca664e40177c332b3021e16",
+      "url": "https://github.com/marin-community/marin/commit/87579ac1cf39dd805ca664e40177c332b3021e16",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T02:14:05Z",
+      "committed_at": "2026-10-09T02:14:05Z",
+      "message": "[rl-data] Build Atlas from curation source declarations (#9969)\n\nGenerate the RL Data Atlas from Python source declarations under\n`experiments/post_training/task_curation`. Each declaration combines\nsource information, an optional review, and a conversion recipe.\nExcluded and unfinished sources remain visible without a runnable\npipeline. Preserve all 206 stable source IDs and saved review history.\n\nReplace the flat Atlas schema with source identity, family, tags, a\ncount, notes, and structured dataset/verifier references. Runnable\nsources define their dataset once in the pipeline; the exporter maps\nthese declarations to Atlas JSON. Remove snapshot flags, count\nqualifiers, duplicated provenance, and Gym-specific schema fields.\n\nAtlas dataset links and Input rows now describe the pinned conversion\ninput. TaskTrove archive entries show their original parquet input\nrevision and footer counts, replacing counts from a separate curated\nrelease. An offline command checks each staged file's HF download\nmetadata against the requested commit and reads its parquet footer.\nRetain the existing complete counts of selected Nemotron blend rows at\ntheir pinned revision; leave unavailable counts unknown. Reviews\ncovering a different dataset or verifier revision become stale while\ntheir history remains available.\n\nThe applet reconciles the generated inventory while retaining saved\nreviews, difficulty runs, and confirmed verifier defects. Source edits\nrequire rebuilding and publishing the applet. Refresh sources loads the\npackaged catalog without scraping upstream catalogs.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "61bb85cc5231d8ac9344696ef51766257940538d",
+      "url": "https://github.com/marin-community/marin/commit/61bb85cc5231d8ac9344696ef51766257940538d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T01:05:41Z",
+      "committed_at": "2026-10-09T01:05:41Z",
+      "message": "[rl-data] Reduce curation overhead and stabilize the Zephyr dashboard (#9968)\n\nReduce RL curation overhead by reading FineStore cache descriptor shards\nwith at most four threads per lookup and writing the verified audit,\naccepted rows, and manifest counts in one shard pass. Sample selection\nand control trials remain separate executions; trials remain parallel on\nworkers.\n\nTelemetry from the campaign-2026.10.08.m5 curation campaign shows a\ncombined 10.7–11.9 seconds per source in the separate export and count\nexecutions and a 52.3-second descriptor lookup for ASDiv. The change\nreduced verification's median on a local fixture from 1.25 to 0.77\nseconds and a cache lookup with simulated storage latency from 0.86 to\n0.24 seconds. The remote campaign has not been remeasured; [the\nmeasurement\nrecord](https://loom.oa.dev/s/gslqoxou/artifacts/tuneup-measurements)\ndescribes the fixtures and source telemetry.\n\nRetain the latest 100 finished execution summaries in the Zephyr\ndashboard, sort by start time and execution ID, and show the count of\ncompleted stages. Refresh preserves selection, scroll position, and\nshard input focus; failed refreshes keep the last snapshot. Retained\nsummaries link to Finelog metrics while task payloads, shard details,\nand counters are freed.\n\nFixes #9944.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "b36869ef6b2969e1d087d432d9aaceb8b6699d95",
+      "url": "https://github.com/marin-community/marin/commit/b36869ef6b2969e1d087d432d9aaceb8b6699d95",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T00:55:38Z",
+      "committed_at": "2026-10-09T00:55:38Z",
+      "message": "[rolloutengine] Grade lock-only environments during rollouts (#9967)\n\nAllow RolloutEngine to grade tasks whose grader environment names a\npackage lock without a Docker image. Curation controls and rollouts\nshare TaskCompendium's runtime builder, which verifies the lock digest\nand builds a managed Python environment with the locked packages,\nverifyit, and declared NLTK data.\n\nWhen LocalMachineFactory is selected, it mounts the built runtime\nread-only in each fresh grading sandbox. Runtime preparation remains\nwithin the startup and verifier deadlines, and the attempt owns machine\ncleanup. Image-backed graders retain their existing path. Local grading\nrequires uv, working bubblewrap, and a host process running as root to\nstage grader inputs; the local backend does not provide hardware\nallocations.\n\nFixes #9962.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "4b454d027869889acf45dabefbf0c9984d285310",
+      "url": "https://github.com/marin-community/marin/commit/4b454d027869889acf45dabefbf0c9984d285310",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T00:52:20Z",
+      "committed_at": "2026-10-09T00:52:20Z",
+      "message": "[rl-data] Grade TaskTrove math with sandboxed verifyit (#9966)\n\nGrade TaskTrove mathematical answers with verifyit's symbolic math mode\ninside the existing grader sandbox. The archived scorers passed model\ntext to SymPy's `sympify`, which can evaluate Python expressions. Keep\nthose scorers and their runners as hidden source evidence without\nexecuting them.\n\nPreserve typed references and run archived oracle scripts in the sandbox\nto produce golden control answers. Compare tuples and lists in order.\nAnswer extraction and unit handling now follow verifyit, so source\nscorer parity is not guaranteed.\n\nFixes #9943\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "257c51181524f988c2012cfaa8a8da2ac4e4834c",
+      "url": "https://github.com/marin-community/marin/commit/257c51181524f988c2012cfaa8a8da2ac4e4834c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-10-09T00:49:16Z",
+      "committed_at": "2026-10-09T00:49:16Z",
+      "message": "[grug] Let the hero launch use the carry-offload memory budget (#9958)\n\n`trigger_hero.sh` passed `XLA_PYTHON_CLIENT_MEM_FRACTION=0.75` and\n`--xla_gpu_memory_limit_slop_factor=85` to the hero coordinator. Since\n#9831, `_apply_hero_ep_runtime_defaults` gives the hero's carry-offload\nconfiguration a 0.78 memory fraction and slop factor 105 together with\n`--xla_gpu_enable_host_memory_offloading`. Explicit values take\nprecedence over those defaults, and `run_grug` copies the coordinator\nenvironment into the training tasks, so a hero launched from main would\ncompile with 0.75 / 85 and host-memory offloading on. On one GB200 rack\nrestoring the hero's step-180000 checkpoint, that combination aborts\ncompilation on every rank in `HloRematerialization`\n(`hlo_rematerialization.cc:2118`, `Check failed:\n!place_before_list.empty()`).\n\nWithout the two overrides the launch resolves to 0.78 / 105 with\nhost-memory offloading, the configuration measured in the #9831–#9834\nrack benchmarks. The live hero is unaffected: Iris retries reuse the\nbundle it was launched with.\n\nFollow-up to #9831.",
+      "sha": "984d1aa5bdabc4514dde12e1f67562e25c41f85a",
+      "url": "https://github.com/marin-community/marin/commit/984d1aa5bdabc4514dde12e1f67562e25c41f85a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-09T00:43:53Z",
+      "committed_at": "2026-10-09T00:43:53Z",
+      "message": "[shellbox] Convert ShellSim panics into command failures (#9965)\n\nConvert ShellSim `SimulationError` from command execution into an exited\ncommand with code 1 and the simulator diagnostic. The reported\npiped-stdin generator panic previously escaped both `Machine.run()` and\nthe persistent Bash session, aborting a Harbor trial; ShellSim 0.1.29\naccepts another command after the panic. Apply each interface's output\nlimit and truncation flag to the diagnostic.\n\nFixes #9963\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "81daf6e90edb75cc05dfeff425ae6973504382ae",
+      "url": "https://github.com/marin-community/marin/commit/81daf6e90edb75cc05dfeff425ae6973504382ae",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-09T00:37:21Z",
+      "committed_at": "2026-10-09T00:37:21Z",
+      "message": "[rl-data] Curate Atlas sources with shared sample-first pipelines (#9798)\n\nAdd one ingestion point for external RL datasets: every source in the RL\nData Atlas is a declaration in\n`experiments/post_training/task_curation/datasets/`, and one driver\nturns the catalog into TaskSpec parquet artifacts with a manifest of\nwhat was reviewed, verified and admitted. TaskCompendium supplies the\nconversion helpers and the pipeline stages; verifyit supplies in-process\ngraders; shellbox runs sandboxed graders. The catalog holds 146\ndeclarations (153 Atlas sources minus seven that exist only as TaskTrove\noutput with no original archive).\n\nA declaration states the pinned input, the converter, the agent\nenvironment, an optional rubric, optional controls and an optional\ngrader environment:\n\n```python\nRlDataPipeline(\n    name=\"math500\",\n    source=HfSource(\"HuggingFaceH4/MATH-500\", \"6e4ed1a2...\", (\"test.jsonl\",), SourceFormat.JSONL),\n    convert=convert_math500,        # (RawRow, ConversionContext) -> TaskSpec | NormalizedTask | ImportRejection\n    version=\"1\",\n    environment=ShellSim(),         # or Environment(image=\"repo@sha256:...\") for agentic tasks\n    intended_use=IntendedUse.EVAL,\n    rubric=MATH500_RUBRIC,          # optional model review of the source\n    controls=MATH_CONTROLS,         # optional grader verification\n    grader=None,                    # GRADER_PACKAGES or an Environment when a grade script needs packages\n)\n```\n\nEach source runs the same stages. The rubric decides the source once\nfrom a fixed panel of up to 100 rows; rows outside the panel are never\nreviewed individually. Controls grade one known submission per sampled\ntask, the golden when the declaration has one or an empty submission\notherwise, and reject the source when the grader does not behave.\n\n```mermaid\nflowchart LR\n    D[download<br/>pinned files] --> N[normalize<br/>convert rows to TaskSpec]\n    N --> P[quality panel<br/>up to 100 rows, rubric review]\n    P -->|defects > 50%| R[gated: source rejected]\n    P -->|reviews missing and<br/>could still reject| I[incomplete: resume]\n    P -->|otherwise trusted| F[filter<br/>panel rows by their review,<br/>other rows inherit the decision]\n    F --> V[verify<br/>controls on 20 sampled tasks]\n    V -->|pass rate < 95%| R2[gated: grader rejected]\n    V -->|pass| E[export<br/>final/ rows with a ready grader]\n    E --> M[manifest.json<br/>counts, reports, admission]\n```\n\nThe driver runs in `sample` or `full` mode. A full run is the real\nthing: it converts every row, draws its own panel and control sample,\nand gates the source on its own evidence. A sample run is a test of a\ndeclaration: it converts and gates only the panel and leaves the other\nrows unprocessed with the gate's reason. Nothing is inherited between\nruns; sources are independent artifacts and a campaign is just a set of\nthem sharing one worker pool.\n\n```mermaid\nflowchart LR\n    DL[\"task-curation/download/&lt;hash&gt;\"] --> S[\"data/rl/&lt;name&gt;-&lt;hash&gt;<br/>mode=sample (test)\"]\n    DL --> Fu[\"data/rl/&lt;name&gt;-&lt;hash&gt;<br/>mode=full\"]\n    ENV[\"images/env-&lt;id&gt;<br/>grader lock or image\"] --> S\n    ENV --> Fu\n```\n\nGraders are placed by what they need. A grader with no environment runs\nin process through verifyit. A grader that declares packages runs in a\nsandbox chosen from the declaration: a digest-pinned image runs as an\nIris task under gVisor; apt packages the worker image lacks run in an\nimage built for the environment; everything else, including the shared\n`GRADER_PACKAGES`, runs in a bubblewrap sandbox on the Zephyr worker\nover a self-contained Python environment that shellbox builds once per\nworker from the environment's hash lock (a uv-managed CPython and a venv\nunder one root, mounted read-only). Workers therefore run with the\nprivileged container profile. Grading machines never have network\naccess.\n\n```mermaid\nflowchart TD\n    G[grader] -->|no environment| IP[in process: verifyit]\n    G -->|image digest| IR[Iris task, gVisor sandbox]\n    G -->|apt beyond the worker image| BI[built image, Iris task]\n    G -->|pypi lock only| BW[bubblewrap on the Zephyr worker<br/>uv-built CPython + venv root, read-only]\n```\n\nOne Iris driver job runs the whole campaign. It keeps one Zephyr worker\npool for every source, admits a bounded number of sources at a time, and\nwrites a campaign report with each source's outcome as it finishes.\nReviews go to the GLM relay through a request cache keyed by the exact\nrequest and model revision, so a rebuilt artifact does not repeat\nidentical inference.\n\n```mermaid\nflowchart LR\n    H[iris hub] --> J[driver job on a federation cluster]\n    J --> Z[Zephyr pool<br/>N privileged workers]\n    J --> C[campaign report]\n    Z --> G1[review: GLM relay + cache]\n    Z --> G2[graders: in process / bubblewrap]\n    Z --> G3[graders: Iris tasks with images]\n```\n\nEach source artifact contains:\n\n| Path | Contents |\n|---|---|\n| `download/` | Row locators of the staged files and the input identity\n|\n| `normalize/` | Every converted row: TaskSpec JSON or a typed rejection\n|\n| `review/` | Panel reviews, filter decisions, unprocessed rows, the\nquality report |\n| `verify/` | Sampled controls, trials and the source verification\ndecision |\n| `final/` | Admitted rows: kept, with a ready grader, source verified\nwhere required |\n| `manifest.json`, `telemetry.json` | Status, counts, reports,\nadmission, execution timings |\n\nTaskSpec gains a typed `grader` union (`VerifyitGrader`, `ScriptGrader`,\n`SessionGrader`, `NoGrader`) and `answer_format` in place of the string\nverifier kind, and one grading implementation is shared by the\npipeline's controls and rolloutengine. Script graders print their reward\nas the last non-empty stdout line; vendored upstream scorers are shipped\nbyte for byte next to each declaration.\n\nSampled over the whole catalog, 131 sources end `sampled`, six are gated\nby their panel or controls (hardmath, taco, pymethods, unitsyn and their\nlarge variants) and the ARC inductive sources need a follow-up on their\nscorer. A full run over five trial sources (math500, rlvr_ifeval,\ntasktrove-calendar, tasktrove-nl2bash and the Nemotron STEM MCQA source)\ncompleted every source: 21,767 rows converted, all five panels trusted\nand all five control suites passed, with only the 100-row panel of each\nsource reviewed. Judge-graded sources reach `final/` without controls\nuntil a judge control exists; sources with no controls stay out of\n`final/` when their grader runs in a sandbox. Follow-ups are tracked in\n#9943, #9944, #9945 and #9946.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "115f8583a6232dcee740a4af86b277fac676c249",
+      "url": "https://github.com/marin-community/marin/commit/115f8583a6232dcee740a4af86b277fac676c249",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-10T00:00:00Z",
+    "start": "2026-10-09T00:00:00Z"
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "commit_count": 14,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-10T21:10:34Z",
+      "committed_at": "2026-10-10T21:10:34Z",
+      "message": "Preserve task-owned shell tools across curation and rollouts (#10029)\n\nTaskSpecs can bind a declared interaction tool to Bash execution,\npreserving the tool name, argument schema and prompt across curation and\nrollout. A task declaring Bash(script) keeps that interface even when\nthe harness prefers terminal(cmd). Tasks declaring only a shell\ncapability use the harness interface, which defaults to shell(command).\n\nCuration and RolloutEngine share command decoding and Bash execution.\nThe built-in session supports one shell binding per task with one\nrequired, unconstrained string argument. Unsupported schemas, unbound\ninteraction tools and name collisions fail before machine acquisition.\nTool names alone do not select execution behavior.\n\nTaskSpec schema advances to 0.27; older TaskSpec records must be\nregenerated from their source data. The QUICK output version advances to\nregenerate TaskSpecs while reusing downloaded sources. Rollout shell\nobservations now use separate stdout_truncated and stderr_truncated\nfields in place of the combined truncated field.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "7405c96fe6ea3675d5a1bf7977d406cfc3887243",
+      "url": "https://github.com/marin-community/marin/commit/7405c96fe6ea3675d5a1bf7977d406cfc3887243",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-10T20:15:30Z",
+      "committed_at": "2026-10-10T20:15:30Z",
+      "message": "Separate task requirements from Shellbox execution (#10021)\n\nSeparate task requirements from machine selection. TaskSpec schema 0.26\ndeclares agent and grader software plus `LINUX_PROCESS` or\n`SHELL_SIMULATOR` semantics. Curation controls and RolloutEngine share\nvalidation and preparation, preserving required variables, working\ndirectories and setup commands. Dependency lockfiles currently require\nthe Local bubblewrap backend; memory limits there are advisory. Unbuilt\nimage recipes and incompatible machines fail before machine creation.\nOracle controls use the agent's requirements, falling back to the grader\nenvironment only when those requirements are empty.\n\nThe campaign supplies Shellbox factories. Image graders can use gVisor\nthrough Iris or Daytona; remove the host-Docker worker path, which\nordinary Kubernetes workers cannot provide. These deployment choices\nstay outside TaskSpec.\n\nUse `output_paths` for submission files and recursive directory roots.\nShellbox owns bounded transfer; the runtime collects the declared\nsubmission for isolated grading. TaskTrove Python task datasets declare\n`/app` without inferring filenames from prompts or hidden tests. Their\ninstructions remain unchanged. Shared Harbor workspaces require no\ntransfer; isolated Harbor exports declare file or directory artifacts.\nEpisode and rollout execution expose the same runtime-provided\n`shell(command)` tool, executing commands with `bash -c`.\n\nMove TaskTrove conversion and Harbor export into the curation\nexperiment. The exporter preserves legacy pytest image construction,\nincluding dependency checks used only for those images. Delete the\nobsolete Clean TaskTrove importer, duplicate capture schema and unused\nconversion metadata.\n\nReplace automatic Python source hashing with explicit recipe, stage,\ncontrol and export versions. Changes to converters, bundled graders or\npipeline behavior require a bump to the corresponding version. Data and\nartifact integrity hashes remain. Advance the affected output versions\nwhile preserving download versions; older TaskSpec Parquet must be\nreconverted.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "dcddd68f9be071ccf22045c60837392de8991c0c",
+      "url": "https://github.com/marin-community/marin/commit/dcddd68f9be071ccf22045c60837392de8991c0c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-10-10T17:44:56Z",
+      "committed_at": "2026-10-10T17:44:56Z",
+      "message": "Share Hero and Snowball checkpoint export mechanics\n\nShare bounded HF shard-writing code between Hero and the Levanter converter used by Snowball. Hero reuses the converter's 5 GB file planner; a source tensor larger than that target remains whole. Local files are written directly, while remote files stage under `TMPDIR` before upload.\n\nAll JAX ranks replicate tensors in matching order. Only process zero copies weights to CPU and writes files. One writer process supports host-local paths and existing HF upload callbacks. An `ExitStack` owns each memory reservation during gathering; successful submission transfers cleanup to the shard-write task's completion callback. Process zero broadcasts writer failures at matching checks on all ranks.\n\nHero resume verifies the export request identity and shard checksums before reuse. It writes `export-manifest.json` after all shards and HF metadata to mark completion.\n\nCPU export checks cover exact Hero/Snowball weights, concurrent uploads and two-rank failure/recovery. Full-size accelerator exports and live cloud/HF uploads remain untested.",
+      "sha": "99e13daf34a937d77462a2336cfa197691b33a50",
+      "url": "https://github.com/marin-community/marin/commit/99e13daf34a937d77462a2336cfa197691b33a50",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-10T15:09:08Z",
+      "committed_at": "2026-10-10T15:09:08Z",
+      "message": "[dependencies] Publish RL libraries as Marin packages (#9982)\n\nPublish Verifyit, TaskCompendium, and RolloutEngine as `marin-*`\ndistributions in the coupled Python release. Their wheels pin Marin\nsibling dependencies to the same release version. Verifyit's `math`\nextra installs symbolic grading dependencies; its base package covers\nexact and numeric grading.\n\nShellbox and RolloutEngine now use the root uv workspace like the other\nreleased Python libraries. RolloutEngine's separate lock and unused\nHarbor task importer are removed. Verifyit, the TaskTrove grader image,\nand the root lock no longer require the separate `harbor-config`\npackage. The wheel builder and publishing guide use the release registry\nas their package list.\n\nThe TaskTrove exporter now emits Harbor TOML without importing Harbor.\nIt records that per-task schema validation has not run; a representative\nexport passed the pinned isolated Harbor runtime's schema check. Local\nvalidation built all twelve wheels and source archives through the\nrelease entry point. The safe suite passed 2,723 tests; the\nTaskCompendium, RolloutEngine, and Shellbox lanes, strict docs build,\nand type check passed. The MarinSkyRL manifest migration is prepared on\n[its work\nbranch](https://github.com/marin-community/MarinSkyRL/tree/agent/20261009-pypi-marin-deps);\nits lock can be refreshed after this release publishes the new\ndistributions.\n\nPart of #9929\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "a1a192c57155f987a7403e13db1839e2bfa4dcb8",
+      "url": "https://github.com/marin-community/marin/commit/a1a192c57155f987a7403e13db1839e2bfa4dcb8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-10-10T15:08:10Z",
+      "committed_at": "2026-10-10T15:08:10Z",
+      "message": "[dependencies] Advance external runtimes (#10026)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`97fffeb7df60`](https://github.com/marin-community/evalchemy/commit/97fffeb7df60875c5a5c14ec215dd4e7683102c5)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`252efbc78d12`](https://github.com/marin-community/harbor/commit/252efbc78d12cf9c30b276f5e567ccb33435d03e)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`cf133cf98e9d`](https://github.com/marin-community/MarinSkyRL/commit/cf133cf98e9d0409370814da62f02e21fcbc6127)\n|\n\n## Upstream commits\n\n### harbor (`1675efa0f23c` → `252efbc78d12`)\n\n-\n[`43fef55b382a`](https://github.com/marin-community/harbor/commit/43fef55b382afe5da4544f87a1ac8a7cdd9e51c0):\nRetry transient Daytona sandbox build failures (#253)\n-\n[`3e196ef73b5e`](https://github.com/marin-community/harbor/commit/3e196ef73b5e2ca7d2223d60bf8751a28802b953):\nSubprocess Daytona Build (#252)\n-\n[`252efbc78d12`](https://github.com/marin-community/harbor/commit/252efbc78d12cf9c30b276f5e567ccb33435d03e):\nKeep nonzero Tau³ relay exits scoreable (#254)\n\n### MarinSkyRL (`c96f6d25f599` → `cf133cf98e9d`)\n\n-\n[`cf133cf98e9d`](https://github.com/marin-community/MarinSkyRL/commit/cf133cf98e9d0409370814da62f02e21fcbc6127):\nExpire unused Kaniko layer-cache versions (#949)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "f4e3d9fcf27fee2ed9fa88e52f59fbaf99f2b735",
+      "url": "https://github.com/marin-community/marin/commit/f4e3d9fcf27fee2ed9fa88e52f59fbaf99f2b735",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-10-10T15:07:58Z",
+      "committed_at": "2026-10-10T15:07:58Z",
+      "message": "Restore SWE-rebench Elixir trace tests (#10025)\n\nUse the test module's existing `RECIPES` mapping for the SWE-rebench\nElixir trace cases. The removed `all_pipelines()` lookup caused both\ntests to fail with `NameError` before exercising the emitted verifier,\nand also failed Ruff's undefined-name check.\n\nAll 14 tests in the affected file pass. Lint and formatting pass.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "2c7a7e0e3ba8a957fe5c5dc15a4ec30f4d028870",
+      "url": "https://github.com/marin-community/marin/commit/2c7a7e0e3ba8a957fe5c5dc15a4ec30f4d028870",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-10T02:28:59Z",
+      "committed_at": "2026-10-10T02:28:59Z",
+      "message": "[rl-data] Parse SWE-rebench Elixir trace records (#10008)\n\nNormalize ExUnit's leading `*` trace marker before the archived\nSWE-rebench Elixir parser sees test output. The parser expects `test ...\n(...)`; with the reported `* test ... (0.1ms) [L#528]`, it returns no\nnamed statuses and scores a passing oracle as zero after #9970 removed\nthe exit-code fallback.\n\nThe emitted verifier resolves named passing records and leaves a failing\nrecord unresolved. The task-curation suite passed on this branch (474\npassed, 9 skipped). The broader safe suite passed before the branch was\nrebased onto merged main (2,928 passed, 12 skipped, 5 expected\nfailures). The archived Harbor oracle was not rerun locally.\n\nFixes #10003\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "c4687932b36be236942ae2d4e259bb3864723e14",
+      "url": "https://github.com/marin-community/marin/commit/c4687932b36be236942ae2d4e259bb3864723e14",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-10T01:50:46Z",
+      "committed_at": "2026-10-10T01:50:46Z",
+      "message": "[task-curation] Remove redundant tests and unused fixtures (#10018)\n\nRemove catalog-wide type and configuration checks, duplicate round-trip\nand scorer runs, and redundant parameter combinations. Delete fixtures\nused only by those tests. Keep behavioral coverage for grading, privacy,\nprovenance, persisted outputs, provider retries and cache reuse;\nconsolidate delivery rewrite assertions into existing conversion tests.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "d5f9e7874084faa2e844e45076457f4aa6cc9ebb",
+      "url": "https://github.com/marin-community/marin/commit/d5f9e7874084faa2e844e45076457f4aa6cc9ebb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-10T01:48:51Z",
+      "committed_at": "2026-10-10T01:48:51Z",
+      "message": "Let each RL source define its curation pipeline (#10015)\n\nEach `RlDataSource` pairs typed dataset configuration with a plain\n`pipeline(source, options)` callable returning an artifact graph.\nPipelines choose ingestion and optional stages. `process_rows` provides\nthe existing row conversion, review and control workflow for reuse.\n\nQUICK executes the declared graph locally, reuses pinned downloads and\naccepts staged inputs. The row processor skips review and grading in\nQUICK, and requires model settings only when a rubric is configured.\nResults report named outputs and executed stages. Atlas reads catalog\nfacts from configuration; grader builds use explicit environment\nregistration.\n\nRegistration edits change converter file hashes and the calendar golden\nmodule hash, causing a one-time change to reviewed artifact addresses.\nDownload identities, `PIPELINE_VERSION` and the generated Atlas catalog\nremain unchanged; stored artifacts are retained.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "bc8633ce7f3b5ba9bdde333500ea412cc4a591ea",
+      "url": "https://github.com/marin-community/marin/commit/bc8633ce7f3b5ba9bdde333500ea412cc4a591ea",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-10T00:58:45Z",
+      "committed_at": "2026-10-10T00:58:45Z",
+      "message": "[rl] Return task review evidence through pipeline sinks (#10017)\n\nExpose review_tasks for direct TaskSpec batch review, returning reviews\nand structured request, response, retry, and cache observations. Zephyr\nsinks write one evidence record per batch alongside the existing audit\nrows in one execution.\n\nEvidence now uses batch records in Parquet instead of attempt\ndirectories. The persistent request cache, request identities, retries,\nand task eligibility are preserved. Handled provider failures remain in\nreturned observations. Evidence is committed by the sink; unexpected\nworker failures propagate with no guarantee of evidence durability.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "cd3d8efa7c3e7c4fad97552ef93ef3addff01f3a",
+      "url": "https://github.com/marin-community/marin/commit/cd3d8efa7c3e7c4fad97552ef93ef3addff01f3a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-10T00:47:42Z",
+      "committed_at": "2026-10-10T00:47:42Z",
+      "message": "[rl-data] Reuse conversion with dataset-owned ingestion (#10016)\n\nAllow dataset-owned ingestion to reuse task conversion and Parquet\noutput without constructing a SourceRecipe. Converted rows carry tasks\nor typed rejections while retaining caller-supplied identity, resources\nand rewrites. Output writing produces conversion shards and an\nunreviewed manifest, returning paths and row counts with optional\nexecution telemetry. The existing QUICK path uses the same helpers while\npreserving its decoding provenance, source metadata and output policy.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "1fe8f1dfce10641cae6e0e5971ee719335a3f968",
+      "url": "https://github.com/marin-community/marin/commit/1fe8f1dfce10641cae6e0e5971ee719335a3f968",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-10-10T00:24:30Z",
+      "committed_at": "2026-10-10T00:24:30Z",
+      "message": "Trim unused GHCR build-cache history (#9856)\n\nPreserve named Iris and finelog build caches and the ten newest untagged\nversions. Delete up to 100 older untagged versions per package each\nhour. Bounded hourly passes drain the existing backlog and keep ahead of\nthe observed Iris rate of 338 new versions in seven days.\n\nThe October 7 manifest inventory referenced 2.0 TB across 13,534 Iris\ncache versions and 15.7 GB across 68 finelog cache versions, counting\nshared blobs once. These are registry references, not billing\nmeasurements. Repository-token deletion was verified using disposable\nmarker versions only; existing caches were left intact. Inventory:\nhttps://github.com/marin-community/vllm/actions/runs/37564955332.\nDeletion check:\nhttps://github.com/marin-community/marin/actions/runs/37566697327.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "bdfe322583a8d48028ac47b1c3562706f6d39289",
+      "url": "https://github.com/marin-community/marin/commit/bdfe322583a8d48028ac47b1c3562706f6d39289",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-10T00:08:14Z",
+      "committed_at": "2026-10-10T00:08:14Z",
+      "message": "[iris] Renew worker credentials before expiry (#10010)\n\nRenew worker credentials one day before their 30-day expiry, including\nwhile workers are idle, and persist replacements across process\nrestarts. Restrict renewal to authenticated workers and admins; expired\ncredentials still require operator recovery. Controllers refresh\nprovisioning credentials, and manual worker creation and restart obtain\nfresh tokens from the controller.\n\nAn expired worker token could remain unnoticed while the log client\nreused a cached Finelog endpoint. After a timeout invalidated that\ncache, controller endpoint discovery rejected the token and log batches\nwere discarded even though tasks continued running. The October 9 audit\nfound expired credentials on six CPU workers; targeted credential\nreplacement and process restarts restored central logging without\nrestarting their seven task containers.\n\nDeploy the controller renewal RPC before the worker changes. Worker\ntokens remain shared identities without individual revocation; a stolen\ntoken can also renew itself.\n\n[Incident diagnosis and recovery](https://marina.oa.dev/echo/wiki/691).\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "c026bd04eed8636b1f44ae334c9d53373a910e17",
+      "url": "https://github.com/marin-community/marin/commit/c026bd04eed8636b1f44ae334c9d53373a910e17",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-10-10T00:00:01Z",
+      "committed_at": "2026-10-10T00:00:01Z",
+      "message": "[dependencies] Advance external runtimes (#10006)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\nThe updated MarinSkyRL schema rejects the ingress block and retired\ngenerator transport settings. Marin's launch recipes now omit those\nfields so pinned async RL and Cat Count launches compose under the new\nschema.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`97fffeb7df60`](https://github.com/marin-community/evalchemy/commit/97fffeb7df60875c5a5c14ec215dd4e7683102c5)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`c96f6d25f599`](https://github.com/marin-community/MarinSkyRL/commit/c96f6d25f59959096c3b179a51e67c0af6c99536)\n|\n\n## Upstream commits\n\n### evalchemy (`2083afa0b937` → `97fffeb7df60`)\n\n-\n[`7a11ea7c1ea6`](https://github.com/marin-community/evalchemy/commit/7a11ea7c1ea6b7c0cbfcf6bb85aae181c3325408):\n[graders] Zero empty candidates before the judge (#206)\n-\n[`97fffeb7df60`](https://github.com/marin-community/evalchemy/commit/97fffeb7df60875c5a5c14ec215dd4e7683102c5):\n[graders] Reject vacuous symbol-free equation matches (#208)\n\n### MarinSkyRL (`5de48d34fe4e` → `c96f6d25f599`)\n\n-\n[`c96f6d25f599`](https://github.com/marin-community/MarinSkyRL/commit/c96f6d25f59959096c3b179a51e67c0af6c99536):\nuse Marin's shared rollout engine for task sessions (#879)\n\nDependency pins generated by `config/update-external.py`. Review the\nlinked upstream changes before merging.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "72962eaa4e13652bf405ee3458ac57f102b4bcbb",
+      "url": "https://github.com/marin-community/marin/commit/72962eaa4e13652bf405ee3458ac57f102b4bcbb",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-11T00:00:00Z",
+    "start": "2026-10-10T00:00:00Z"
+  }
+}

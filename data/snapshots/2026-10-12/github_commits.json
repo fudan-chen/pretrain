@@ -1,0 +1,120 @@
+{
+  "commit_count": 10,
+  "commits": [
+    {
+      "author": "himanshk96",
+      "author_name": "himanshk96",
+      "authored_at": "2026-10-12T23:54:39Z",
+      "committed_at": "2026-10-12T23:54:39Z",
+      "message": "[datakit] Aggregate large-cluster count files in one group_by (#10073)\n\n`plan_large_clusters` merged the per-task count files by running a\nconcat and\n`group_by` on the growing merged table once per file, which is quadratic\nin the\nnumber of count files. It now reads every count table, concatenates them\nonce\nand runs a single `group_by(\"dup_cluster_id\").aggregate([(\"n\",\n\"sum\")])`. The\nper-file nullable cast is dropped: the count files and the empty seed\ntable\nshare `_COUNT_SCHEMA`, and the nullable `n` only appears after the one\naggregation.\n\nAll count tables are held in driver memory at once. They are one row per\ndistinct sampled cluster per task, so this stays small and driver-side.\n\nOutput is unchanged. A differential harness against main compared\n`plan_large_clusters` and `large_clusters_step` outputs on 300 synthetic\ncount\nfiles, all identical, and StepSpec hashes do not move. The existing\nlarge-cluster and cluster-text tests pass unchanged.\n\nDriver-only aggregation, 3,000 rows per file drawn from 20k ids:\n\n| count files | before | after | speedup |\n| --- | --- | --- | --- |\n| 300 | 0.57 s | 0.12 s | 5.0x |\n| 3,000 | 6.25 s | 1.05 s | 6.0x |\n| 400 x 50k rows | 117.1 s | 2.2 s | 52.9x |\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-authored-by: Claude Opus 5.5 <noreply@anthropic.com>",
+      "sha": "985b2b61fe3cddc7f3742392cecf6c7439e8903c",
+      "url": "https://github.com/marin-community/marin/commit/985b2b61fe3cddc7f3742392cecf6c7439e8903c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-10-12T22:32:47Z",
+      "committed_at": "2026-10-12T22:32:47Z",
+      "message": "[inference] Refresh Snowball GPU scores after rounding fixes (#10069)\n\nRefresh the saved native GPU scores for the June 67B-A2B Snowball\ncheckpoint at step 42150. The reference file records the source, inputs\nand runtime.\n\nThe old scores predate #8978, which added four compiler barriers so\ninference and training round intermediate results the same way. Removing\nonly those barriers on the same eight H100s and runtime restores all 64\nold score sets exactly. With the barriers, three cases select a\ndifferent next token.\n\nIndependent checks against FP64 formulas pass: normalization differs by\nat most one BF16 rounding step, and router weights match exactly after\nrounding. Existing inference-versus-training regressions also pass.\nModel quality was not measured.\n\nAll 64 cases match the new reference exactly on two separate eight-H100\nnodes at `bce2d5c331` and in the #9400 integration at `1c72f85f22`. See\n[qualification\ndetails](https://github.com/marin-community/marin/pull/9400#issuecomment-6133449648)\nfor jobs and revisions.\n\nFollow-up to #9400, which still needs TPU and final serving backend\nqualification.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "3bd928becec9628dd32423e90fd4151cfae95978",
+      "url": "https://github.com/marin-community/marin/commit/3bd928becec9628dd32423e90fd4151cfae95978",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-12T20:08:14Z",
+      "committed_at": "2026-10-12T20:08:14Z",
+      "message": "[iris] Keep preferred constraints optional during demand routing (#10065)\n\nKeep preferred constraints optional through the autoscaler's final group\neligibility check. When a preferred region matched no group, demand\nstayed unrouted even though groups satisfied every required constraint.\nThis restores the filtering and ranking behavior introduced in #3917.\n\nA regression covers matching and unavailable preferred regions. All\n1,976 affected safe tests passed.\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "9446cb255053c80ec3a968185362cf9496101e5d",
+      "url": "https://github.com/marin-community/marin/commit/9446cb255053c80ec3a968185362cf9496101e5d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-12T17:37:59Z",
+      "committed_at": "2026-10-12T17:37:59Z",
+      "message": "[rl-data] Fix curation ingestion and retain run evidence (#10055)\n\nRun the existing curation pipelines against local primary and auxiliary\ninputs in QUICK, SAMPLE and FULL modes. Local input hashes identify\ncached artifacts; changes before or during execution fail the artifact.\nUse the host user for bubblewrap setup and guest ownership for image\nstaging. Missing candidate modules declared by the task's grading spec\ncan score zero; grader dependency failures and interrupts remain\nunscored or incomplete. Reject demonstrated malformed source contracts\nwhile retaining reference control thresholds.\n\nNormalize shared Nemotron JSONL downloads once through Zephyr using its\nJSONL reader, shuffle and Parquet writer. Assign original row IDs before\ngrouping records by component. Write one Parquet file per component,\nkeeping its row groups separate. Local overrides read their supplied\nrecords directly. Bound conversion ranges and output partitions by\npopulation size. Preparation of a 367-record, 10.5 MB cached panel\nacross 28 components takes 0.63 seconds including worker setup and\nshutdown.\n\nUse Docker's native image cache for Docker and gVisor. Registry sources\npull only missing images; Dockerfile sources build directly in the\ndaemon. Keep Skopeo for QEMU's OCI filesystem preparation and resolve it\nthrough `PATH`. Export built images with gzip layers, including\ninherited layers. Batch resource uploads and use Iris's executable node\ncache for managed Python environments. The image-runtime diagnosis is\nrecorded in [Echo](https://marina.oa.dev/echo/wiki/705).\n\nAppend campaign invocations, source statistics and phase timings to a\nFineStore catalog of curation runs beside the output report. Retain\nstable Atlas IDs, admission and verification outcomes, output pointers,\nand exact evidence snapshots. Failed source attempts do not inherit old\nmanifest counts; partial evidence remains inspectable with parse errors.\nCached artifacts retain their original attempt timing. The catalog\ninherits the output directory's retention policy. Atlas can import run\nstatistics and output pointers from the catalog while preserving saved\nreviews and difficulty measurements; that import is future work.\n\nThe reconciled full-run baseline accounts for 5,115,365 records across\n146 runnable source pipelines with zero unprocessed records. Five\nsources retain inconclusive verification and two are blocked from\nadmission by failed controls. The DAPO math dataset accounts for most\nrejections: 1,772,909 exact duplicates and 1,400 conflicting-reference\nrows. Counts are per recipe and can include overlapping populations.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "ada1eddd92e1763f9b5e4a9da230f65381c94f8c",
+      "url": "https://github.com/marin-community/marin/commit/ada1eddd92e1763f9b5e4a9da230f65381c94f8c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-10-12T16:59:58Z",
+      "committed_at": "2026-10-12T16:59:58Z",
+      "message": "[inference] Align GPU refreshes with releases built from main (#9746)\n\nAlign Marin's GPU refresh instructions with releases built from reviewed\nvLLM main. The fork builds, tests, and publishes wheels first. A\ndeveloper or\nagent then runs Snowball's comparison of token probabilities with stored\nreferences and opens one adoption PR. Link this procedure and its\nautomatic\nand manual test table from root agent instructions and the weekly\nrefresh\nworkflow.\n\nRender the descriptor and generated dependencies before replacing\ngpu.toml,\nso rendering failures preserve existing pins. For upstream refreshes,\nreplay\npatches from fetched fork main; Marin's wheel pin can lag source patches\nalready reviewed and merged there. This PR leaves production pins\nunchanged.\n\nSupersedes #9397's staged-pin and later-promotion proposal. The\ncompanion\nworkflow in marin-community/vllm#85 replaces marin-community/vllm#76.\nAll 9\naffected tests and the strict docs build pass. The developer or agent\npreparing\neach wheel adoption runs the live Snowball test.\n\nPart of #9300\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "663a66ffd79cc9ef6ac75d2881163101647ccaf1",
+      "url": "https://github.com/marin-community/marin/commit/663a66ffd79cc9ef6ac75d2881163101647ccaf1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-12T15:32:30Z",
+      "committed_at": "2026-10-12T15:32:30Z",
+      "message": "[docs] Explain downstream adoption of Marin packages (#10053)\n\nDocuments how a downstream project adopts a new Marin Python library\nfeature after it merges to main: wait for the daily family release or\ndispatch one from main, raise the consumer's minimum when the feature\nrequires it, and refresh each affected lock. Explains when to regenerate\nMarin's isolated SkyRL external lock after a SkyRL dependency change\nmerges.\n\nPart of #9929\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10053#issuecomment-6115282553)\n<!-- marin-prose-cleanup -->\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "a6e937d9c8b54d8612d3afa6a0756036b8f0fb10",
+      "url": "https://github.com/marin-community/marin/commit/a6e937d9c8b54d8612d3afa6a0756036b8f0fb10",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-12T15:08:51Z",
+      "committed_at": "2026-10-12T15:08:51Z",
+      "message": "[dependencies] adopt SkyRL tracker finalization (#10062)\n\n* advance the SkyRL commit in `uv.lock` to\n[`2b08e243`](https://github.com/marin-community/MarinSkyRL/commit/2b08e2432c8871b7e6c4cd7c389d7bb2df2b4950),\nwhich closes W&B sessions before process exit\n([#981](https://github.com/marin-community/MarinSkyRL/pull/981))\n* keep the `main` source selector and all other package versions\nunchanged\n* the [upstream\nrange](https://github.com/marin-community/MarinSkyRL/compare/37ec019b756cfd988ca8abd042cf25f24934224b...2b08e2432c8871b7e6c4cd7c389d7bb2df2b4950)\nalso includes the Megatron provider refactor, fp32 forward support, and\nDPO equivalence tests in\n[#982](https://github.com/marin-community/MarinSkyRL/pull/982)\n* the full async CatCountCanary gate passed on four Iris H100s: sampled\nscore `0.2544 -> 0.6992` after ten updates, with zero rank checksum\nmismatches\n* [W&B](https://wandb.ai/marin-community/rav_moe/runs/v9auratw) reports\n`finished` after Iris completion, with final step `10`\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "8f26f549c998655a12fff0e2ae5e7b235fbef3c3",
+      "url": "https://github.com/marin-community/marin/commit/8f26f549c998655a12fff0e2ae5e7b235fbef3c3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-10-12T06:10:22Z",
+      "committed_at": "2026-10-12T06:10:22Z",
+      "message": "[dependencies] Advance external runtimes (#10057)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`97fffeb7df60`](https://github.com/marin-community/evalchemy/commit/97fffeb7df60875c5a5c14ec215dd4e7683102c5)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`aee476676983`](https://github.com/marin-community/harbor/commit/aee476676983dfa62f5d824538193302ef46e3f9)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`37ec019b756c`](https://github.com/marin-community/MarinSkyRL/commit/37ec019b756cfd988ca8abd042cf25f24934224b)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`dd76a5c0021f` → `37ec019b756c`)\n\n-\n[`838ca3346ae0`](https://github.com/marin-community/MarinSkyRL/commit/838ca3346ae0cb6eb8896e52a9c6819d7528d69e):\nSupport training replays and checkpoints before the first update (#979)\n-\n[`37ec019b756c`](https://github.com/marin-community/MarinSkyRL/commit/37ec019b756cfd988ca8abd042cf25f24934224b):\nPin grading support for rejected tool arguments (#980)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "1c98285020f8c37789e5acda61a1820de7c7e1ce",
+      "url": "https://github.com/marin-community/marin/commit/1c98285020f8c37789e5acda61a1820de7c7e1ce",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-12T04:05:46Z",
+      "committed_at": "2026-10-12T04:05:46Z",
+      "message": "Activate the TaskSession runtime in SkyRL recipes (#9911)\n\n* activate the merged [SkyRL TaskSession\nruntime](https://github.com/marin-community/MarinSkyRL/pull/879) in\nMarin's launcher and recipes\n* track SkyRL `main` and lock commit\n`dd76a5c0021faa8a605a099d3ad5f389c83dfa9a`\n* lock its shared `marin-rolloutengine`, `marin-shellbox`,\n`marin-taskcompendium`, and `marin-verifyit` packages at Marin commit\n`40b7245a`\n* execute the launcher through the frozen project in\n`config/external/MarinSkyRL`\n  * isolate runtime dependencies from Marin's development workspace\n* preserve Marin `main`'s Iris, Rigging, and Finestore packages at\n`0.2.149.dev37775727576`\n* use native task sessions and exact-token model requests in the async,\ncanary, and mismatch-probe recipes\n* preserve sampled token IDs, model logprobs, and trainable-token masks\n* Harbor tasks require prebuilt images and a separate verifier machine\nper attempt\n* Harbor agent harnesses, shared verifiers, image builds, and\nmulti-stage tasks are unsupported\n* defer the unsupported nl2bash TaskTrove smoke to a follow-up\n  * its export requires image builds and shared-machine grading\n  * remove its launch recipe and stale CLI instructions\n* keep task conversion, Harbor export, and archive-content comparisons\navailable\n* provide GPU validation through\n`experiments.post_training.task_sessions.validation`\n  * whole-rollout mode uses one training sample per attempt\n  * step-wise mode uses one training sample per model turn\n* use pinned Qwen2.5-0.5B-Instruct for tasks that require a specified\nnumber of `cat` words and two-turn math tasks\n* store retained token records and policy exports in the run's artifact\npaths\n* include the config and data fingerprint in run paths to prevent cache\nreuse when `--steps` changes\n* the [async\ncanary](https://wandb.ai/marin-community/rav_moe/runs/yzukrdt2) passes\nthe full pinned nightly spec\n* `eval/sampled/train/avg_score` increases from 0.238935 at step 0 to\n0.672830 at step 10, above the unchanged 0.65 gate\n* zero Iris failures, preemptions, and data-parallel checksum mismatches\n* one seed verifies the existing gate but does not establish calibration\nacross seeds\n* W&B retains the final metrics but reports `crashed` after successful\nIris shutdown\n* runtime and training flow\n\n  ```mermaid\n  flowchart LR\nRecipe[\"Marin artifact recipe\"] -->|launch.yaml| Launcher[\"marinskyrl\niris launch<br/>frozen runtime\"]\n      Launcher --> Worker[\"SkyRL TaskRolloutWorker\"]\n      Worker --> Engine[\"Marin ShellboxRolloutEngine\"]\nEngine <-->|\"prompt / response token IDs\"| Model[\"SkyRL model adapter\"]\n      Engine <-->|\"task lifecycle\"| Session[\"TaskSession\"]\n      Engine -->|\"create / close\"| TaskMachine[\"Shellbox task machine\"]\n      Session -->|commands| TaskMachine\nEngine -->|\"create / grade / close\"| Verifier[\"separate verifier\nmachine<br/>per attempt\"]\n      Engine -->|\"RolloutData: grade, tokens, masks\"| Worker\nWorker --> Group[\"optional group grading<br/>compare same-task\nrollouts\"] --> Samples[\"form training samples<br/>whole: per\nattempt<br/>step-wise: per model turn\"] --> Trainer[\"trainer\"]\n  ```\n\n* part of [#9612](https://github.com/marin-community/marin/issues/9612)\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "231b7a6dcedfa6dc979355011a787b80633117b4",
+      "url": "https://github.com/marin-community/marin/commit/231b7a6dcedfa6dc979355011a787b80633117b4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-10-12T00:43:14Z",
+      "committed_at": "2026-10-12T00:43:14Z",
+      "message": "[inference] Keep Snowball serving axes on mesh (#9401)\n\n## Summary\n\nKeep size-one `expert` and `context` axes on Levanter's inference mesh.\nSnowball's explicit partition specs name these axes even on a\nsingle-axis serving slice. Without them, the first forward pass fails\nwith `Resource axis: expert ... is not found in mesh` after the 67B\nexport loads.\n\n## Validation\n\n- `tests/inference/test_serve.py -k inference_mesh`: 3 passed.\n- Project changed-file lint and type checks passed.\n- The June Snowball 67B exported-checkpoint H100 parity cell passed all\n64 representative prompts with this exact patch applied in #9400's\nthen-head `8f6f28c63c`; maximum probability error was 0.056754 against\nthe existing 0.075 bound.\n\nThis small backend fix is the base for the focused TPU parity PR #9400.\nIt does not change the checkpoint, prompts, or numerical bounds.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "1ec8cea1d7dee93a539282d37a68f1a79945eb34",
+      "url": "https://github.com/marin-community/marin/commit/1ec8cea1d7dee93a539282d37a68f1a79945eb34",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-13T00:00:00Z",
+    "start": "2026-10-12T00:00:00Z"
+  }
+}

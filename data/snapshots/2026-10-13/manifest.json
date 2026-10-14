@@ -1,0 +1,75 @@
+{
+  "available_sources": 3,
+  "collected_at": "2026-10-14T07:41:50Z",
+  "date": "2026-10-13",
+  "failed_sources": 1,
+  "mutable_observation_end": "2026-10-14T07:41:50Z",
+  "overall_status": "partial",
+  "preserved_sources": 0,
+  "schema_version": 1,
+  "sources": [
+    {
+      "attempts": 45,
+      "error": null,
+      "evidence_file": "github_issues.json",
+      "label": "GitHub Issues 与评论",
+      "name": "github_issues",
+      "preserved_evidence": false,
+      "preserved_from_collected_at": null,
+      "record_count": 730,
+      "requested_urls": [
+        "https://api.github.com/repos/marin-community/marin/issues?state=all&since=2026-10-12T23%3A59%3A59Z&sort=updated&direction=asc&per_page=100"
+      ],
+      "source_url": "https://github.com/marin-community/marin/issues",
+      "status": "success"
+    },
+    {
+      "attempts": 1,
+      "error": null,
+      "evidence_file": "github_commits.json",
+      "label": "GitHub commits",
+      "name": "github_commits",
+      "preserved_evidence": false,
+      "preserved_from_collected_at": null,
+      "record_count": 20,
+      "requested_urls": [
+        "https://api.github.com/repos/marin-community/marin/commits?since=2026-10-12T23%3A59%3A59Z&until=2026-10-14T00%3A00%3A00Z&per_page=100"
+      ],
+      "source_url": "https://github.com/marin-community/marin/commits/main",
+      "status": "success"
+    },
+    {
+      "attempts": 3,
+      "error": "CollectionError: HTTP 500 from https://huggingface.co/api/models?author=marin-community&sort=lastModified&direction=-1&limit=100&full=true: {\"error\":\"Internal Error - We're working hard to fix this as soon as possible!\"}",
+      "evidence_file": null,
+      "label": "Hugging Face 模型与数据集",
+      "name": "hugging_face",
+      "preserved_evidence": false,
+      "preserved_from_collected_at": null,
+      "record_count": 0,
+      "requested_urls": [],
+      "source_url": "https://huggingface.co/marin-community",
+      "status": "failed"
+    },
+    {
+      "attempts": 1,
+      "error": null,
+      "evidence_file": "marin_site.json",
+      "label": "Marin 官网",
+      "name": "marin_site",
+      "preserved_evidence": false,
+      "preserved_from_collected_at": null,
+      "record_count": 1,
+      "requested_urls": [
+        "https://marin.community/"
+      ],
+      "source_url": "https://marin.community/",
+      "status": "success"
+    }
+  ],
+  "successful_sources": 3,
+  "window": {
+    "end": "2026-10-14T00:00:00Z",
+    "start": "2026-10-13T00:00:00Z"
+  }
+}

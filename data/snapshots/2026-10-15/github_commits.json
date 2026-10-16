@@ -1,0 +1,307 @@
+{
+  "commit_count": 27,
+  "commits": [
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-15T23:52:42Z",
+      "committed_at": "2026-10-15T23:52:42Z",
+      "message": "[rolloutengine] Leave large shell output to the model or the harness (#10184)\n\nThis reverts the spill mode added in #10144. With\n`TaskSessionSpec.tool_output_spill_bytes` set, the engine kept each\ncommand's full stdout and stderr in the task machine and returned a\npreview with the file path, so a command with unbounded output cost the\nmodel nothing.\n\nThat cost is the signal that teaches a model to manage output, by\nredirecting long output to a file and reading it with `tail` or `grep`.\nA model trained with the engine catching its output loses information in\nharnesses that only truncate, which is what most evaluation harnesses\ndo. Keeping the rest of a stream is therefore the model's job in a\ntraining environment, and a harness that runs agents for their results\ncan add its own safety net. The review of #10144 also asked to move the\nmechanism out of TaskCompendium's bash wrapper into the machine\nbackends; removing it makes that unnecessary.\n\nObservations keep the 1 MiB truncation and the `stdout_truncated` and\n`stderr_truncated` flags, and the docs now state the limit and the\npolicy. `TaskSessionSpec` drops `tool_output_spill_bytes`, which nothing\nin this repository set to a value other than `None`; external callers\nsuch as MarinSkyRL must drop the field when they take this release.\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "0f55b1dd6d932d80bd9ada58661e6fa38dfe72d9",
+      "url": "https://github.com/marin-community/marin/commit/0f55b1dd6d932d80bd9ada58661e6fa38dfe72d9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-15T23:52:04Z",
+      "committed_at": "2026-10-15T23:52:04Z",
+      "message": "[marina] Add a persistent Python playground (#10178)\n\nAdd a Python playground applet with a searchable project index, file\nediting and uploads, package requirements, and Markdown/image previews\nof generated outputs. Trusted programs run under CPython with a\n120-second timeout, sharing Marina's service privileges and network\naccess.\n\nPersist sources, binary inputs and the latest run using relational\nPostgres tables and BYTEA blobs. Limit source and input files together\nto 5 MiB and outputs to 10 MiB per project, with no quota across\nprojects. Replace old output blobs on reruns and reclaim all project\nblobs on deletion.\n\nExpose project operations through Marina MCP and accept ZIP imports,\nwith a CLI that uploads a directory using shared Marin authentication.\n\nMake Marina's installed rigging, PyArrow and FineStore packages\navailable to programs while resolving extra requirements with uv.\nInclude a storage preview example that uses inherited object-store\ncredentials and Marin's bucket routing to read a bounded Parquet preview\nwithout copying secrets into project data.\n\nAdd a hideable Loom conversation pane using Marina’s configured Loom\norigin and existing read-only agent profile. Scope chat history and\ndrafts to each project and include its identifiers and saved revisions\nin page context. Keep the playground usable when Loom is unconfigured or\nunreachable.\n\nPermit credentialed Loom browser connections from Marina's private\napplet origin alongside its main origin. Keep the public applet origin\nexcluded and retain Loom's normal user authentication and profile\npermissions.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "2f686541e3a739a5d17256059fad9e579f4477e7",
+      "url": "https://github.com/marin-community/marin/commit/2f686541e3a739a5d17256059fad9e579f4477e7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-15T23:30:30Z",
+      "committed_at": "2026-10-15T23:30:30Z",
+      "message": "Allow internal Marina users to update any application (#10183)\n\nAllow users admitted by Marina's internal IAP authentication to update,\nchange the access mode, roll back or archive any existing application.\nProduction revisions are attributed to the verified caller, and the\ndirectory shows the selected revision's publisher. Releases, mode\nchanges and rollback still reject stale expected versions; archive does\nnot take a revision.\n\nInitial named-application registration and host bindings retain their\nseparate operator permissions. Public applet endpoints remain read-only.\nThe original-publisher database column remains historical metadata,\navoiding a destructive registry migration during rollout.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "c2b536f58cb844da41df04c0e40e52e4e0eb9da7",
+      "url": "https://github.com/marin-community/marin/commit/c2b536f58cb844da41df04c0e40e52e4e0eb9da7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-15T23:19:06Z",
+      "committed_at": "2026-10-15T23:19:06Z",
+      "message": "[task-curation] Embed tasks and map curriculum coverage in Atlas (#10157)\n\nMake task curation the canonical embedding path for tasks and curriculum\nentries. Embed public instructions, answer-format requirements and tool\nschemas directly with the same pinned Harrier model and retrieval rubric\nused for curriculum anchors. CPU inference caches vectors and writes\nZephyr Parquet. Exact alignment loads the curriculum matrix once per\nshard and streams task vectors; curriculum edits reuse task embeddings.\nPublication references the scored assignment files directly. Remove the\nOpenAI/SQLite curriculum experiment.\n\nExport precomputed coverage and bounded examples through Zephyr.\nPostgres receives curriculum entries, counts, and independent samples of\nup to 100 tasks per source and 10 per curriculum node. The Atlas has By\nsource and By curriculum tabs, a map of all domains and topics, skills,\nfilters and sampled task details. Area navigation loads examples\nautomatically and interleaves datasets across pages. Full task, vector\nand assignment files remain in object storage.\n\nConverted release `1400a3d7ddfd` contains 4,998,910 task instances from\n146 sources, including 1,659 evaluation instances. Its serving export is\n33.8 MB of Parquet with 6,219 statistics rows and 17,875 sampled tasks.\nDirect import from CW took 33 seconds; the browser became ready in under\none second. The curriculum has 45 domains, 2,450 hierarchy nodes and\n5,526 embedded anchors. Fixed maximum cosine distances are 0.45 for\nsubjects and 0.25 for capabilities. Matches outside a cutoff remain\nunassigned at that level. Assignments are approximate: narrative topics\ncan distract from the skill a task requires. Failed imports leave the\npreviously active Atlas release in place.\n\nDefault remote artifacts to `s3://marin-us-east-02a/marin`, with\nexplicit root and local-cache overrides. The [curation\nreference](docs/references/task-curation.md#pipeline-overview) diagrams\nthe complete graph and links its stages and data models. The [Atlas\nreference](docs/references/rl-data-atlas.md) covers the serving export\nand local import. The checked-in app supports review without deploying a\nlive Marina revision.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "e2e7130fc8787fe27830a2c4ce30320b72b46a51",
+      "url": "https://github.com/marin-community/marin/commit/e2e7130fc8787fe27830a2c4ce30320b72b46a51",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-15T23:05:11Z",
+      "committed_at": "2026-10-15T23:05:11Z",
+      "message": "[rolloutengine] Carry the conversation and timing in rollout events (#10177)\n\nRollout events reported timing and counts but not what was said, so an\nobserver could not follow a long agentic attempt before `run()`\nreturned, and a crash lost the transcript with the record. Events also\ncarried uneven detail: grading and the whole attempt had no duration, an\ninterrupted attempt did not say why, and tool calls could not be matched\nto the model's calls.\n\nThe engine's events now carry the conversation. `SessionPrepared` has\nthe first request's `messages` and `options`, including the advertised\ntools. `ModelTurnCompleted` has the assistant `message` and the reported\n`usage`. `TransitionCompleted` has the `observations` the session\nreturned, or the new conversation in `reset_conversation`, which it\nreports even when a turn or token limit makes the engine skip the reset.\nAn observer can therefore rebuild the transcript for any session,\nincluding `AgentTaskSession` and external sessions that emit no tool\nevents. The fields reference the attempt's own messages, so the queue\ncopies nothing.\n\n`ToolCallCompleted` stays per-call detail and gains `call_id` and\n`done`; its observation is the `TransitionCompleted` message with the\nsame `tool_call_id`. `Graded` gains the grade's `error`, `failure` and\nthe `duration` of output capture plus grading. `AttemptEnded` gains the\ninterruption's `error` and the `duration` of the whole attempt.\n`SessionPrepared.message_count` and\n`TransitionCompleted.observation_count` are replaced by the content they\ncounted.\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "821e9b691ae2bdef0d93d70a6396ee67eece7963",
+      "url": "https://github.com/marin-community/marin/commit/821e9b691ae2bdef0d93d70a6396ee67eece7963",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-15T23:04:30Z",
+      "committed_at": "2026-10-15T23:04:30Z",
+      "message": "[eval] Run each evaluation as a StepSpec (#9813)\n\nRun each evaluation as a StepSpec with its own lock, success cache, and\nresult record. Evaluations in one launch share a candidate server and\noptional hosted judge. Cached evaluations are skipped on restart; a\nfully cached launch starts no servers. A group StepSpec locks the launch\nbefore starting inference so duplicate orchestrators cannot provision\nduplicate servers.\n\nEvaluators run sequentially by default. `--max-concurrent` allows\nconcurrent evaluators on shared inference, but omits per-evaluation\nserver metrics because server-wide counters include sibling traffic.\nServer startup failures write infrastructure-failure records for all\npending evaluations.\n\nPipeline retries derive run IDs from the pipeline artifact path and\nresolved model, evaluator, runtime, judge, and policy settings,\npreserving completed evaluations across orchestrator resubmissions. CLI\nlaunches and mutable pipeline versions (`dev` or `*-dev`) create fresh\nruns. Verified policies retain their pinned benchmark sources and\nHarbor/Evalchemy commits.\n\nEvalDash withholds scores until each evaluation's StepSpec succeeds.\nHistorical records without step status keep their existing display. A\ncrash after writing a record but before StepRunner marks success can\nrerun that evaluation. The success cache prevents completed steps from\nbeing overwritten on ordinary restarts, addressing the failure in the\n[October 6 incident](https://marina.oa.dev/echo/wiki/627).\n\n---------\n\nCo-authored-by: William Held <9847335+Helw150@users.noreply.github.com>\nCo-authored-by: William Held <will.held@openathena.ai>\nCo-authored-by: Helw150 <wbh230@nyu.edu>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "f28e12d19a5648ca9219c0c07ffc826621ae109b",
+      "url": "https://github.com/marin-community/marin/commit/f28e12d19a5648ca9219c0c07ffc826621ae109b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-15T22:52:55Z",
+      "committed_at": "2026-10-15T22:52:55Z",
+      "message": "[rolloutengine] Spill large shell output to a file in the task machine (#10144)\n\nA shell observation keeps at most the machine output limit of each\nstream and drops the rest, so the model cannot see the end of a long\nbuild log or test run.\n\nTaskSessionSpec.tool_output_spill_bytes enables a spill mode. Each shell\ncommand writes stdout and stderr to files under /tmp/tool-output/ in the\ntask machine, and the host reads only the first tool_output_spill_bytes\nbytes plus one. A stream over the limit keeps its file, and the\nobservation returns the preview with a new stdout_path or stderr_path\nfield, so the model can read the rest with later commands. Shorter\nstreams appear in full and their files are removed. A timed-out command\nreports both paths, because its files can hold output the machine did\nnot return.\n\nEach saved file keeps at most the first 64 MiB of its stream\n(`SPILL_FILE_BYTES`). The rest passes through a pipeline that reads and\ndiscards it, so a command that prints without end keeps running and\ncannot fill the machine's storage; up to two such files per spilled call\nstay until the attempt ends.\n\nThe field is required like the other session limits; `None` turns\nspilling off and keeps observations unchanged. Every `TaskSessionSpec`\nconstruction must now pass it: in this repository that is only\n`rolloutengine.test_support`, and external callers such as the SkyRL\nintegration must add it. Only the shell tool spills; provider tools run\non the host and return their observations in full.\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "86e400365cbaa06c378e7e2fab872cfb945cd96c",
+      "url": "https://github.com/marin-community/marin/commit/86e400365cbaa06c378e7e2fab872cfb945cd96c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-15T22:39:07Z",
+      "committed_at": "2026-10-15T22:39:07Z",
+      "message": "[rolloutengine] Cap the tokens one rollout attempt spends (#10143)\n\nAn attempt was bounded only by turns and deadlines, so nothing capped\nmodel spend. `TaskSessionSpec.max_total_tokens` now sets a per-attempt\nbudget, and callers must state it like the other limits: `None` means no\nbudget. Each model request charges `ModelTurn.request_tokens`: the\ncounts in the new optional `ModelTurn.usage` when the transport reports\nthem, as a chat endpoint can, otherwise the lengths of the turn's token\nIDs. A request charges its full prompt, including the served prefix,\nbecause a budget measures spend per request.\n\nWithout a conversation reset, the next prompt holds at least the\nprevious request's prompt and response. After each response the engine\ntherefore stops when the tokens spent plus that request's count reach\nthe budget, so it never sends a request whose prompt alone would reach\nit; the last request sent may exceed the budget by its new observation\nand response tokens. The session handles the last response, and the\nengine grades the conversation through it with stop reason\n`budget_reached`, also when that request used the last permitted turn. A\nconversation reset returned with that response is not applied.\n\nWith a budget set, a turn that reports neither `usage` nor prompt token\nIDs, which the messages trace allows, raises `RolloutContractError`\ninstead of charging nothing.\n\nEvery `TaskSessionSpec` construction must now pass `max_total_tokens`.\nIn this repository that is only `rolloutengine.test_support`; external\ncallers such as the SkyRL integration must add it.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "5887e4cbbf34b5bf9236d3b1e6bfa0b9afafe184",
+      "url": "https://github.com/marin-community/marin/commit/5887e4cbbf34b5bf9236d3b1e6bfa0b9afafe184",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-15T22:26:05Z",
+      "committed_at": "2026-10-15T22:26:05Z",
+      "message": "[rolloutengine] Add a messages trace mode for untrained rollouts (#10142)\n\nThe turn loop always enforced the exact-token contract, so a model\nbehind a chat endpoint had to fake token IDs to drive a rollout that\nnobody trains on. Chat endpoints re-tokenize the conversation for every\nrequest, so the contract cannot hold there: on GLM-5.3 behind the Orion\nrouter, 2 of 7 recorded 7-turn ShellSim rollouts aborted on a single\nnon-canonical sampled token in prefixes of 7,000 to 9,700 tokens, and\nthe router exposes no tokens-in or tokenize route.\n\n`TaskSessionSpec.trace` selects `TraceMode.EXACT_TOKENS`, the default\nand the current behavior, or `TraceMode.MESSAGES`. In messages mode the\nengine skips the prefix, evidence, logprob and credit checks and keeps\nthe token IDs a model reports without checking them: the first prompt,\nand the last served sequence after it, which is informational only. The\nloss mask is all zeros with one value per response token, so the\nmask-length invariant still holds, and logprobs are `None`. A model that\nreports no token IDs leaves the token fields empty. Every messages\nrecord, including empty and interrupted ones, carries `metrics[\"trace\"]\n= \"messages\"`, so a trainer can refuse it. Token bookkeeping moves out\nof the turn loop into one trace class per mode. The engine keeps the\ntoken replay check, which a session triggers by pinning prompt tokens,\nand applies it in both modes: a chat endpoint cannot serve pinned\ntokens, so a messages rollout whose session pins them now raises instead\nof silently running on a different prompt. Under messages mode, the\ntoken counts in `ModelTurnCompleted` events are the unchecked counts the\nmodel reported.\n\nThese semantics follow the text token contract in #9781, set per attempt\nin `TaskSessionSpec` rather than on the engine, and without requiring\nthe model to report token IDs.\n\nFixes #9778\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "67b67ab19e7fb3625318a518804fb0eb7b7608e9",
+      "url": "https://github.com/marin-community/marin/commit/67b67ab19e7fb3625318a518804fb0eb7b7608e9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-15T21:44:47Z",
+      "committed_at": "2026-10-15T21:44:47Z",
+      "message": "[rolloutengine] Serve host tool providers in the built-in session (#10141)\n\nLowering refused every task that declared environment tool providers, so\neach new tool set needed its own registered TaskSession. RolloutEngine\nnow accepts ToolProviders keyed by\n`ProviderRequirement.action_interface`. When the shellbox session\nprepares, it opens one ToolProviderSession per requirement with a\nToolContext that holds the task machine and the requirement, so each\nattempt keeps its own provider state, typically started from\n`initial_state`; the sessions close with the attempt's other resources.\n\nThe shellbox session serves its shell tool through the same\nToolProviderSession interface, running commands on the task machine, and\ndispatches every tool call by name. Shell and provider calls therefore\nshare one path, including the `ToolCallCompleted` event, and a call that\nnames no advertised tool returns an unknown-tool error. A ToolCallResult\nwith `done=True` ends the rollout after that call. Its content is the\nobservation text, as in a chat tool message. The type is not\ntaskcompendium's ToolResult, which is a conversation event with a call\nid and no `done`.\n\nLowering still rejects an unregistered interface before machine\nacquisition, and now also rejects provider tool names that collide with\nthe shell, final, answer, or other provider tools. No provider is\nregistered by default, so existing tasks keep their current behavior.\nThe docs add a table of the engine's three registries: machine\nfactories, sessions, and providers.\n\nlower_task and validate_lowered_task take a required providers= keyword,\nlike sessions=. No caller outside lib/rolloutengine in this repository\nuses them; external callers such as the SkyRL integration must pass\nproviders={}.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "49f4f4383c6cb2bfcfe3101def85e82a464862dd",
+      "url": "https://github.com/marin-community/marin/commit/49f4f4383c6cb2bfcfe3101def85e82a464862dd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-10-15T21:33:55Z",
+      "committed_at": "2026-10-15T21:33:55Z",
+      "message": "[dependencies] Advance external runtimes (#10162)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`c2548fe6d556`](https://github.com/marin-community/evalchemy/commit/c2548fe6d556bdec26be0be0e7e09cf423c325a1)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`4ac41d380b59`](https://github.com/marin-community/harbor/commit/4ac41d380b596d93df676da3f13b295ee5fcf7fb)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`b52875912249`](https://github.com/marin-community/MarinSkyRL/commit/b52875912249c86f760f19277f6195e5fa12d7c3)\n|\n\n## Upstream commits\n\n### evalchemy (`3bb8278078e7` → `c2548fe6d556`)\n\n-\n[`c2548fe6d556`](https://github.com/marin-community/evalchemy/commit/c2548fe6d556bdec26be0be0e7e09cf423c325a1):\n[output] Stage scored samples directly in FineStore (#211)\n\n### harbor (`1d29d200414b` → `4ac41d380b59`)\n\n-\n[`4ac41d380b59`](https://github.com/marin-community/harbor/commit/4ac41d380b596d93df676da3f13b295ee5fcf7fb):\nAdd a standalone BiomniBench-DA adapter (#184)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "54b180913ea3ecbb30595f03e17c17c145aa1ff4",
+      "url": "https://github.com/marin-community/marin/commit/54b180913ea3ecbb30595f03e17c17c145aa1ff4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-15T21:23:37Z",
+      "committed_at": "2026-10-15T21:23:37Z",
+      "message": "[shellbox] Interrupt timed-out ShellSim actions (#10159)\n\nUse Shellsim 0.1.38 cancellation tokens to stop timed-out and cancelled actions. Command deadlines return `TIMED_OUT`; a machine whose worker stops remains available for later commands and file transfers.\n\nMake `ShellSession.interrupt()` stop the active shell action, and cancel active work during shutdown. Block later commands and file transfers during cleanup, with a five-second grace period that repeated cancellation cannot extend. If the worker does not stop, close the machine and reject further operations while it finishes in the background. Log cleanup failures without replacing the caller's cancellation.\n\nRelated to #10109. The runtime support is in [Shellsim 0.1.38](https://github.com/rjpower/shellsim/releases/tag/v0.1.38).",
+      "sha": "ea43465ba58405f04833143070b203830997cd45",
+      "url": "https://github.com/marin-community/marin/commit/ea43465ba58405f04833143070b203830997cd45",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-15T21:17:08Z",
+      "committed_at": "2026-10-15T21:17:08Z",
+      "message": "[marina] Release every application independently through Postgres\n\nRelease every Marina application from versioned packages in Postgres. Echo, EvalDash, TaskTrove and Zephyr retain their named URLs and existing schemas. Remove the unused Plantt source application and its bootstrap requirement. HTTP routes, MCP tools, agent configuration and scheduled jobs follow the selected package revision. A Marina rollout or restart changes the base runtime without publishing applications or changing their selected revisions.\n\nAll applications use `marina release` and one `applet.toml` for package metadata, an optional stable UUID and shared source input paths. Maintained releases default to clean current main and record app and shared build-input hashes. An explicit `--allow-dirty` permits branch or uncommitted source without verified Git provenance; `--local` provides a disposable preview. All updates require an expected revision and publisher/operator authorization. Schema migrations and revision selection share a transaction. Runner capacity and per-application capabilities stay in infrastructure configuration, while jobs execute snapshots of released modules. Child processes retain Marina's working directory so shared libraries can resolve runtime configuration. Python plugins still share runtime dependencies, process resources and service identity.\n\nRemove application source, frontend bundles and filesystem discovery from the production image. The first rollout requires an explicit operator bootstrap of the four named applications. A registry gate precedes both web and scheduled-worker updates, leaving the previous runtime in place until registration succeeds. The [handover runbook](https://github.com/marin-community/marin/blob/main/infra/marina/README.md#base-runtime-deployment-and-first-cutover) describes the loopback bootstrap and recovery procedure. Before bootstrap, arrange service-account impersonation, choose verified publisher/operator IDs, inspect schema ownership and drain the old scheduled workers. The existing UUID applets Atlas and Filer retain their current UUIDs and selections; dataset loading remains separate from code release. Runtime downgrades must support the active package APIs and dependencies.\n\n[Cutover job incident and recovery](https://marina.oa.dev/echo/wiki/766).",
+      "sha": "36390183aa46ba6ef31448a2192f4000eb355c5d",
+      "url": "https://github.com/marin-community/marin/commit/36390183aa46ba6ef31448a2192f4000eb355c5d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-15T21:01:43Z",
+      "committed_at": "2026-10-15T21:01:43Z",
+      "message": "[rolloutengine] Return run outputs in RolloutData and pass them to TaskSession.grade (#10140)\n\nThe engine captured TaskSpec.output_paths only inside sandbox grading\nand discarded the files after the grade, so an agent whose job is to\nproduce a file could not return it to the caller.\n\nThe engine now captures the declared outputs once after the turn loop,\ninside the verifier deadline and before the session grades, for every\ngrader kind including SessionGrader. RolloutData.outputs carries the\nfiles. The engine passes the capture to `TaskSession.grade(messages,\nstop_reason=..., outputs=...)`, which hands it to the `TaskGrader`, so\nthe task grader grades the captured files instead of downloading them\nagain and sessions that grade themselves see them too. Capture failures\nstill surface as grade interruptions, and a record interrupted before\ncapture has no outputs.\n\n\n\n\nThe new `outputs` keyword is required, so every `TaskSession` outside\nthis repository, such as the MarinSkyRL sessions, must add it before\ntaking this version.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "8fc1400679f1b4dab7432ef5399e0aba0d9894df",
+      "url": "https://github.com/marin-community/marin/commit/8fc1400679f1b4dab7432ef5399e0aba0d9894df",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-15T20:50:45Z",
+      "committed_at": "2026-10-15T20:50:45Z",
+      "message": "[zephyr] Show individual shard input progress in the dashboard (#10167)\n\nShow best-effort input progress for each running Zephyr shard in the\ndashboard grid. Parquet and Vortex use cheap row-range totals; shuffle\nreducers use partition counts from mapper metadata. Inputs with unknown\ntotals show striped tiles and records read. Filters can make progress\nunderstate input consumption.\n\nReaders expose an iterator and an optional row total. One wrapper at the\ninput operation updates task progress and cumulative file-record\ncounters; shuffle reads retain their separate counters. Direct lookup\nreads inside a mapper do not replace the main input or contribute to\nthose counters. Carry progress separately from counters through inline\nand subprocess runners.\n\nKeep progress separate for concurrent mappers and reject snapshots from\nearlier attempts or stages. Add shard-state filtering and an inspector\nwith row counts, elapsed time, average read rate, heartbeat age, and a\nworker-task link. Counts reset per input file; reading 100% of an input\ncan precede output flushing.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "2e572781effe5037fec0dc2cfc823ca9d5462723",
+      "url": "https://github.com/marin-community/marin/commit/2e572781effe5037fec0dc2cfc823ca9d5462723",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-15T20:26:13Z",
+      "committed_at": "2026-10-15T20:26:13Z",
+      "message": "[rolloutengine] Report rollout progress to an optional observer (#10139)\n\nRolloutEngine accepts an optional RolloutObserver and reports each step\nof an attempt to it: start, task machine ready, session prepared, each\nmodel turn (stop reason, token counts, model metadata, duration), each\ntransition, the final grade, and the end of the attempt with its stop\nreason or interrupted operation. Each event carries a run key, the task\nid and a payload. `run(lowered, run_key=...)` sets the key and defaults\nit to the task id, so callers that run a task more than once can tell\nthe attempts' events apart. Each payload is a frozen dataclass whose\n`type` field holds a `RolloutEventType`, so serialized events keep their\ntype and observers can dispatch on it. Sessions emit their own events\nthrough a required `TaskSessionContext.events` sink; the shellbox\nsession reports each tool call with its name, duration, and observation\nsize.\n\nBefore this change nothing about a rollout was visible until `run()`\nreturned, which leaves long agentic attempts opaque while they run.\n\nThe engine never awaits the observer, so telemetry cannot change a\nrollout. Each attempt queues its events and one task delivers them in\norder. Emitting never blocks, and a full queue (1,024 events) drops new\nevents. After the attempt releases its machines, the engine delivers the\nremaining events within `cleanup_timeout`. An observer exception is\nlogged and ends delivery for that attempt. `RolloutData.metrics` reports\n`observer_dropped_events`, `observer_undelivered_events` and\n`observer_error_count` when they are nonzero. Events still queued when\nthe process dies are lost.\n\nThis is one of six independent changes that prepare RolloutEngine for an\nagent layer: a prompt, an environment, tools and limits, bound at run\ntime to a model and a machine backend. A task-generation agent that\nwrote and tested TaskSpecs inside a rollout motivated the series. The\nothers are #10140 (run outputs), #10141 (tool providers), #10142 (trace\nmodes), #10143 (token budget), #10144 (output spill); most of them edit\nthe turn loop, so later merges need a rebase.\n\nThe events add emit calls to `_run_session`, which was already long;\nsplitting it is left for a separate change.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "24ce375f06a109b284b538b1878dc8e8b154f8e5",
+      "url": "https://github.com/marin-community/marin/commit/24ce375f06a109b284b538b1878dc8e8b154f8e5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-15T19:31:56Z",
+      "committed_at": "2026-10-15T19:31:56Z",
+      "message": "[finestore] Compact bounded writer-owned shards on close (#10168)\n\nCompact each writer’s residual level-zero shards when FineStore closes,\nafter flushing pending writes. Small archives that finish below the\n16-shard maintenance limit can otherwise retain many descriptor files\nand amplify every blob lookup.\n\nMerge groups of at least two shards within an input budget of 64 MiB and\n16,384 rows across all tables in one close call. Visit blob descriptors\nfirst, then other registered tables in name order, skipping groups that\nexceed the remaining budget. Select only the closing writer’s level-zero\ninputs so closes with distinct writer IDs use disjoint groups and\nrepeated sessions preserve earlier compacted data. Reuse the full\nmanifest as the publication base, retaining concurrent additions and row\ncommit ordering.\n\nRetry classified transient storage failures with exponential backoff for\nup to three attempts per snapshot or merge, then propagate errors after\ndurable flush. Explicit cache close compacts normally; the cache’s\nprocess-exit handler only requests maintenance shutdown after its\nbounded write drain, so further storage I/O cannot hold interpreter\nexit.\n\nThe pass adds close latency and may repeat input reads and writes on\nretry. It does not repair archives left by killed writers or guarantee\none shard across repeated sessions. Explicit compaction, sealing, and\nbackground thresholds retain their existing behavior.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "20f4bf0e6a1bb2bbe876308cb69952b3ac90d7d9",
+      "url": "https://github.com/marin-community/marin/commit/20f4bf0e6a1bb2bbe876308cb69952b3ac90d7d9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-15T19:15:31Z",
+      "committed_at": "2026-10-15T19:15:31Z",
+      "message": "Add constrained routed-expert transfer methods (#10135)\n\nSeparate eligible support from the measured changed-weight limit in\nconstrained checkpoint exports, and allow campaigns to set the latter up\nto 30%. This lets a recipe inspect broad routed-expert support while\nretaining a hard scalar-change budget measured from the stored\ncheckpoint. The incomplete marker still blocks checkpoint reads until\nthe external audit is written and read back.\n\nAdd row-scaled task deltas, per-domain routing collection,\nbehavioral-residual selection, serial DARE-TIES-to-ISO composition,\nparent acquisition, and a Campaign 4 reproduction guide. The\n71-candidate Campaign 4 sweep used these paths to transfer four\ncapabilities from Reference-KL Step20 into Antidoom Step12.\n`adaptive-delta-08` raised the target sum from 174.90 to 220.40 while\nchanging 9.47% of Base; MATH500 moved from 95.00 to 93.60. The evaluated\ncheckpoint, recipe, audit, protocol, tracker, and sealed records are\npublished at\nhttps://huggingface.co/open-athena/Grug-67B-A2B-Merge-Campaign4-Adaptive-Delta-08-2026.10.14/tree/2fb31748eed37435c7472e80f81f34e306b2fa7a.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10135#issuecomment-6181855340)\n<!-- marin-prose-cleanup -->\n\nPart of #9975.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "0292ad85dd2a641235332b822c748d07f6fc9021",
+      "url": "https://github.com/marin-community/marin/commit/0292ad85dd2a641235332b822c748d07f6fc9021",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-15T18:31:34Z",
+      "committed_at": "2026-10-15T18:31:34Z",
+      "message": "[marina] Share applet hostname bindings across serving revisions (#10138)\n\nResolve vanity hostnames from Postgres on each request so applet\nbindings are shared across serving Cloud Run revisions. Keep DNS and\nCloud Run domain provisioning in Pulumi as a hostname-only list. Marina\nreceives that list without applet UUIDs and returns 404 for provisioned\nhosts until they have an enabled binding.\n\nThe deployment runs a one-time migration before switching traffic to the\nnew image. It preserves the existing `filer.marina.oa.dev` binding;\nrerunning migrations leaves later rebindings and unbindings alone. Fresh\ndatabases without the production Filer applet start with no bindings.\n\nAdd operator-only commands to list, bind, and unbind hostnames.\nUnbinding an unknown binding returns 404. Unbinding an existing host\nretains a disabled record that returns 404 instead of exposing Marina's\ncontrol routes. Browsers revalidate files served through vanity\nhostnames because rebinding can change the content at an unchanged\nversion URL.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "756afd3f7ab369c9e727439b22d22083b4308f3b",
+      "url": "https://github.com/marin-community/marin/commit/756afd3f7ab369c9e727439b22d22083b4308f3b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-10-15T17:36:42Z",
+      "committed_at": "2026-10-15T17:36:42Z",
+      "message": "[taskforge] Add the build step DAG and its memo store (#10081)\n\nAdd the author and build stages of Taskforge as `stage30_author` and\n`stage40_build`. An author writes async steps decorated with\n`@rl_env_build_step`, which takes a step's inputs from its parameters\nafter the context, and a final step decorated with `@rl_env_build_sink`,\nwhich reads its inputs the same way and refuses any return annotation\nother than `TaskSpec`. `rl_env_build_program(*steps, sink=...)` orders\nthe steps by Kahn's algorithm, breaking ties by declaration order and\nrunning the sink last. It refuses duplicate names, unknown inputs,\ncycles, a step taking the sink as an input, and a step whose output\nreaches neither another step nor the sink, since that output would never\nenter the task. A step receives an `RLEnvBuildContext` (item id, model,\nsampling policy) and then its inputs by name, where a parameter called\n`proposal` receives the caller's proposal, an opaque JSON value at this\npoint in the stack. `static_author` hands back a hand-written program as\nan author. `run_program` returns the sink's `TaskSpec`, and `run_build`\nwrites it to `draft/task.json` with an `ItemBuildProvenance` in\n`draft/provenance.json`, which lists every step's stored memo beside\nthat build's hit or miss status for it. The status belongs to the build\nand stays out of the stored memo, which the store writes only on a miss.\n\nEach step's output is memoized under a key of `SDK_VERSION`, the sha256\nof the step's own source, the content digest of each declared input, and\na model digest over the model id and the sampling policy. Because inputs\nenter the key by content, a step that reruns with an identical output\nleaves its consumers cached. A helper read from outside a step body is\nnot in the key, so changing one needs a declared input or an\n`SDK_VERSION` bump. Item ids belong to the caller and are only checked\nfor file safety.\n\nThe store is a hand-rolled memo of about 60 lines over rigging's\n`StoragePath` and `atomic_rename`, holding content-addressed JSON blobs\nand per-item memos under a local path or an object-store URL. joblib\nkeys on function identity and clears a function's whole cache when its\ncode changes, so it reuses nothing across program revisions, and Marin's\n`StepSpec` hashes no code and costs a status file and a distributed lock\nper step. Its `load` and `store` take a caller-built key, and `memoized`\nis the one call the runner and a driver use, so a driver can memoize a\nhelper against the same store with a key it builds. `memoized(store,\nname, key, output_type, compute)` loads under such a key and on a miss\nawaits `compute` and stores the result, and `run_program` calls it for\nevery step.\n\nStage packages are numbered by tens in pipeline order (proposal 10,\ntriage 20, author 30, build 40), and `tests/test_imports.py` fails when\na stage imports a higher-numbered one.\n\nThe design comes from draft #9993. Later PRs bring back the proposal\npackage, the ledger, the author's programs written by the language\nmodel, the validate and review stages, and the stage coordinator.",
+      "sha": "d690a2aab46992df681e9d19b285aa5981b159db",
+      "url": "https://github.com/marin-community/marin/commit/d690a2aab46992df681e9d19b285aa5981b159db",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-15T16:27:12Z",
+      "committed_at": "2026-10-15T16:27:12Z",
+      "message": "[zephyr] Batch Vortex file reads (#10153)\n\nRead Vortex files in 65,536-row batches. Previously, a ranged read built\nan index for every row in the requested range, and both ranged and\nfull-file reads materialized a complete Arrow table before yielding\nrecords. The new path limits temporary index arrays and Arrow results to\none batch at a time.\n\nReader tests cover filtering and projection across a batch boundary,\nalong with row-range and empty-file behavior.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "d8ac9acfd4f1425e8e6caad28fae70b904e5c5bb",
+      "url": "https://github.com/marin-community/marin/commit/d8ac9acfd4f1425e8e6caad28fae70b904e5c5bb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-10-15T14:45:05Z",
+      "committed_at": "2026-10-15T14:45:05Z",
+      "message": "[rolloutengine] Name the failed setup command and keep its output in the error (#10129)\n\nWhen an environment setup command exits non-zero, `_prepare_machine`\nraised `Environment setup command failed: exited, exit=1` and nothing\nelse. In the Taskforge backend A/B on 2026-10-14, two tasks failed every\ntrial that way on the local backend (their setup wrote under `/opt`,\nwhich that backend mounts read-only), and the attempt records could not\nsay why; the cause was found by reading the task's `setup_commands` and\nthe backend's mount list by hand.\n\nThe error now names the command and keeps the last 2,000 characters of\nits stdout and stderr (`SETUP_OUTPUT_CHARS`), decoded with replacement,\nso a failed setup reads as `Environment setup command failed: exited,\nexit=1; command: 'mkdir -p /workspace /opt/gen'; stdout: ''; stderr:\n\"mkdir: cannot create directory '/opt/gen': Read-only file system\"`. The\ntimeout path is unchanged.\n\nA machine-shell test covers a setup command returning exit 1 with output\non both streams and checks that start fails with this message.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10129#issuecomment-6179074788)\n<!-- marin-prose-cleanup -->",
+      "sha": "546aab9fd712190f18c7722af81711a8bed2f173",
+      "url": "https://github.com/marin-community/marin/commit/546aab9fd712190f18c7722af81711a8bed2f173",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "gonzalobenegas",
+      "author_name": "Gonzalo Benegas",
+      "authored_at": "2026-10-15T14:06:58Z",
+      "committed_at": "2026-10-15T14:06:58Z",
+      "message": "Register the pinned Skill2Env release in the curation catalog (#10120)\n\nAdd Skill2Env's 7,496-task Harbor Hub release to the current curation\ninventory. Pin release 1.0.1 by its content digest. Use `Harbor Hub` as\nthe origin and `Harbor Hub:skill2env` as the stable source ID: the\norigin identifies the intake source, following the existing MarinSkyRL\nand Task Trove convention. This replaces the generic “Registered\nreleases” label proposed in #9881. Catalog notes describe the source\nformat, benchmark distinction, and licensing caveat.\n\nThe count comes from exact release membership checked on 2026-10-01. Hub\nrevision 2 is version 1.0.1, with tags `latest` and `v1.0`; the digest\nfixes the release independently of those tags. The unfinished\ninvestigation in #9630 confirmed a verifier defect in one sampled task.\nThat remains an unresolved caveat for follow-up validation, not a\ncompleted dataset assessment.\n\nThe source has no conversion pipeline, so catalog publication records it\nas unassessed with “No conversion pipeline.” Downloading, conversion,\nand automatic assessment belong in a follow-up. The entry becomes\nvisible after catalog publication and Atlas reload; this PR does not\npublish either.\n\nPart of #9630",
+      "sha": "04d15bfab816b3365a356859bdd5b72d2c7d7ec8",
+      "url": "https://github.com/marin-community/marin/commit/04d15bfab816b3365a356859bdd5b72d2c7d7ec8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-15T12:43:08Z",
+      "committed_at": "2026-10-15T12:43:08Z",
+      "message": "[rl] Support separate reference roles and remote artifact steps (#10113)\n\nSkyRL role planning on current main cannot express a separate reference\nfootprint: colocation is hardcoded, capacity accounting ignores\nreference GPUs, backend YAML checks duplicate topology concerns, and a\nMegatron forward/train microbatch mismatch allocates GPUs before\nfailing. This promotes policy/reference colocation to validated topology\nfields with footprint and capacity checks, removes the superseded YAML\nchecks, rejects microbatch mismatch before submission, and updates every\nrole-plan call site plus the SkyRL lock so the isolated launcher\nresolves on all platforms.\n\nRemote artifact steps are broken in the lazy framework: a RemoteCallable\nis not directly callable for local runs, the lowered spec drops remote\nmetadata, and Iris submissions double-write the step record. This\nunwraps the callable for local execution, preserves remote-ness in the\nspec, and skips the redundant record write on the submit path.\n\nThe RL coordinator also lacks the dedicated Daytona keys, so rollout and\neval workloads cannot use separate credentials. This forwards\nDAYTONA_RL_API_KEY and DAYTONA_EVAL_API_KEY alongside the existing key.\n\nOne known gap: the Iris double-write guard has no direct test yet.\n\nPart of #10040.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "1290cfb5e128214b7225bc7b0e98ac1e0a8044dc",
+      "url": "https://github.com/marin-community/marin/commit/1290cfb5e128214b7225bc7b0e98ac1e0a8044dc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-15T06:24:46Z",
+      "committed_at": "2026-10-15T06:24:46Z",
+      "message": "[levanter] Exclude cache markers from Hugging Face mirrors (#10039)\n\nSkip a Hugging Face repository file when its name matches the configured\ncache completion marker. The DARE-TIES-02 repository contains\n`.cache_metadata.json` from its Base cache. During streaming, that file\nreached the regional mirror before all weight shards. A follower then\nlogged a cache hit on a 90 GB mirror containing only 28 of 39 shards.\n\nThe regression test interrupts a weight download and verifies that the\nmarker remains absent until a successful retry. Existing partial mirrors\nwith a copied marker need separate cleanup.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "5c9b65c06dbaf03b0b5dca7c3dbd52a2a7282bc9",
+      "url": "https://github.com/marin-community/marin/commit/5c9b65c06dbaf03b0b5dca7c3dbd52a2a7282bc9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-10-15T02:56:18Z",
+      "committed_at": "2026-10-15T02:56:18Z",
+      "message": "[grug] Count sliding-window attention in base MoE MFU (#7934)\n\nCount sliding-window attention when reporting model FLOP utilization\n(MFU) for the base MoE template. The previous calculation treated every\nlayer as full attention and overstated MFU when the window was shorter\nthan the sequence.\n\nUse the same layer schedule for the forward pass and the FLOP estimate.\nEvery fourth layer and the final layer use full attention. All other\nlayers use the configured sliding window. Pass the full-attention layer\ncount explicitly to include the final layer when the total depth is not\ndivisible by four.\n\nThe compute-budget heuristic retains its full-attention convention\nbecause its learning-rate and batch-size fits use that convention. This\nchange corrects reported FLOPs without changing training configurations\nor model outputs.",
+      "sha": "79c7a8109812c773b3dbf4cbf0328c13b3be40f4",
+      "url": "https://github.com/marin-community/marin/commit/79c7a8109812c773b3dbf4cbf0328c13b3be40f4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-15T01:33:38Z",
+      "committed_at": "2026-10-15T01:33:38Z",
+      "message": "Adopt shellsim 0.1.37 and load trusted native artifacts (#10136)\n\nRequire shellsim 0.1.37 in Marin and Shellbox. Load compatible\nprecompiled native code from Shellsim's default public catalog to avoid\nlocal Wasm compilation. Dashboard and curation contexts continue\ncompiling Wasm locally for custom catalog URLs; explicitly supplied\nShellbox contexts retain their own trust policy.\n\nShellbox continues to reuse contexts across trials. Dashboard startup\nprepares the native cache that its offline request workers consume.\nAdvance the ports worker image's source revision to v0.1.37; deployment\nremains a separate Pulumi apply.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "f2154337c3ade1ecce14fd5aff7e705adf8123a8",
+      "url": "https://github.com/marin-community/marin/commit/f2154337c3ade1ecce14fd5aff7e705adf8123a8",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-16T00:00:00Z",
+    "start": "2026-10-15T00:00:00Z"
+  }
+}

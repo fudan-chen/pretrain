@@ -1,0 +1,241 @@
+{
+  "commit_count": 21,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T23:08:51Z",
+      "committed_at": "2026-10-16T23:08:51Z",
+      "message": "[finestore] Cut object-store requests per flush and lookup, elect one maintainer, add a simulated S3 backend (#10209)\n\nFineStore writers sharing one archive spent most of their object-store\nrequests on rename staging, re-reading HEAD before every commit, and\ncompactions that lost the HEAD race. This change adds a simulated S3\nbackend to measure that, then cuts the request count and elects one\ncompactor per archive.\n\n**Commit path.** Remote shards are uploaded straight to their final key\ninstead of staged and renamed. A commit starts from the manifest this\nwriter last published, so an uncontended flush reads nothing before its\ncompare-and-swap. A lost compare-and-swap re-reads HEAD, rebases, and\nretries after a backoff from 0.5 s to 5 s for up to an hour of wall\ntime, so a flush does not fail under many writers. A one-row flush now\ncosts three requests instead of eight; a read view costs two instead of\nthree because a populated archive is validated from HEAD alone.\n\n**Maintenance.** One writer per archive compacts at a time. The\nmaintenance pass takes a lease at `_maintenance` under the root and\npublishes a manifest with the next `maintainer_epoch`; compaction\ncommits carry the epoch they were prepared under and are rejected once a\nlater maintainer announces itself. The lease is refreshed on a heartbeat\nwhile compactions run. Writers without the lease flush and leave\ncompaction to the holder. The close-time merge is best effort: a closing\nwriter that holds the lease, or can take a free or stale one, merges\nevery writer's level-zero shards within the close budget, and a closer\nthat finds another writer maintaining the archive leaves its shards to\nthat writer. A wave of closing writers therefore elects one merger\ninstead of racing replacement commits. A writer from an older FineStore\nbuild compacts without the lease and carries the epoch forward\nunchanged.\n\n**Lookups.** Each shard records its smallest and largest primary key\nwhen keys are strings and integers. Lookups with `==` on a key prefix,\nor `in` on the first key column, skip shards whose bounds exclude the\nvalue, including blob descriptor reads. Shard schemas are cached per\nprocess, and manifest shards are opened without the existence check\nArrow's fsspec handler issues first.\n\n**Simulator.** `finestore.testing.simulated_s3` is an in-memory `s3://`\nfilesystem that charges one round trip per request, serves ranged reads\none block at a time, implements rename as COPY plus DELETE, and fails\noverlapping conditional writes the way S3 does. It records every\nrequest, so tests pin request budgets and\n`lib/finestore/scripts/benchmark_multi_writer.py` compares commit\nstrategies without a bucket. The FineStore suite runs 64 behaviour tests\non both a local root and the simulated backend. The benchmark also takes\n`--root` to drive the same writers against real storage.\n\nCommit, conflict, compaction, abandonment, and lease counters are\nexported as `finestore_*` telemetry.\n\n**Simulator benchmark**, 100 ms per request at time scale 0.1 (elapsed\nis raw at that scale; CPU work is not compressed), 8 flushes of 64 rows\nper writer:\n\n| writers, layout | elapsed s before → after | requests | compactions\n(abandoned) | final shards | point lookup requests |\n| --- | --- | --- | --- | --- | --- |\n| 16, shared root | 21.9 → 10.7 | 6737 → 1811 | 49 (30) → 2 (0) | 7 → 2\n| 32 → 4 |\n| 16, shared root, no maintenance | 12.2 → 7.6 | 2384 → 1947 | 16 (0) →\n16 (0) | 16 → 16 | 68 → 5 |\n| 16, per-writer roots | 4.9 → 3.2 | 1872 → 1246 | 16 (0) → 16 (0) | 16\n→ 16 | 8 → 5 |\n| 64, shared root, 4 flushes, scale 0.05 | 82.8 → 14.6 | 23331 → 8504 |\n198 (130) → 2 (0) | 10 → 2 | 44 → 4 |\n\nBefore the backoff change, a 50 ms initial retry drove 64 writers to\nabout 29 conflicts per commit and 33k requests; the 0.5 s start cut that\nto 11k with no loss in elapsed time, and electing one closer to merge\ncut it to 8.5k with no abandoned compactions.\n\n**GCS from an Iris job in the bucket's region** (`--root temp`, 8\nflushes of 64 rows per writer; request counts are not observable there):\n\n| writers, layout | elapsed s before → after | compactions (abandoned) |\nfinal shards | point lookup s |\n| --- | --- | --- | --- | --- |\n| 1, shared root | 9.6 → 5.7 | 1 (0) → 1 (0) | 1 → 1 | 0.30 → 0.18 |\n| 4, shared root | 25.8 → 23.7 | 5 (1) → 4 (0) | 5 → 4 | 0.82 → 0.18 |\n| 16, shared root | 162.3 → 76.3 | 41 (23) → 2 (0) | 6 → 2 | 1.07 → 0.18\n|\n| 16, shared root, no maintenance | 93.8 → 72.5 | 16 (0) → 16 (2) | 16 →\n30 | 2.11 → 0.24 |\n| 16, per-writer roots | 10.1 → 7.8 | 16 (0) → 16 (0) | 16 → 16 | 0.26 →\n0.18 |\n| 64, shared root, 4 flushes | 473.8 → 141.5 | 125 (81) → 3 (1) | 5 → 2\n| 1.50 → 0.17 |\n\nA shared root still commits at a fixed rate of roughly 1.5 flushes per\nsecond, so each writer's flush latency grows linearly with the number of\nwriters; per-writer roots scale out. That serialization is inherent to\none compare-and-swapped HEAD and is what the proposal's per-writer logs\naddress. The 16- and 64-writer rows are from the elected close merge;\nthe other rows predate it. On GCS the 64 writers saw 1078 commit retries\nand the 16 writers 168, counted from the retry log.\n\nThese measurements back the FineStore concurrency proposal in Loom\nsession bth4qn4d (artifact `finestore-improvements`): this is its P1;\nper-writer logs and the key side table remain proposed.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "a4debd64ccbc817ac1b8c5ee8c2b78fa4eb6ac79",
+      "url": "https://github.com/marin-community/marin/commit/a4debd64ccbc817ac1b8c5ee8c2b78fa4eb6ac79",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T22:39:08Z",
+      "committed_at": "2026-10-16T22:39:08Z",
+      "message": "Update holistic reviews in place and scale their walkthroughs (#10211)\n\nHolistic re-reviews replace the original overview comment by its exact\nID and preserve finding numbers, including after a rebase. New or\nmaterially changed actionable findings may also appear in one new\ntop-level PR comment linking to the overview. Separate markers keep that\ncomment out of overview discovery. If editing the overview fails, report\nthe failure without creating a duplicate. This prevents the repeated\nwalkthroughs seen on #10209.\n\nProvide short and full review examples, a Mermaid flowchart example, and\nexplicit create-versus-edit instructions. Self-contained changes use\nbrief prose; larger changes can retain the system, motivation,\nbefore/after, design, and limits outline. Use bold labels for short\nsections and headings where they help navigation, and keep evidence with\nthe finding it supports.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "91c4848d8b1ce0bfedd3f559cdca78043d2ca39e",
+      "url": "https://github.com/marin-community/marin/commit/91c4848d8b1ce0bfedd3f559cdca78043d2ca39e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T22:24:28Z",
+      "committed_at": "2026-10-16T22:24:28Z",
+      "message": "Publish a stable Atlas catalog with FineStore range caching (#10208)\n\nPublish production FULL campaigns directly to\n`s3://marin-us-east-02a/marin/rl-data/catalog/production` with an\nexplicit `--publish-catalog` option. Keep reports and artifacts\nversioned, and keep local and SAMPLE catalogs separate. Seed the stable\ncatalog with the existing 206 source declarations, 146 assessments and\n12,107 judgments with evidence packets. Retain its immutable shards in\nthe verified archive at\n`s3://marin-us-east-02a/marin/rl-data/migrations/2026-10-15/`.\n\nAccumulate selected sources while preserving unselected entries and\ntheir pinned dataset and pipeline declarations, including IDs absent\nfrom an older checkout. Ignore superseded attempts per source using\nretained campaign start times. Assessment keys include dataset\nrevisions, pipeline dependencies, rubric and model identity: a failed\nchanged-key assessment clears the old grade, while an exact-key retry\ncan reuse completed evidence. Check publication-lease ownership and the\nstarting catalog pointer before selecting a catalog snapshot.\n\nDefault Atlas imports to the stable root. Keep Postgres refresh explicit\nand retryable, with a conditional serving-pointer update. Cleanup\ndeletes rows for load IDs observed before staging and always excludes\nthe currently served load. Reject imports whose source catalog changed\nwhile loading. Grading, curriculum publication and Marina deployments\nremain separate operations.\n\nReplace FineStore's whole-shard cache admission with an LRU of requested\nParquet byte ranges. Each `ReadView` owns a configurable 64 MiB budget\nshared across tables. Table and shard sizes do not determine admission;\nreads larger than the budget bypass it. Fetch misses with ranged reads,\ncharge GCS transfer budgets for the requested bytes, and reject short\nreads before caching. Blob decoding and Atlas evidence reads retain\ntheir batch limits.\n\nOn the GCP assessment table's 19 shards, a 3.40-second cold scan warmed\nthe view's cache; all 146 subsequent source point lookups took 4.31\nseconds in total. Without reader caching, three individual source\nlookups on the same table took 7.03, 7.10 and 14.19 seconds.\n\nBuilds on #10207. The [Atlas incident\nrecord](https://marina.oa.dev/echo/wiki/734) tracks catalog selection,\nbootstrap and the production import.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "544a6a158884fec3cb9c222784f33656358e75ef",
+      "url": "https://github.com/marin-community/marin/commit/544a6a158884fec3cb9c222784f33656358e75ef",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-10-16T21:55:04Z",
+      "committed_at": "2026-10-16T21:55:04Z",
+      "message": "[levanter] Balance causal attention work across context shards in FA4 (#10170)\n\nHero training will switch to 262K context, which needs context\nparallelism of at least CP4. Splitting the sequence contiguously across\nthe context shards ignores causality. The shard with the end of a long\ndocument does far more attention work than the shard with its start. The\nother ranks wait for that shard. This PR splits the queries in a zigzag\npattern inside the sharded FA4 wrapper, so every shard does about the\nsame attention work. On one GB200 NVL72 rack at 262K context (CP4/EP16,\nrestored from hero step 240000), tokens/s rise by 27.8%. Step time falls\nfrom 29.66 s to 23.22 s, and its standard deviation falls from 3.19 s to\n1.39 s.\n\nFor N context shards, the wrapper cuts the sequence into 2N chunks, and\nshard c holds chunks 2c and 2c+1. Shard c swaps chunk 2c+1 with the\nmirror shard N-1-c for chunk 2N-1-2c, so it attends one early chunk and\none matching late chunk. Then the outputs swap back.\n\nThe rest of the model keeps the sequence in order, so the embeddings,\nRoPE, the short convolution, the labels, and the logits do not change.\nThe cost is two transfers of half of each shard's queries per layer,\nplus their gradients in the backward pass. An earlier version of this PR\nstored the whole sequence in zigzag order. That avoided the transfers\nbut touched every position-dependent op, with +477 lines in 10 files\ninstead of +109 in 2. On the same rack, that version measured 23.18 s\nper step, so the transfers cost at most 0.2%. Every context-parallel FA4\ncaller, including snowball, now gets the balancing.\n\nBoth arms ran on the same rack, with 66 scored steps each. Peak memory\nrose by 0.8 GiB, and the drop fraction stayed at 1.63%. Over 80 steps,\nthe loss differed from main by 4.6e-4 rms. The swap balances the work\nwithin each row but not between rows. Balance between rows needs more\nthan one row per context group.",
+      "sha": "320bd2429a5fdac456229861432d718d2ca156b1",
+      "url": "https://github.com/marin-community/marin/commit/320bd2429a5fdac456229861432d718d2ca156b1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-10-16T21:25:09Z",
+      "committed_at": "2026-10-16T21:25:09Z",
+      "message": "[dependencies] Advance external runtimes (#10210)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`f39273127716`](https://github.com/marin-community/evalchemy/commit/f39273127716866b595a41452fbbc603e2a43fab)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`d9db9baeaf04`](https://github.com/marin-community/harbor/commit/d9db9baeaf048b00f08416ce977cd075e56ed408)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`4f40ed137f3c`](https://github.com/marin-community/MarinSkyRL/commit/4f40ed137f3c040558f6b864fdf11e3c70780b7e)\n|\n\n## Upstream commits\n\n### harbor (`c1268c6f1c4d` → `d9db9baeaf04`)\n\n-\n[`69a4ad674a2d`](https://github.com/marin-community/harbor/commit/69a4ad674a2d101146db7fbbfce0f7149c6abc9e):\nIsolate Daytona accounts and bound Mini-SWE turns (#272)\n-\n[`d9db9baeaf04`](https://github.com/marin-community/harbor/commit/d9db9baeaf048b00f08416ce977cd075e56ed408):\nNormalize hosted judge URLs when comparing resume settings (#260)\n\n### MarinSkyRL (`d361d939926a` → `4f40ed137f3c`)\n\n-\n[`1a2bc450e5fd`](https://github.com/marin-community/MarinSkyRL/commit/1a2bc450e5fdb920f255138d205fc6c1455f68e3):\nRun original Harbor packages through task sessions (#1010)\n-\n[`cab6ee379ebe`](https://github.com/marin-community/MarinSkyRL/commit/cab6ee379ebefd14c07d7841983b8d76a83ba192):\nKeep Harbor inference credentials valid through the full attempt (#1011)\n-\n[`ef51e6c19b8b`](https://github.com/marin-community/MarinSkyRL/commit/ef51e6c19b8b0487bc4b46bd0b2505b22b76345e):\n[RL] Record the policy step that sampled each response token (#915)\n-\n[`808a799c919c`](https://github.com/marin-community/MarinSkyRL/commit/808a799c919ce9fe0bdbdfd6cd6476108839c02d):\nPreserve Harbor settings for preconverted task datasets (#1012)\n-\n[`4f40ed137f3c`](https://github.com/marin-community/MarinSkyRL/commit/4f40ed137f3c040558f6b864fdf11e3c70780b7e):\nPreserve explicit null Harbor evaluation timeout overrides (#1013)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "a432cf2b1eaa11171a83adbdda3d2f3492670dc9",
+      "url": "https://github.com/marin-community/marin/commit/a432cf2b1eaa11171a83adbdda3d2f3492670dc9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T20:51:42Z",
+      "committed_at": "2026-10-16T20:51:42Z",
+      "message": "Cache small FineStore tables within each snapshot view (#10207)\n\nReuse immutable Parquet shard bytes across reads of small tables in\n`ReadView`. The Atlas grading import made 438 keyed scans across three\nGCP metadata tables totaling 6.8 MB. Each scan reopened the same shards;\nindividual assessment lookups took 7–14 seconds.\n\nTables other than blob tables can use an automatic cache when their\nactive shards total at most 8 MiB. Each view has a configurable 64 MiB\nbudget and reserves a table's full stored size before concurrent readers\nfetch its shards. The cache holds compressed bytes; projection,\ndeduplication, filtering, and streaming stay in the existing reader.\nLarger tables and blob tables retain their existing read paths. Cache\nlifetime follows the pinned snapshot, so a new view observes later\ncommits.\n\nWith the shared cache, 146 standard assessment lookups over the same 19\nshards completed in 8.17 seconds after a 3.14-second cold read. Atlas\nuses its existing catalog and loader APIs without a client cache.\n\nThe related Atlas data incident is recorded in\n[Echo](https://marina.oa.dev/echo/wiki/734).\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "3950f51ccb544bdab1664d813ab6458cb59c6662",
+      "url": "https://github.com/marin-community/marin/commit/3950f51ccb544bdab1664d813ab6458cb59c6662",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-16T20:37:00Z",
+      "committed_at": "2026-10-16T20:37:00Z",
+      "message": "Sort evaldash models by mean reciprocal rank (#10206)\n\nOrder models in the Panel and Models views by mean reciprocal rank over\nadmitted results on the selected benchmark columns. Per-benchmark ranks\nuse score and then interval lower bound; exact ties share a rank.\nMissing results are omitted from each model's mean, so MRR appears\nbeside coverage. Models with no completed results sort last.\n\nCo-authored-by: William Held <9847335+Helw150@users.noreply.github.com>\nCo-authored-by: William Held <will.held@openathena.ai>",
+      "sha": "753bbb163c78f0e7ea50059522f42156708162c8",
+      "url": "https://github.com/marin-community/marin/commit/753bbb163c78f0e7ea50059522f42156708162c8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T20:24:06Z",
+      "committed_at": "2026-10-16T20:24:06Z",
+      "message": "Bound FineStore compaction with Arrow buffers (#10188)\n\nBound FineStore compaction to one decoded Parquet row group per input\nshard. Each shard reader advances one group at a time with Parquet\npre-buffering disabled and a 1 MiB fsspec file cache. A decoded group or\nrequired column read may exceed that byte cache.\n\nCompaction takes the next available group by its first primary key. It\ncopies at most one row per key into an Arrow accumulator, replacing that\nrow only when a newer version appears. The accumulator has an explicit\n400 MiB default byte target, configurable through\n`DataStore(compaction_target_bytes=...)` or\n`compact_table(target_bytes=...)`. Before adding a group that would\nexceed the target, it concatenates and sorts the retained rows by\nprimary key, then writes one output shard. The shard writer splits that\noutput into Parquet row groups using its own row and byte limits. A\nsingle large input group can exceed the compaction target, and\nconcatenation, sorting, and writing need additional memory. Group order\nis approximate when an input shard is unsorted.\n\nKeys may recur across output shards because the buffer can flush between\nversions. FineStore readers select the newest version across shards, and\ncompaction cannot increase the total number of copies of a key. The\nbuffer targets one output shard but may write several; high compression\nmay produce more shards than the input.\n\nThis addresses memory exhaustion during checkpoint maintenance and close\nreported by the [evaluation\nworkload](https://github.com/marin-community/evalchemy/pull/212). Before\nthis change, a four-shard probe with 4 MiB document rows grew from 600\nto 1,116 MiB of Arrow allocations as input rose from 32 to 64 rows per\nshard. An earlier bounded-scan probe stayed near 140–144 MiB. The\ncurrent regression sets a 4 MiB compaction target, doubles input rows,\nand checks bounded Arrow allocation growth and newest-value selection.\nAll 114 FineStore tests pass.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "07db38d73c6b8e97b3085c72858c6347fc050802",
+      "url": "https://github.com/marin-community/marin/commit/07db38d73c6b8e97b3085c72858c6347fc050802",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-16T20:13:28Z",
+      "committed_at": "2026-10-16T20:13:28Z",
+      "message": "[agents] Add a walkthrough and system diagram to the holistic review (#10089)\n\nThe holistic review packet now starts with a walkthrough of the change,\nso a\nreader can understand the PR without the diff: \"In short\" with the\nverdict,\nSystem, Why, Current state, How, and Limitations. System is a Mermaid\ncomponent diagram of the state after the change that marks the changed\nand\nadded components. How states each design decision in bold with the\nsnippet\nthat shows it. Each section has a word budget.\n\nThe numbered findings follow under Review, and the packet still ends\nwith the\n`marin-holistic-review` marker, so the deslop job reads it as before. A\nnew\ncontext step reads the base versions, callers, and history of the\ntouched\npaths to write Current state; the skill now permits `git grep` for it.\n\nA local run on #10140 took about 5 minutes, kept each section in its\nbudget,\nand rendered the diagram on GitHub. That run used the earlier layout,\nwith the\ndiagram in Current state:\n\nhttps://github.com/marin-community/marin/pull/10140#issuecomment-6201987568\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "3119baa897a9604dc60f483f5fbc8708e968c570",
+      "url": "https://github.com/marin-community/marin/commit/3119baa897a9604dc60f483f5fbc8708e968c570",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T19:58:26Z",
+      "committed_at": "2026-10-16T19:58:26Z",
+      "message": "Move native package wheels to macOS 15 runners (#10204)\n\nBuild Iris, Dupekit, and Finelog’s macOS wheels on the macos-15 runner.\nGitHub retires macos-14 on [November 2,\n2026](https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/),\nwith scheduled brownouts before removal.\n\nKeep both x86_64-apple-darwin and aarch64-apple-darwin build targets.\nThe existing pull-request workflow builds both wheels and imports the\nwheel compatible with its runner host; it cannot publish packages.",
+      "sha": "45a044387ccd95ab698b4a592056aadaff961540",
+      "url": "https://github.com/marin-community/marin/commit/45a044387ccd95ab698b4a592056aadaff961540",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-10-16T19:35:15Z",
+      "committed_at": "2026-10-16T19:35:15Z",
+      "message": "[iris] Grant personal Batch access to compute clusters (#9846)\n\nGive a registered personal account Iris `user` permissions and set `max_priority: batch` on both the marin and marin-dev hubs. `budget_limit: 0` keeps the soft budget unlimited. Grant the Marin Dev project role and IAP access to both hubs, and allow GPU submission to cw-rno2a, cw-us-east-02a, and cw-us-east-08a through the hubs. Preserve existing TPU access and other accounts’ policies.\n\nKeep policy and opaque references in Git. Controllers load the private identity directory at startup. Verify the encrypted principal before merging.\n\nBuilds on #10070. The shared marin IAM apply publishes the directory and IAP grants for both hubs. Restart the marin-dev controller with the updated code and tracked config. Verify personal login, job ownership, user permissions and Batch enforcement there before production rollout. Keep #10063 unmerged until its owner’s personal access has been verified.",
+      "sha": "7162bbb50c3bda4187ea16d515c679bb01bc5c10",
+      "url": "https://github.com/marin-community/marin/commit/7162bbb50c3bda4187ea16d515c679bb01bc5c10",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T19:31:56Z",
+      "committed_at": "2026-10-16T19:31:56Z",
+      "message": "[marina] Separate Atlas sources from curriculum coverage\n\nMake By source a searchable, sortable table of individual datasets with converted example counts, training/evaluation use, sampled quality and a link to the curriculum domain with the most mapped examples. Distinguish sources without processed examples or current assessments, and keep filters and sorting in the URL.\n\nGive By curriculum a dedicated heatmap with a domain picker, source/use filters, breadcrumbs and sampled task drilldowns. Remove the dataset-column matrix, large metadata cards and unused review styles. Both views read compact Postgres summaries; data loading remains separate from app publication.",
+      "sha": "78a6c406c476b4dd7731ecdebdba35feddbba915",
+      "url": "https://github.com/marin-community/marin/commit/78a6c406c476b4dd7731ecdebdba35feddbba915",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-10-16T19:08:03Z",
+      "committed_at": "2026-10-16T19:08:03Z",
+      "message": "[iris] Resolve personal identities at controller startup (#10070)\n\nResolve opaque principal references in roles, budgets, and federation admission from a private directory when the controller starts. Exact account roles override the admin list and provider default in both Python and Rust.\n\nThe marin Pulumi stack derives the ID-to-email directory from the encrypted IAM registry and publishes it as a Secret Manager secret. The payload is marked secret, so previews hide its contents and the stack’s KMS secrets provider encrypts its copy in state. GCP controllers load it at runtime; CoreWeave deployment passes it through the controller-only `iris-controller-env` Kubernetes Secret. ConfigMaps and VM bootstrap configs retain opaque principal IDs and secret references.\n\nDeployment validates the directory before stopping a controller. Startup resolves identities before checkpoint or database changes. Merge this support before #9846 and #10063, and publish the reviewed directory and read grants before rolling out their configs.",
+      "sha": "9fe0d9a674cc8281d6e693c670a07f095c0767c7",
+      "url": "https://github.com/marin-community/marin/commit/9fe0d9a674cc8281d6e693c670a07f095c0767c7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T18:14:30Z",
+      "committed_at": "2026-10-16T18:14:30Z",
+      "message": "[loom] Add a GPT-6.1 Sol interactive profile (#10202)\n\nAdd the `codex-6-1` profile with the default interactive instructions,\nrepository access, MCP policy, and xhigh reasoning effort. Upgrade the\nproduction Codex CLI from 0.156.1 to 0.163.0 so Loom's model catalogue\nincludes `gpt-6.1-sol`.\n\nPoint the ACP launch command at the pinned CLI through `CODEX_PATH`. The\nadapter otherwise resolves its own nested `@openai/codex` package, which\nnpm can leave at 0.156.1 after upgrading the global package. Keep\nadapter 1.13.1 and existing profiles' model selections.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "24aa43cea9a508449d4c9094cb3877e6e43e0f67",
+      "url": "https://github.com/marin-community/marin/commit/24aa43cea9a508449d4c9094cb3877e6e43e0f67",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T18:12:19Z",
+      "committed_at": "2026-10-16T18:12:19Z",
+      "message": "[marina] Restore builds with native task dependencies (#10201)\n\nBuild native Python dependencies in a compiler-equipped stage and copy the installed environment into Marina's slim runtime image. Runtime rollouts currently fail with `No such file or directory: 'gcc'` while compiling `pycosat`, which is required through taskcompendium's reasoning-gym dependency.\n\nInclude taskcompendium, shellbox and verifyit sources and package metadata in the Docker build context so the locked Marina dependency set can install. The serving image retains its model caches and contains no compiler.\n\nThe rollout failure is recorded in the [Marina incident](https://marina.oa.dev/echo/wiki/734).",
+      "sha": "d68813d7d0d15527efe9f1d7dab633cc1310021d",
+      "url": "https://github.com/marin-community/marin/commit/d68813d7d0d15527efe9f1d7dab633cc1310021d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-10-16T16:48:17Z",
+      "committed_at": "2026-10-16T16:48:17Z",
+      "message": "[dependencies] Advance external runtimes (#10200)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`f39273127716`](https://github.com/marin-community/evalchemy/commit/f39273127716866b595a41452fbbc603e2a43fab)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`c1268c6f1c4d`](https://github.com/marin-community/harbor/commit/c1268c6f1c4d3b0f1f8f8d21e2acf93f139f4dec)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`d361d939926a`](https://github.com/marin-community/MarinSkyRL/commit/d361d939926a0308a0892f25adbbe851e709de34)\n|\n\n## Upstream commits\n\n### evalchemy (`c2548fe6d556` → `f39273127716`)\n\n-\n[`5f927a33507b`](https://github.com/marin-community/evalchemy/commit/5f927a33507b40df31113f3fcce604129335a960):\n[output] Preserve HumanEvalPlus sample namespaces (#213)\n-\n[`f39273127716`](https://github.com/marin-community/evalchemy/commit/f39273127716866b595a41452fbbc603e2a43fab):\nSeparate grading from score aggregation (#214)\n\n### harbor (`4ac41d380b59` → `c1268c6f1c4d`)\n\n-\n[`79ea96fb3792`](https://github.com/marin-community/harbor/commit/79ea96fb37928223137bf52a82d7feee247a2af9):\nAdd a GeneBench-Pro public-10 adapter (#164)\n-\n[`5c747d21c6ca`](https://github.com/marin-community/harbor/commit/5c747d21c6cac9d9fe47b8ccb2594ceeb23610ba):\nInitialize metrics for explicitly sourced tasks (#268)\n-\n[`c1268c6f1c4d`](https://github.com/marin-community/harbor/commit/c1268c6f1c4d3b0f1f8f8d21e2acf93f139f4dec):\nRetry Docker Hub 502 errors during Daytona builds (#270)\n\n### MarinSkyRL (`b52875912249` → `d361d939926a`)\n\n-\n[`03c9bf78bd0a`](https://github.com/marin-community/MarinSkyRL/commit/03c9bf78bd0ae4e37b39bcd0e918452bc637c200):\nAdopt the RolloutEngine provider, budget, spill, and run-output\ncontracts (#1005)\n-\n[`06a1b5641133`](https://github.com/marin-community/MarinSkyRL/commit/06a1b56411338e44a2adeaf1bb029afdacc6142b):\nDrop tool_output_spill_bytes from task session specs (#1006)\n-\n[`d361d939926a`](https://github.com/marin-community/MarinSkyRL/commit/d361d939926a0308a0892f25adbbe851e709de34):\nIntegrate Smartie objectives and pooled inline evaluation (#1007)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "0bc4699f27f56233a5e359df6b141199a04b34ee",
+      "url": "https://github.com/marin-community/marin/commit/0bc4699f27f56233a5e359df6b141199a04b34ee",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-16T16:39:39Z",
+      "committed_at": "2026-10-16T16:39:39Z",
+      "message": "Preserve evaluator-owned metrics after infrastructure failures (#10195)\n\nPreserve Evalchemy's metrics after infrastructure failures. Marin's\nper-sample averaging loses benchmark-specific scoring, metric names, and\nbreakdowns.\n\nAccept partial results only when Evalchemy's reported scored count\nmatches the valid archived samples. Partial-result recovery requires\n[Evalchemy #214](https://github.com/marin-community/evalchemy/pull/214).\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "3cccb9e4bb6f58bdf4c7286221c6c06b4c3596ed",
+      "url": "https://github.com/marin-community/marin/commit/3cccb9e4bb6f58bdf4c7286221c6c06b4c3596ed",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-16T13:26:53Z",
+      "committed_at": "2026-10-16T13:26:53Z",
+      "message": "[evaldash] Show graded GSM8K references (#10192)\n\nShow the GSM8K reference value used in grading beside each extracted\nmodel answer in EvalDash, including failed-sample hints. The browser\npreviously paired those answers with the full worked target, so a failed\nsample appeared to compare a number with a rationale.\n\nRead the final `#### ` answer from the stored target and normalize\nnumeric references as Evalchemy does. Keep the complete target visible\nas the reference rationale. Existing archived runs render the corrected\ncomparison without a migration.\n\nFixes #10191\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "d12a96fad7568c9edf415c3ed47c34cfad2db237",
+      "url": "https://github.com/marin-community/marin/commit/d12a96fad7568c9edf415c3ed47c34cfad2db237",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-16T01:36:28Z",
+      "committed_at": "2026-10-16T01:36:28Z",
+      "message": "[marina] Inline playground example settings (#10185)\n\nPut settings directly in each example's `main.py`. The Bayesian and\nobject-storage examples now consist of a single Python file, so trial\ncounts, confidence thresholds, storage URLs and preview sizes can be\nedited directly without a separate `config.json`.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "a7eeacc84a477aba3221921e11c718d9c64d796f",
+      "url": "https://github.com/marin-community/marin/commit/a7eeacc84a477aba3221921e11c718d9c64d796f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-16T01:18:55Z",
+      "committed_at": "2026-10-16T01:18:55Z",
+      "message": "[iris] Grant federation access to the GB200 cluster (#10186)\n\nAdmit an additional researcher through `auth.allowed_submitters` on\n`cw-us-east-08a`. IAP login and hub status checks already work, but the\nGB200 peer rejects job handoffs because the submitting identity is\nabsent from its allowlist.\n\nThe allowlist is loaded at controller startup, so activate the grant\nwith a `cw-us-east-08a` controller rollout after merge. Internal\nonboarding now explains the separate peer admission check. This\ncompletes the GB200 access intended by #10182 and follows the existing\nH100 grant in #10056.",
+      "sha": "a128699926e0129c825d3adc3db94645e4852dfb",
+      "url": "https://github.com/marin-community/marin/commit/a128699926e0129c825d3adc3db94645e4852dfb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-16T00:15:21Z",
+      "committed_at": "2026-10-16T00:15:21Z",
+      "message": "[iac] Grant Iris cluster access to a new researcher (#10182)\n\nGrant an encrypted human principal `roles/iap.httpsResourceAccessor` on\n`iris-marin-be` and `iris-marin-dev-be` for research on the GB200 NVL72\ncluster, `cw-us-east-08a`. The production `marin` gateway federates jobs\nto that cluster and its other configured peers. Its\n`auth.iap.unprovisioned_role: admin` setting gives users admitted\nthrough IAP shared Iris admin access.\n\nA separate reviewer should run `review-grant`, confirm the decrypted\nprincipal and scope, merge, and apply the `marin` stack in\n`infra/pulumi`. This grants no project-wide GCP IAM roles or direct\nCoreWeave Kubernetes access.",
+      "sha": "f94fa2b32f0e3eb84ae13c1562430e06d008b663",
+      "url": "https://github.com/marin-community/marin/commit/f94fa2b32f0e3eb84ae13c1562430e06d008b663",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-17T00:00:00Z",
+    "start": "2026-10-16T00:00:00Z"
+  }
+}

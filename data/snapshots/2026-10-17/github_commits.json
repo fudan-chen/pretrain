@@ -1,0 +1,120 @@
+{
+  "commit_count": 10,
+  "commits": [
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-10-17T23:08:11Z",
+      "committed_at": "2026-10-17T23:08:11Z",
+      "message": "[iac] Restore the hero-* checkpoint deletion deny (#10245)\n\nRevert the temporary carve-out from #10218. The 17 superseded CoreWeave\nhero checkpoints it opened up (552,013 objects, 70.26 TiB) have been\ndeleted, and none of those prefixes have objects left. The 30 retained\npermanent checkpoints across the hero lineage are intact.\n\nThis restores DenyHeroCheckpointDeletion on marin-us-east-02a to the\nfull marin/grug/hero-* wildcard. coreweave.py and the bucket README are\nbyte-identical to their state before #10218. Until this is applied,\nnon-lineage hero-* runs and any newly created hero run are deletable.\n\nApply with a targeted update. A plain preview from main currently tries\nto delete the unmerged #10221 marin-us-east-08a resources that are\nalready in the stack state:\npulumi -C infra/buckets up --stack marin-buckets --target\n'urn:pulumi:marin-buckets::marin-buckets::marin:buckets:DataBuckets$marin:buckets:CoreweaveDataBuckets$coreweave:index/objectStorageBucketPolicy:ObjectStorageBucketPolicy::policy-marin-us-east-02a'\n\nPart of #10218\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "a18972981347f3ad3e949b5e5a480bf28c1a65f6",
+      "url": "https://github.com/marin-community/marin/commit/a18972981347f3ad3e949b5e5a480bf28c1a65f6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-17T22:26:25Z",
+      "committed_at": "2026-10-17T22:26:25Z",
+      "message": "[evals] Validate Evalchemy benchmark metadata (#10239)\n\nDeclare the four new Evalchemy metadata fields and reject unknown fields\nagain.\n\nScoring is unchanged. Deploy EvalDash with this schema before\nbackfilling results.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "b37d27dd3a103d11b97229b904b15b50ae7ceb0d",
+      "url": "https://github.com/marin-community/marin/commit/b37d27dd3a103d11b97229b904b15b50ae7ceb0d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-17T19:01:28Z",
+      "committed_at": "2026-10-17T19:01:28Z",
+      "message": "[taskcompendium] Keep the caches open in the compaction test (#10244)\n\nAfter #10209, the close of a FineStore cache writer can compact the\nsmall shards of its archive. Thus the second `close()` in\n`test_campaign_cache_compaction_preserves_values_and_consolidates_lookups`\ncompacted the two descriptor shards into one before the test counted\nthem, and the test failed with `assert 1 == 2`. The test now keeps the\ntwo caches open until it counts and compacts the shards.\n\nThe CI of #10209 and of later FineStore changes skipped\n`taskcompendium-unit`, so the failure shows only on PRs that touch\nTaskCompendium and in the scheduled full run. The change is the same as\nthe test change in draft #9706, so the two PRs cause no merge conflict.\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "6b135b3e9db669f8d03df4bcf9b089f43f1fe78c",
+      "url": "https://github.com/marin-community/marin/commit/6b135b3e9db669f8d03df4bcf9b089f43f1fe78c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-10-17T18:35:35Z",
+      "committed_at": "2026-10-17T18:35:35Z",
+      "message": "[iac] Temporarily allow thinning 17 CoreWeave hero checkpoints (#10218)\n\nReplace the marin/grug/hero-* delete deny on marin-us-east-02a with 39\npath globs that cover only the nine phases of the CoreWeave d6144 hero\nlineage, so 17 superseded permanent checkpoints become deletable. This\nfrees 70.3 TiB (552,013 objects). The live hero-ctx16k-step257k and the\nmix-996f4891 and nopdl phases stay fully protected. Other hero-*\nprefixes (analysis and test runs, 182 small objects) are not protected\nwhile this is applied. The hero-checkpoints bucket is unchanged.\n\nThe six thinned phases are all finished. Each keeps every multiple of\n12000, step-6000, step-270000 (the live run's latest), and the\ncheckpoints on either side of four changes:\nWD (54000/60000), EP ragged all-to-all (78000/84000), data mix\n(108000/114000), and 16K context (257553/258000).\n\nDeleted step directories, under\nmarin-us-east-02a/marin/grug/<run>/2026.08.19.2/checkpoints/:\nhero-12d8b6f0-dee637: 18000, 30000, 42000\nhero-wd-gate-router-p02-step58k: 66000\nhero-ragged_a2a-nccl2307-ep-step81k: 90000, 102000\nhero-main-step121638: 126000, 138000\nhero-fa4sm100-nomask-step146k: 150000, 162000, 174000, 186000, 198000,\n210000, 222000\nhero-mfu30-step231k: 234000, 246000\n\nManifest CSV sha256:\n08c9887a1f65e223d93b432daf53c6d7f5bbd7da9b4e0e07ede3303f93616f3c. Each\nlisted directory is a complete checkpoint with metadata.json. Within the\nlineage, matching the new deny against every object leaves exactly the\nmanifest's 552,013 objects undenied. The bucket has versioning\nsuspended, so the deletion is permanent.\n\nSequence: merge, operator posts the credentialed preview and applies,\ndelete exactly the manifest prefixes, then revert this change to restore\nthe wildcard deny by 2026-10-23 at the latest.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "f3d78c85776c3e74327389864028c14a3b428bc7",
+      "url": "https://github.com/marin-community/marin/commit/f3d78c85776c3e74327389864028c14a3b428bc7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-17T16:51:00Z",
+      "committed_at": "2026-10-17T16:51:00Z",
+      "message": "[evaluation] Resume brokered evals and expose serving status (#10222)\n\nAwait inference responses asynchronously so waiting requests do not\nconsume AnyIO’s 40 worker threads. Expose an HTML status page at\n`/status` with queue counts, dispatch delay, worker registration,\nresponse errors, and proxy timeouts and rejections. Report prompt,\noutput, and total tokens from completed responses, rolling 60-second and\nlifetime token rates, and the fraction of completed generation responses\ncontaining token usage.\n\nRun multiple serving instances behind one broker with `--instances` and\nbound simultaneous evaluator jobs with `--max-concurrent`. Evaluation\nserving workers allow 64 concurrent HTTP requests each; proxy capacity\nis `max(256, 64 * instances)`, including requests already running. GPU\nevals use a 4,096-token scheduling budget and TPU evals retain 512, with\nmodel-level overrides.\n\nMake `launch --run-id` reuse evaluation identities and output archives\nwhen only evaluator code, dependencies, endpoints, or concurrency\nchange. Model and scoring-setting changes produce distinct steps.\nEvalchemy validates model identity and configuration, task, prompt,\ngeneration, judge, and saved request inputs; implementation and\ndependency versions remain provenance.\n\nRead aggregate scores from Evalchemy’s result table, retain\nevaluator-owned benchmark metadata, and derive rollouts from normalized\nsamples. Retain valid partial aggregates and report dropped requests,\nrequiring at least 90% of attempted documents to have scores when\ninfrastructure errors occur. Missing results, empty aggregates, and\ninconsistent scored counts still fail validation. Set broker worker,\nlease, and proxy deadlines 60, 120, and 180 seconds beyond the\nconfigured request timeout (30 minutes by default), with a transport\nretry budget three times that timeout and 40 minutes for serving\nstartup.\n\nLeave Marin’s Evalchemy pin unchanged for the nightly\n`ops-external-dependencies` updater. Cross-runtime request replay and\npartial-score production are supplied by [Evalchemy PR\n#216](https://github.com/marin-community/evalchemy/pull/216); the\nupdater can adopt them after that PR merges. The first pass below used\nEvalchemy\n[cf5c040](https://github.com/marin-community/evalchemy/commit/cf5c040b5e7896923713e1b2f4e670f78f6cf8db),\nand recovery used\n[cc3ddcf](https://github.com/marin-community/evalchemy/commit/cc3ddcfa85c622ca626b58128ef39af1d00752c8).\n\nObserved Qwen3-8B timings on cw-rno2a with eight one-H100 vLLM workers,\neight simultaneous evals, and 64 concurrent requests per evaluator:\n\n| Run | Wall time | Work and outcome |\n| --- | --- | --- |\n| [First brokered\npass](https://iris.oa.dev/job/%2Fpower%2Feval-qwen3-8b-20261016-full-2722ecef)\n| 2h 42m 24s | Nine evals reused; 20 executed. Ended with 25/29 complete\nand four partial archives; 160,612 responses matched to pending\nrequests, with no proxy timeouts, rejections, or dropped responses. |\n| [Recovery with the same run\nID](https://iris.oa.dev/job/%2Fpower%2Feval-qwen3-8b-20261016-full-2f6845c9)\n| 12m 13s | 25 evals reused; four resumed. All 29 records saved as\nsucceeded. Only 14 generation requests were retried: 13 succeeded,\nproducing 174,063 output tokens; one DROP context-limit request remained\nunscored (9,535/9,536 scored). |\n\nThe first pass’s longest tasks were MMLU-Pro (2h 4m 43s), MMLU (1h 47m\n26s), and HellaSwag (1h 14m 52s), running alongside other evals. For a\nfresh run of all 29 evals with the same model, settings, and eight\nH100s, allow roughly 3–3.5 hours (24–28 H100-hours) for planning, after\ncapacity is available. This is a planning estimate from the 20-eval pass\nand the extra work of the nine cached evals; a fresh, complete 29-eval\nrun has not been measured. Cluster queue time and cold package/model\ndownloads can add time. Recovery reused saved requests and retried 14\ngenerations; its 12-minute duration does not measure full-suite\nthroughput.\n\nIncident and recovery details: [brokered Evalchemy timeout\nincident](https://marina.oa.dev/echo/wiki/779).\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "98c7e150185b25e84b1a6542e3102f1f5d6151d6",
+      "url": "https://github.com/marin-community/marin/commit/98c7e150185b25e84b1a6542e3102f1f5d6151d6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-10-17T10:57:25Z",
+      "committed_at": "2026-10-17T10:57:25Z",
+      "message": "[dependencies] Advance external runtimes (#10235)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`28631c78ef39`](https://github.com/marin-community/evalchemy/commit/28631c78ef39e36db149c455fa1c074914f322d5)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`18e712655917`](https://github.com/marin-community/harbor/commit/18e712655917ee1c5f82624809339daff3a26a9e)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`32edb00f784d`](https://github.com/marin-community/MarinSkyRL/commit/32edb00f784dac6995136d034ad7231a9b985bc0)\n|\n\n## Upstream commits\n\n### MarinSkyRL (`8ab8f3a7b44c` → `32edb00f784d`)\n\n-\n[`823e0b2bbb23`](https://github.com/marin-community/MarinSkyRL/commit/823e0b2bbb230956f9c1847a862ac8561c37e380):\nPreserve Harbor agent limits and verify generation-stopped trials\n(#1017)\n-\n[`62dad5b59739`](https://github.com/marin-community/MarinSkyRL/commit/62dad5b59739975b4b8f1527374afb7068cdbe21):\nPreserve agent deadlines and grading across history resets (#1018)\n-\n[`32edb00f784d`](https://github.com/marin-community/MarinSkyRL/commit/32edb00f784dac6995136d034ad7231a9b985bc0):\nInitialize Ray before evaluation-pause rollout tests (#1021)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "2f3897ebfdbdbc2246bbe0a3bf6bca91a89b6f9d",
+      "url": "https://github.com/marin-community/marin/commit/2f3897ebfdbdbc2246bbe0a3bf6bca91a89b6f9d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-10-17T04:40:08Z",
+      "committed_at": "2026-10-17T04:40:08Z",
+      "message": "[dependencies] Advance external runtimes (#10228)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`28631c78ef39`](https://github.com/marin-community/evalchemy/commit/28631c78ef39e36db149c455fa1c074914f322d5)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`18e712655917`](https://github.com/marin-community/harbor/commit/18e712655917ee1c5f82624809339daff3a26a9e)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`8ab8f3a7b44c`](https://github.com/marin-community/MarinSkyRL/commit/8ab8f3a7b44c9828efd8c41a88d5fa2f8eab9a68)\n|\n\n## Upstream commits\n\n### evalchemy (`f39273127716` → `28631c78ef39`)\n\n-\n[`6e3454ac7ac4`](https://github.com/marin-community/evalchemy/commit/6e3454ac7ac4dc5316d7a85eeda1fa9abbd27f44):\nRun evaluation sources through one streaming EvalSpec runtime (#212)\n-\n[`28631c78ef39`](https://github.com/marin-community/evalchemy/commit/28631c78ef39e36db149c455fa1c074914f322d5):\nRequire FineStore with concurrent compaction prefetch (#217)\n\n### harbor (`d9db9baeaf04` → `18e712655917`)\n\n-\n[`a9600f43d963`](https://github.com/marin-community/harbor/commit/a9600f43d9637e4b4f03c1594746a0f4431390df):\nRetry Daytona Docker setup failures with bounded diagnostics (#273)\n-\n[`18e712655917`](https://github.com/marin-community/harbor/commit/18e712655917ee1c5f82624809339daff3a26a9e):\nPreserve selected Daytona credentials in creation subprocesses (#274)\n\n### MarinSkyRL (`4f40ed137f3c` → `8ab8f3a7b44c`)\n\n-\n[`4de5aa3fde2f`](https://github.com/marin-community/MarinSkyRL/commit/4de5aa3fde2f2b95cddf1fb6e2f5d0991068e1c9):\nShare each DP chunk once for batches without replay routes (#999)\n-\n[`d5b8c4d52009`](https://github.com/marin-community/MarinSkyRL/commit/d5b8c4d52009dddae048a9a547ba2c7de013b4b7):\nPreserve Harbor tasks in mixed dataset collation (#1014)\n-\n[`42fbd4e150e2`](https://github.com/marin-community/MarinSkyRL/commit/42fbd4e150e294ff62e7f6d85193bd8aac8121c9):\n[RL] Allow global gradient clipping for Grug MuonH (#1002)\n-\n[`789288f5b7f0`](https://github.com/marin-community/MarinSkyRL/commit/789288f5b7f0b42b3e2d9e740686539467da3777):\nReject resolved Harbor keys in source RL recipes (#1015)\n-\n[`8ab8f3a7b44c`](https://github.com/marin-community/MarinSkyRL/commit/8ab8f3a7b44c9828efd8c41a88d5fa2f8eab9a68):\nPreserve numeric router metadata in agent traces (#1016)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "5e12684c85eac9295514a4c8cdbfee0a55ad497c",
+      "url": "https://github.com/marin-community/marin/commit/5e12684c85eac9295514a4c8cdbfee0a55ad497c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-17T03:43:43Z",
+      "committed_at": "2026-10-17T03:43:43Z",
+      "message": "[finestore] Prefetch small compaction inputs concurrently (#10226)\n\nFineStore compactions with at most 16 MiB of compressed input now fetch\nwhole shards with up to 16 concurrent reads and reuse those bytes for\nschema and row reads. Larger compactions keep their bounded streaming\nreads.\n\n[A live\nevaluation](https://iris.oa.dev/#/job/%2Fpower%2Feval-20261017-015918-qwen3-8b-59475eeeb8a94886a01e373e84d3f073-3066d84b%2Feval-drop-5c76ab07)\ntook 9.83 seconds to compact 17 shards containing 128 rows and 196 KB.\nIts isolated Evalchemy environment was already running `marin-finestore\n0.2.197.dev38989978700`, including #10209 and #10216. Compaction still\nreopened shards for schema, footer, and data reads, issuing those reads\nserially.\n\nIn a synthetic benchmark with 17 small shards and 100 ms per simulated\nS3 request, total compaction time falls from 5.76 to 0.85 seconds and\nGETs fall from 54 to 20. A read-only comparison in the evaluation\ncontainer over six active shards (75 KB, 45 rows) reduced schema and row\nloading from 3.02 to 0.10 seconds; that measurement excludes output\nwrites and manifest publication.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "85025fbb96d74e0020ada96a09ba4096ecd79af5",
+      "url": "https://github.com/marin-community/marin/commit/85025fbb96d74e0020ada96a09ba4096ecd79af5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-17T01:22:36Z",
+      "committed_at": "2026-10-17T01:22:36Z",
+      "message": "[evaluation] Allow concurrent catalog writes in failure test (#10219)\n\nCompare evaluation catalog rows independently of completion order. The\ntest submits the failing evaluation first, but the steps run\nconcurrently and the successful evaluation can publish its row first.\nRequiring submission order caused intermittent CI failures.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "5b622ba264e0a9329a26b29422f96dcf1dafe1c4",
+      "url": "https://github.com/marin-community/marin/commit/5b622ba264e0a9329a26b29422f96dcf1dafe1c4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-17T01:14:05Z",
+      "committed_at": "2026-10-17T01:14:05Z",
+      "message": "[finestore] Merge sorted runs and resolve versions in Arrow (#10216)\n\nFineStore compaction, scans, and `iter_rows` now resolve primary-key\nversions in Arrow instead of row by row in Python. Compaction becomes a\nsorted-run merge whose output shards hold disjoint, ascending key\nranges.\n\nCompaction used to order input row groups by their first key, keep the\nnewest version of every key in a Python dictionary one row at a time,\nand then hand each output row to the shard writer as its own slice.\n`scan` and `iter_rows` also compared versions per row in Python. Version\nresolution therefore dominated compaction time, and a key could recur\nacross one compaction's output shards.\n\n`finestore.merge` selects the newest row per key with one Arrow sort and\na key-change mask, using the existing order: a greater `(_commit, _seq,\n_gen)` wins, a missing `_seq` counts as zero, and null keys sort last\nand compare equal. A key column that no row sets is null for every row.\n`merge_sorted_runs` keeps a sorted buffer per run and merges by a\nfrontier: buffered rows below the smallest last key among the runs are\nfinal and are sorted once as they leave, and only the runs at the\nfrontier read their next table. Memory holds about one table per run.\n\nCompaction reads each sorted input a row group at a time. An unsorted\ninput, such as a flush with a row missing a key column or a shard\nmigrated from format 1, is sorted whole in memory, so a compaction holds\nall of its unsorted inputs at once; these are expected to be rare.\nOutput shards are cut at about `target_bytes`. `iter_rows` streams the\nsame merge, and `scan` uses the vectorised selection while keeping its\nrow order; `scan` also resolves versions when a key column is absent, as\n`iter_rows` does.\n\nLocal root, 16 overlapping level-zero shards of 20,000 rows each\n(320,000 rows, 95,874 live keys), against main on the same machine:\n\n| | main | this change |\n| --- | --- | --- |\n| `compact_table`, 1,024-row row groups | 51.7 s, 79 MB Arrow peak, 33\nMB Python peak | 0.9 s, 4.7 MB, 0.4 MB |\n| `compact_table`, default row groups | 43.6 s | 0.15 s |\n| `scan` | 0.78 s | 0.11 s |\n| `iter_rows` | 1.69 s | 0.5 s |\n\nObject-store traffic is unaffected: the 16-writer simulated S3 benchmark\nissued 1,772 requests, against 1,789 on main.\n\nThis is the merge half of P2 in the FineStore concurrency proposal (Loom\nsession bth4qn4d, artifact `finestore-improvements`). The proposed\n`_version` column is not added: while every commit goes through one\n`HEAD`, `(_commit, _seq, _gen)` is already a total order, and `_version`\nonly becomes necessary with per-writer heads (P3), so it should land\nwith that format change.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "d90a640a9fcecdd8fe7b2f1eec6f6c7808df3ca6",
+      "url": "https://github.com/marin-community/marin/commit/d90a640a9fcecdd8fe7b2f1eec6f6c7808df3ca6",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-18T00:00:00Z",
+    "start": "2026-10-17T00:00:00Z"
+  }
+}

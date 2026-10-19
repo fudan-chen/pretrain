@@ -1,0 +1,54 @@
+{
+  "commit_count": 4,
+  "commits": [
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-10-18T20:44:57Z",
+      "committed_at": "2026-10-18T20:44:57Z",
+      "message": "[iris] Require the native wheel that maps IAP user roles (#10243)\n\nPin marin-iris-native to 0.1.13.dev38952644761 or newer. That wheel was\nbuilt from the merge of #10070, which taught the Rust native proxy to\nmap a\nverified IAP email through auth.user_roles before the admin list. The\nlock\nstill pointed at the 2026-10-09 wheel, so any branch that does not touch\nlib/iris/rust installs a proxy that ignores user_roles and\ntest_iap_principal_resolution_enforces_personal_batch_access fails with\nrole 'admin' instead of 'user'. Branches that change Rust build the\nextension from source and pass, which is why main's own unit run stayed\ngreen.\n\nVerified locally: the test fails with 0.1.11.dev37977873285 and passes\nwith\n0.1.13.dev38952644761; the native-proxy and types suites pass (88\ntests).\n\nThe automation PR #8846 carries the same marin-iris-native bump together\nwith a dupekit bump and has been open since September; this PR is the\nnarrow fix so that unit (iris) passes on every branch now.",
+      "sha": "99bbaba5b25c1919086939c9725f0573e88599d7",
+      "url": "https://github.com/marin-community/marin/commit/99bbaba5b25c1919086939c9725f0573e88599d7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-18T20:07:11Z",
+      "committed_at": "2026-10-18T20:07:11Z",
+      "message": "[iac] Grant Marina IAP access to a registered principal (#10261)\n\nAdd an existing encrypted principal to `roles/iap.httpsResourceAccessor`\non the `marina` Cloud Run service, so they can reach marina.oa.dev. The\nprincipal is already in the registry, so `iam_data.yaml` is unchanged.\n\nA grant approver should run `review-grant` to confirm the decrypted\nprincipal, then `pulumi up` on the `marin` stack.\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "60a88a6efded6b69ad0ff937870cf7ef2bd08f04",
+      "url": "https://github.com/marin-community/marin/commit/60a88a6efded6b69ad0ff937870cf7ef2bd08f04",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-18T15:27:00Z",
+      "committed_at": "2026-10-18T15:27:00Z",
+      "message": "[finelog] Increase forwarding throughput for dense log backlogs (#10238)\n\nIncrease regional Finelog → hub forwarding throughput so dense log\nbacklogs drain faster and delayed task logs reach Iris. Forward up to\nfour namespaces concurrently and read up to one million log rows per\nread-and-send cycle. Requests retain their byte limit, and chunks remain\nserial within the log namespace. The saved source cursor records\ncompleted progress and cannot advance past a pending or retryable\nrequest.\n\nEncode each candidate chunk once. If its payload exceeds 150 MiB, split\nit in half and process each half the same way. Process the left half\nfirst to preserve source order. Source scans keep separate row-count and\nsegment bounds, and oversized single rows retain their existing\nhandling. Release the decoded Arrow batch before waiting for\nacknowledgements. Slow-cycle diagnostics separate source reads, chunk\nencoding, and RPC compression/transport/durable acknowledgement from\ncursor persistence.\n\nDuring the October 17 incident, RNO2A was roughly 395 million regional\nsequence positions behind. Forwarding counters showed about 24,000\naccepted positions/sec before deployment and 87,000–107,000/sec over\nsuccessive 71- and 65-second samples after deploying namespace\nconcurrency and larger reads. A dense source sample contained about\n77,000 rows per second of event time; this measures production density.\nSequence positions can include gaps and filtered rows, so those counters\nare not exact row counts. By 17:56 UTC, backlog was down to 91 positions\nand all 417 rows for the affected task were present on the hub. The\nchunk-splitting follow-up remains undeployed.\n\nA local benchmark on one million synthetic NCCL-shaped rows with six log\ncolumns and 294 MB of Arrow IPC output reduced serialization attempts\nfrom seven to three compared with the deployed sizing search. Bytes\nserialized, including discarded attempts, fell from 1,010 to 589 MB;\nboth versions produced two requests. With 100,000 narrow rows followed\nby 100,000 wide rows, halving produced nine requests against eight with\nthe packing search. Halving accepts underfilled requests to avoid the\nsizing search. These measurements describe serialization work; they do\nnot establish an end-to-end throughput improvement.\n\nA bounded million-row regional read took 1.32 seconds initially and 0.19\nseconds on repeat. Later live scans took 5.4–8.2 seconds in 12–16-second\ncycles, including a 128-segment window returning only 424,000 rows. Read\ncost varies with segment geometry and cache state. An isolated local\nserver capped at four CPUs acknowledged compressed 500,000-row writes in\n0.70–0.78 seconds. Live hub samples showed about three active cores on a\nfour-core VM, compaction/index work, and near-zero disk I/O wait. The\nlargest resolved perf symbols involved copying, comparisons, and page\nfaults; stripped Rust symbols limited attribution. These probes do not\nfully apportion live cycle time; the added stage timings expose the\nremaining waits.\n\n[Incident record](https://marina.oa.dev/echo/wiki/780).\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "a593258cfb53182fb9d538d4e52d73e5c9fd5016",
+      "url": "https://github.com/marin-community/marin/commit/a593258cfb53182fb9d538d4e52d73e5c9fd5016",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-10-18T04:45:50Z",
+      "committed_at": "2026-10-18T04:45:50Z",
+      "message": "[dependencies] Advance external runtimes (#10249)\n\nAdvance Marin's isolated external runtimes to the current commits on\ntheir configured branches.\n\n| Project | Distribution | Version | Commit |\n| --- | --- | --- | --- |\n| `evalchemy` | `evalchemy` | `0.1.0` |\n[`09d27c93a884`](https://github.com/marin-community/evalchemy/commit/09d27c93a8846531e84fb30cfa11dacd2ef404c5)\n|\n| `harbor` | `harbor` | `0.8.1` |\n[`18e712655917`](https://github.com/marin-community/harbor/commit/18e712655917ee1c5f82624809339daff3a26a9e)\n|\n| `MarinSkyRL` | `marinskyrl` | `0.1.0` |\n[`32edb00f784d`](https://github.com/marin-community/MarinSkyRL/commit/32edb00f784dac6995136d034ad7231a9b985bc0)\n|\n\n## Upstream commits\n\n### evalchemy (`28631c78ef39` → `09d27c93a884`)\n\n-\n[`09d27c93a884`](https://github.com/marin-community/evalchemy/commit/09d27c93a8846531e84fb30cfa11dacd2ef404c5):\n[resume] Preserve checkpoints when replacing inference endpoints (#216)\n\nGenerated by `config/update-external.py`. Review the linked upstream\nchanges before merging.\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "8e99858a17df0463daac6b104f5eddb0ffa79ffd",
+      "url": "https://github.com/marin-community/marin/commit/8e99858a17df0463daac6b104f5eddb0ffa79ffd",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-19T00:00:00Z",
+    "start": "2026-10-18T00:00:00Z"
+  }
+}

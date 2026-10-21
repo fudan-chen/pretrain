@@ -1,0 +1,307 @@
+{
+  "commit_count": 27,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-20T22:43:21Z",
+      "committed_at": "2026-10-20T22:43:21Z",
+      "message": "[grafana] Reduce dashboard query fan-out and align live windows (#10397)\n\nFetch only the source groups needed by each dashboard view and share\ntheir Arrow results across related panels. Accelerator queries return\nscalar tiles and chart aggregates directly; device histories pack\nrepeated labels before transfer. Jobs, Runs, and RL avoid unrelated\nsource queries.\n\nFloor both window bounds independently to 15-second boundaries when the\nend is within 60 seconds of server time, so independently resolved panel\noverrides share cached work. Original bounds are validated first; older\nhistorical windows and ranges shorter than 15 seconds remain exact.\nAbsolute windows ending near now are also aligned. Rounding adds less\nthan 15 seconds of lag alongside the existing 20-second cache TTL.\n\nAcross two matched replays with cold bridge caches against the unchanged\nlive hub, median Home latency fell from 14.77 to 1.80 seconds and SQL\ncalls from 25 to 6. Median Jobs latency fell from 8.02 to 1.23 seconds\nfor 128 selected jobs. One isolated three-hour power request fell from\n9.11 to 0.77 seconds with the same result. These are bridge\nmeasurements; browser rendering, variable selectors, and external data\nsources are excluded. A subsequent matched comparison of the already\noptimized Accelerator page fell from 7.81 to 5.99 seconds by selecting\nexisting metric-family Parquet projections. RL phase filtering reduces\nunused source rows but has no demonstrated page-level latency gain; both\npages retain substantial cold-query costs.\n\nAdd a dashboard replay benchmark that retains source SQL, Arrow inputs,\npanel responses, and timing evidence, plus fixed-query support in the\nFinelog benchmark. Finelog runtime and storage behavior are unchanged.\nThe [Accelerator/RL\nfollow-up](https://loom.oa.dev/s/m6hemaex/artifacts/finelog-dashboard-followup)\nrecords the SQL candidates and remaining scan costs. The [report and\nfull\ncomparison](https://loom.oa.dev/s/m6hemaex/artifacts/finelog-query-report)\ninclude output parity, timing ranges, freshness limits, and rollout\ngates.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "036702ca09e1498893582ce1ec6e8e2f04c1bcff",
+      "url": "https://github.com/marin-community/marin/commit/036702ca09e1498893582ce1ec6e8e2f04c1bcff",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-20T22:26:31Z",
+      "committed_at": "2026-10-20T22:26:31Z",
+      "message": "[tasks] Ingest native structural closure tasks (#10319)\n\nImport Snowball tasks that complete a supplied assistant prefix to match\na reference JSON or delimited structure. Register pinned training and\ndevelopment-evaluation splits through the existing curation catalog. The\nconverter uses curation row IDs and retains original identities in audit\nmetadata.\n\nUse a generic PrefillHarness selected explicitly by\nTaskRolloutSpec.harness. It continues the final assistant text once, can\nadvertise final tool schemas, and rejects interactive tools and parsed\nreasoning or tool-call responses. Ordinary chat and tool-loop rendering\nretain their existing behavior. The serving model chooses its tokenizer;\nsource token IDs remain provenance and rollout traces retain actual\nmodel tokens.\n\nPrivate verifier resources remain byte-identical and stay out of model\nrequests. A correct first closed outer region scores one even when later\noutput follows. Historical terminal-marker normalization stays outside\nthe semantic grader. The changed converter uses a fresh recipe version.\n\nThe 341 focused regression tests, mechanical lint, library type checks\nand documentation-link checks pass. One case-sensitive filesystem check\nwas excluded on macOS. GPU inference for the revised harness has not\nbeen validated.\n\nThe [trainer\ncompanion](https://github.com/marin-community/MarinSkyRL/pull/1032)\nneeds explicit PrefillHarness selection, genuine shared-library releases\nand a real lock update.\n\nPart of #10314.",
+      "sha": "3ae74d9560d1f1ec269bfd3a270549b68f7bc7f6",
+      "url": "https://github.com/marin-community/marin/commit/3ae74d9560d1f1ec269bfd3a270549b68f7bc7f6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-20T22:12:57Z",
+      "committed_at": "2026-10-20T22:12:57Z",
+      "message": "[grug] Add the H100 pipeline foundation (#9279)\n\nAdd a stage-local JAXPP pipeline for the full MoE model blocks,\nincluding latent/shared experts, SConv, attention positions and QB\nrouting. Standard 1F1B remains the default. The synthetic runner\nsupports the main recipe with FP32 parameters, BF16 compute and\ncompute-scaled MuonH; the historical BF16 capacity recipe remains\navailable.\n\nEach routed expert parameter bank now shares one Frobenius norm across\nits experts, matching the stacked EP model. `--expert-normalization\nper_expert` provides an explicit comparison mode. `--qb-bias-mode\nfrozen` retains the current pending QB bias while expert and router\nweights continue updating; adaptive QB remains the default. Numerical\nCPU regressions cover stacked-versus-stage-local updates and both QB\nstate transitions.\n\nThe historical 48-layer, 65K synthetic diagnostic ran on 192 H100s with\nBF16-stored parameters and per-expert normalization. Its PP24/EP8/CP1\nlayout placed two layers in each stage and kept expert traffic within\neight-GPU workers. It was chosen to establish capacity; no matched\nPP8/EP32/CP4 Megatron comparison was performed. The README records the\nlater CP2 result and the differences in batch size and attention\nhelpers. Historical hardware results do not validate the new\nnormalization or frozen-QB option, and no SFT/RL quality comparison has\nbeen run.\n\nThe affected safe suite passed 2,391 tests with four skips and five\nexpected failures. Focused CPU checks passed 86 tests with one skip;\nrequired lint, full type checking, strict docs and source links passed.\n\n#9662 is stacked above this foundation and adds checkpoint/data support,\nthe GB200 launcher, tracked runtime setup and bounded main-recipe\nhardware validation. Before merge, this foundation still owns replacing\nthe positional result from `initialize_stage_local_pipeline_state`,\ncentralizing the repeated backend/rematerialization identifiers, and\nseparating the synthetic runner lifecycle in `pipeline_smoke.main`.\nThese deferred changes require compiled-startup transport and\noptimizer-parking/warmup cleanup validation; #9662 then owns adapting\nits added checkpoint/data lifecycle.\n\n---------\n\nCo-authored-by: Matt Wittmann <matt.wittmann@openathena.ai>",
+      "sha": "cdca9509d3e720d7bddf89c26122887d927315e4",
+      "url": "https://github.com/marin-community/marin/commit/cdca9509d3e720d7bddf89c26122887d927315e4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-20T21:41:05Z",
+      "committed_at": "2026-10-20T21:41:05Z",
+      "message": "[eval] Recover brokered evaluations after inference preemption (#10169)\n\nUse the existing inference broker for evaluations with one model-serving\ninstance, with streaming responses and worker readiness. Requests keep a\nstable endpoint when GPU workers move. Pipeline-parallel gangs retain\ndirect serving.\n\nWhen model or judge inference is unavailable, Marin stops the evaluator,\nwaits for readiness, and restarts it against the same output path. The\nvendored Harbor and Evalchemy runtimes resume from their saved\ncheckpoints. Completed evaluation steps stay cached.\n\nThe broker can retry a request only before accepting response headers\nfrom the worker. Later worker loss breaks the stream. Buffers are\nbounded and abandoned requests are canceled. The broker's in-memory\nqueue is not durable across broker actor failure.\n\nUses the existing broker instead of the separate relay proposed in\n#10033.\n\nFixes #10030.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "2d9bb829d879230390ef06a4b9786c7afa060a85",
+      "url": "https://github.com/marin-community/marin/commit/2d9bb829d879230390ef06a4b9786c7afa060a85",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "himanshk96",
+      "author_name": "himanshk96",
+      "authored_at": "2026-10-20T21:36:01Z",
+      "committed_at": "2026-10-20T21:36:01Z",
+      "message": "[datakit] Truncate Harrier documents at read time (#10310)\n\nHarrier's embed step now keeps the first `HARRIER_MAX_RAW_TEXT_CHARS`\n(100,000) characters of each document while it reads the normalized\nparquet. Before, `load_file` turned whole row groups into Python dicts\nand the cut happened in `_embed_shard`, after `window(4096)`. A window\ncould hold 4,096 untruncated documents, so worker memory grew with the\nlargest documents in a source.\n\nThe new reader takes each row group from `load_parquet_batch`, converts\nit to Python dicts in slices of about 64 MiB of Arrow data, and cuts the\ntext before it yields a record. It returns a Zephyr `Reader`, so input\nprogress and `zephyr/records_in` still work. `embed/bytes_in` still\ncounts UTF-8 bytes of the truncated text, as before, and the other\n`embed/*` counters are unchanged. A row with null text still raises\n`TypeError`, now from the reader; normalize drops such rows, so\nnormalized input never reaches it. The step hash,\n`EMBEDDING_ATTR_DATA_VERSION` and output paths do not change. The slice\nsizing, `rows_per_chunk`, moves from the luxical pipeline to\n`marin.processing.embeddings.read_chunks` so both pipelines import it\nfrom the library; luxical reads with the same target as before.\n\nTEI receives the same texts in the same order as on main, so the\nembeddings do not change. The test source had 4 shards and 342\ndocuments: lengths from 0 to 10x the cap, multi-byte and astral-plane\ncharacters at the cut, and one 186 MB row group. It ran with and without\ndedup attrs, whose `sorted_merge_join` depends on the reader's record\norder, on 1 and 8 workers. With a hash-based fake TEI, the texts it\nreceived and the written parquet files were byte-identical to main.\n\nMemory was measured in one local process with a fake embedder. On 2.1 GB\nof 2-20 MB documents (4 shards, 264 MB row groups, with dedup), median\npeak RSS over 3 runs fell from 6,676 MB (runs 6,638-6,685) to 5,298 MB\n(runs 4,824-5,651). The largest window, as Python object size, fell from\n418-543 MB to 3.7-4.6 MB. The remaining peak is about 650 MB of imports\nplus Zephyr's whole-row-group Arrow read, which costs 4-5x the row-group\nsize for each shard being read; main pays it too. With 2 shards of 10 MB\ndocuments in 200 MB row groups, growing each shard from 200 MB to 1.2 GB\n(one run per size) raised peak RSS on main from 2.5 GB to 4.8 GB; on\nthis branch it stayed between 2.5 and 3.0 GB. On 8 shards of 25,000\nshort documents, median wall time over 6 runs was 13.13 s on main and\n13.03 s here. We have not run this on real normalized data or against a\nlive TEI server.\n\nHarrier does not reuse luxical's `_load_records_bounded`. That loader\nemits its own `embed/bytes_in` in raw characters next to Harrier's byte\ncount, maps null text to an empty string, and returns a plain generator,\nwhich Zephyr does not count in `zephyr/records_in`.",
+      "sha": "ee6f645197a1f4d37b99c3f92efe285d104f5ce6",
+      "url": "https://github.com/marin-community/marin/commit/ee6f645197a1f4d37b99c3f92efe285d104f5ce6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-20T21:18:11Z",
+      "committed_at": "2026-10-20T21:18:11Z",
+      "message": "[loom] Add a pm agent that maintains the goals doc and board (#10321)\n\nDoc:\nhttps://docs.google.com/document/d/1SyDW4MF7Te3XMOfL_eT-WxX_pueEQcaLbk7eWVmteGc\nBoard: https://github.com/orgs/marin-community/projects/5/views/1\n\nAdd a `pm` Loom profile and a `goals` watch that runs every three hours,\naround the clock, every day. Each run reads the current goals from the\ngoals document's Goals section, keeps the Marin high-level board's Goal\noptions in line with them, adds `marin` and `MarinSkyRL` issues that\nbelong to a goal, and moves board items to match issue and pull-request\nstate. It then rewrites the document below its `Status` heading; people\nown the text above it. `watch_state` records what the agent wrote and\nchanged, so it does not undo later human edits.\n\nRenaming a goal keeps its Goal option ID, so its items keep the goal,\nand `board-goals` refuses to remove an option that items still have.\nLoom's session GitHub tokens cannot write organization projects, so the\nprofile reads a fine-grained token from the `LOOM_PM_BOARD_TOKEN`\nsecret. With that token, `board-set` moved #10043 to Done and\n`board-goals` rewrote the current options without changing any item's\ngoal. Adding a new issue and renaming an option have not run against\nGitHub yet.\n\nThe Docs API rejects the VM's cloud-platform metadata token, so\n`loom-vm` gets token-creator on itself and the session impersonates it\nfor a documents-scoped token. Apply the `marin` IAM stack before rolling\nout Loom.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "33ca12a33e014ca987bac272311dd6a385f14cac",
+      "url": "https://github.com/marin-community/marin/commit/33ca12a33e014ca987bac272311dd6a385f14cac",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-20T21:17:41Z",
+      "committed_at": "2026-10-20T21:17:41Z",
+      "message": "[marina] Add a sortable app table with clear pagination (#10391)\n\nReplace Marina's app cards with a compact table sortable by name and\nrelease time, defaulting to newest releases first. Show 50 apps per page\nwith the displayed range, total count, page number and Previous/Next\nlinks; preserve sorting across pages.\n\nKeep `/api/marina/apps` and `/api/marina/applets` complete and expose\nthe currently deployed revision's publication timestamp, including after\nrollback. Disable caching of directory responses so refreshes read the\ncurrent registry.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "7ea8a4749b156f3e9f8fe0a7e976735adcbf5f58",
+      "url": "https://github.com/marin-community/marin/commit/7ea8a4749b156f3e9f8fe0a7e976735adcbf5f58",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-20T21:13:51Z",
+      "committed_at": "2026-10-20T21:13:51Z",
+      "message": "[marina] Reduce shared Postgres load and query latency (#10383)\n\nKeep Echo chunk IDs stable across MarinMirror corpus rebuilds and skip\nwrites when mirrored content is unchanged. The importer previously used\nbuild-local SQLite row numbers, causing hourly runs to upsert 80–92k of\n103k chunks. The content digest includes metadata and vectors, so later\nchanges to either still trigger writes. The migration preserves IDs of\nretained chunks, removes duplicate copies, and sets a 5% autovacuum\nscale factor on `chunks` and `repository_file_chunks`.\n\nReplace Evaldash's `FOR SHARE` reader lock with a read-only\nrepeatable-read transaction, keeping catalog generations and records\nconsistent while ingestion commits. Batch source verification updates,\nfilter the requested cohort before hashing model configurations, and\nprecompute model and filter metadata with each catalog snapshot.\nMetadata requests reuse those lists and read current archive flags;\nsynchronous metadata work runs in a worker thread\n([incident](https://marina.oa.dev/echo/wiki/804)). Reuse bounded\nrole-isolated Marina query pools with session cleanup and cap Grafana's\nmetadata pool at 10 open and 2 idle connections.\n\nOn local PostgreSQL 16, reordering 1,000 unchanged activity chunks fell\nfrom 1,000 upserts plus 1,000 deletes to zero writes (0.859s to 0.023s).\nBatching 1,024 Evaldash verification updates reduced statements from\n1,024 to 8 and median time from 0.505s to 0.386s. With 14,710 production\ncatalog records loaded in memory, the September 24 panel computation\nfell from 617ms to about 64ms with identical output. These local\nmeasurements do not establish production latency gains.\n\nEvaldash revision 5 carries the Evaldash changes. Echo still requires an\nexplicit package release: pause its hourly trigger and drain existing\nexecutions before the identity migration; older sync writers cannot\noverlap it. The first new sync fills the content digests once. Runtime\nand Grafana changes use their separate deployment workflows. See the\n[Echo release\nprocedure](https://github.com/marin-community/marin/blob/822d17c052/infra/marina/apps/echo/README.md#sync-job),\n[Evaldash release\nprocedure](https://github.com/marin-community/marin/blob/822d17c052/infra/marina/apps/evaldash/README.md#release),\nand [Marina runtime\ndeployment](https://github.com/marin-community/marin/blob/822d17c052/infra/marina/README.md#base-runtime-deployment-and-first-cutover).\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "625b8da71b7520bb0c0a714a190b9e508f0c2029",
+      "url": "https://github.com/marin-community/marin/commit/625b8da71b7520bb0c0a714a190b9e508f0c2029",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-20T20:53:39Z",
+      "committed_at": "2026-10-20T20:53:39Z",
+      "message": "[data] Build curation environments from supplied files (#10335)\n\nBuild task-curation environments from the supplied Dockerfile and\nruntime package files, including untracked files in a Git worktree and\nfiles in Git-less Iris bundles. The environment identity hashes the\nDockerfile and runtime file contents, so Git tracking is not a build\nprerequisite. Builds still reject executable runtime package files\nbecause Iris bundles drop their permission bits.\n\nIris records launch provenance separately. Its Git tree hash covers\ntracked working-tree content; the environment identity also covers\nuntracked environment inputs. Historical TaskForge conversion and export\ncode remains on the head branch of closed PR #10190.\n\nPart of #10305.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "3f0e28ac8241e884bcd173d87bec3eb38d54fcd6",
+      "url": "https://github.com/marin-community/marin/commit/3f0e28ac8241e884bcd173d87bec3eb38d54fcd6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-20T20:39:49Z",
+      "committed_at": "2026-10-20T20:39:49Z",
+      "message": "[grug] Add an AMD Grug attention layer benchmark for one or more GPUs (#9883)\n\nAdd `lib/levanter/scripts/bench/bench_grug_attention_amd.py`, which\ntimes one Grug attention layer on one or more AMD GPUs. It exits unless\nthe backend is ROCm: it targets the AMD Pallas-Triton kernel, and the\nNVIDIA FA4/CuTe kernels need packed segment IDs that its inputs do not\nhave.\n\nFor each mask (2048-token sliding window, global causal) and each\nimplementation passed to `--impl`, it reports forward and\nforward-plus-backward time and the max absolute output difference\nagainst the first implementation.\n\nWith `--sweep --sweep-part fwd|dq|dkv` it times a grid of tile sizes,\nwarps and stages for one of the three Pallas-Triton flash kernels\n(forward, dQ, dK/dV) and keeps the defaults for the other two.\n`--block-q`, `--block-k`, `--num-warps` and `--num-stages` replace that\nkernel's default values for one axis of the grid.\n\nTFLOP/s counts only the FLOPs the mask needs over the allowed (query,\nkey) pairs. Each time is the median of ten 0.2 s windows after a 1 s\nwarmup. Results are printed as `RESULT {json}` lines.\n\n`--num-devices N` runs on the first N GPUs with the batch sharded over\nan explicit `data` mesh axis, as in Grug training. `--batch` is per GPU,\nso the global batch is N times it; TFLOP/s are reported in total and per\ndevice.\n\nDefaults are the June per-GPU shape at global batch 64 on 8 GPUs: 8 x\n4096 tokens, 20 query heads, 5 KV heads, head_dim 128, bf16.\n\n```bash\npython lib/levanter/scripts/bench/bench_grug_attention_amd.py --impl reference xla_flash gpu_pallas_triton_flash\npython lib/levanter/scripts/bench/bench_grug_attention_amd.py --sweep --sweep-part dkv --block-q 64 128 --num-stages 1\npython lib/levanter/scripts/bench/bench_grug_attention_amd.py --num-devices 8\n```\n\nForward plus backward time on one MI350X with jax 0.11.1 and the ROCm\n10.1 plugin (job 460980):\n\n| Mask | reference | xla_flash | gpu_pallas_triton_flash |\n|---|---|---|---|\n| window 2048 | 18.84 ms (96 TF/s) | 22.66 ms (80 TF/s) | 6.74 ms (268\nTF/s) |\n| causal | 20.89 ms (115 TF/s) | 22.89 ms (105 TF/s) | 10.02 ms (240\nTF/s) |\n\nIn the same job, the dK/dV sweep with the window mask ran all 36\nconfigs. The default tile, 128 queries x 64 keys with 4 warps and 1\nstage, was the fastest at 6.80 ms.\n\nOn one Vultr MI355X node with jax 0.11.0 in the TheRock 7.14 container\n(job 11645), 8 GPUs at global batch 64 run within 1% of one GPU at batch\n8, so per-device throughput holds under batch sharding. Forward plus\nbackward, TF/s per GPU:\n\n| Mask | GPUs | reference | xla_flash | gpu_pallas_triton_flash |\n|---|---|---|---|---|\n| window 2048 | 1 | 15.60 ms (116 TF/s) | 21.47 ms (84 TF/s) | 5.87 ms\n(307 TF/s) |\n| window 2048 | 8 | 15.78 ms (114 TF/s) | 21.77 ms (83 TF/s) | 5.91 ms\n(305 TF/s) |\n| causal | 1 | 15.08 ms (160 TF/s) | 21.57 ms (112 TF/s) | 9.19 ms (262\nTF/s) |\n| causal | 8 | 15.24 ms (158 TF/s) | 21.81 ms (110 TF/s) | 9.23 ms (261\nTF/s) |\n\nOn 8 GPUs, the default dK/dV tile was again the fastest of the six block\nsizes swept (block_q 64 or 128, block_k 32, 64 or 128, 4 warps, 1\nstage), at 5.91 ms.\n\nThe script imports `TritonFlashBlockSizes` and\n`pallas_triton_flash_attention` from\n`levanter.grug.attention._amd_pallas_triton_flash`, which #10014 added.\n\nPart of #9812\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "13200b5d4b75e1ba3b4587ec5e999f5338e07178",
+      "url": "https://github.com/marin-community/marin/commit/13200b5d4b75e1ba3b4587ec5e999f5338e07178",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-20T20:36:13Z",
+      "committed_at": "2026-10-20T20:36:13Z",
+      "message": "[levanter] Charge datastore reads only after budget approval (#10340)\n\nA rejected cross-region budget charge marked the datastore as charged,\nso a later read-only open in the same process could skip the guard. Mark\nthe path only after the size lookup and transfer charge succeed. Recheck\nunder the lock so concurrent opens still charge once.\n\nThe regression test rejects a 1,000-byte store under a 500-byte limit,\nthen retries after increasing the limit and confirms exactly one charge.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "c09625c9cdbecec9da7e0f6311e2662bf1237930",
+      "url": "https://github.com/marin-community/marin/commit/c09625c9cdbecec9da7e0f6311e2662bf1237930",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-20T20:23:46Z",
+      "committed_at": "2026-10-20T20:23:46Z",
+      "message": "[shellbox] Allow importing the local backend on non-Linux hosts (#10328)\n\nDefer the Linux-only bubblewrap import until local sandbox discovery.\nImporting the backend on macOS no longer fails with ModuleNotFoundError;\nconstructing a local factory on an unsupported host raises\nSandboxUnavailable. Linux factory behavior is unchanged.\n\nExtracted from #10190. Part of #10305.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "edae2f5d763f78e18fc0ed40e1452e989ccb85c2",
+      "url": "https://github.com/marin-community/marin/commit/edae2f5d763f78e18fc0ed40e1452e989ccb85c2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-20T20:18:21Z",
+      "committed_at": "2026-10-20T20:18:21Z",
+      "message": "[inference] Defer ShellSim packages until tool execution (#10351)\n\nPrepare ShellSim packages on the first dashboard Python-tool invocation\nor shell command, so inference startup does not fetch packages. Share\npreparation across requests off the server event loop, with failed\npreparation retried on a later tool request.",
+      "sha": "1b2cc4dd37220d29c4d29a643b940e1cd66f90bf",
+      "url": "https://github.com/marin-community/marin/commit/1b2cc4dd37220d29c4d29a643b940e1cd66f90bf",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-20T20:13:14Z",
+      "committed_at": "2026-10-20T20:13:14Z",
+      "message": "Recover interrupted SkyRL issue transfers (#10384)\n\nRecover interrupted SkyRL issue transfers when GitHub changes issue or\ncomment IDs and rewrites references. Resolve moved issues through their\noriginal URLs and match linked discussion comments by preserved author\nand timestamps. Preserve explicit external citations and edits to\ncompleted transfers. Reject unrelated body edits before completing an\ninterrupted transfer.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "6da6090c289d2574e272da70f3b1ee7cbd29686a",
+      "url": "https://github.com/marin-community/marin/commit/6da6090c289d2574e272da70f3b1ee7cbd29686a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-20T19:31:43Z",
+      "committed_at": "2026-10-20T19:31:43Z",
+      "message": "Vendor SkyRL behind an isolated executable\n\nMove the supported SkyRL runtime into `vendor/skyrl` and route Marin RL artifacts through its isolated `marinskyrl` executable. Source changes can land with Marin while SkyRL's Torch/CUDA dependencies retain their own resolution and lock.\n\n```mermaid\nflowchart TB\n    subgraph Marin[\"Marin environment · root uv.lock\"]\n        Experiment[\"RL experiment / artifact graph\"] --> Adapter[\"marin.rl.skyrl\"]\n    end\n    subgraph SkyRL[\"vendor/skyrl · independent uv.lock\"]\n        Code[\"cloud/ · marinskyrl/<br/>skyrl-train/ · skyrl-gym/<br/>templates · upstream provenance\"] --> CLI[\"marinskyrl executable · CPU environment\"]\n    end\n    Adapter -->|\"launch YAML / child process\"| CLI\n    CLI -->|\"verified source + assets + lock\"| GPU[\"Iris GPU task<br/>editable SkyRL + frozen Megatron/vLLM profile\"]\n    GPU --> Output[\"Distributed checkpoints / HF policy export\"]\n    Output --> Eval[\"Marin evaluation artifact\"]\n```\n\nMarin clears its Python environment selection at the subprocess boundary; the launcher reuses its own CPU environment. GPU workers install the bundled source and frozen profile without cloning the fork. Ray ports use Iris allocations or task-local kernel selection on Kubernetes, so concurrent jobs can share a host. The runtime identity hashes the current source, assets, and lock, so ordinary vendor edits work without migration restaging. Workers verify each bundled file against that identity. SkyRL may depend on Marin inside its nested environment; Marin accesses SkyRL only through the executable. Remove the obsolete `config/external/MarinSkyRL` pin and updater entry.\n\nRetain Megatron/vLLM, OPD, Grug, task execution, generation, and checkpoint export. Drop `skyrl-tx`, the unused replay buffer, unsupported launcher registrations, and files outside the declared entrypoint/import/asset closure. A captured local patch preserves math grading and nested runtime bundling. Use compensated reward aggregation to reduce sensitivity to asynchronous evaluation completion order. Preserve the upstream license and an independent-lock CI lane that audits the built wheel against the current checkout.\n\nThe migration script can refresh the vendored tree as the fork advances. It captures upstream and active work, replays all local vendor changes with a three-way merge, and rebuilds the stacked PR report. A preview leaves the checkout unchanged; apply rejects intervening edits. Conflicts can be resolved in the candidate and saved as a normalized patch for the next refresh.\n\n```mermaid\nflowchart TB\n    Fork[\"Fork main + all open PRs<br/>recently active open issues\"] --> Snapshot[\"Snapshot<br/>source, patches, discussions\"]\n    Snapshot --> Baseline[\"Prune + replay local vendor changes\"]\n    Local[\"Current vendor/skyrl edits\"] --> Baseline\n    Baseline --> Decision[\"Inspect candidate / resolve conflicts\"]\n    Decision --> Vendor[\"Apply vendor/skyrl baseline<br/>save patch for next refresh\"]\n    Snapshot --> Transplants[\"Separate PR branches<br/>preserve stack parents\"]\n    Transplants --> Publish[\"Publication after merged cutover<br/>and unchanged source identities\"]\n```\n\nOpen PR changes remain separate from the baseline. Publication previews issue transfers and draft PR creation; execution requires this cutover PR to be merged with the candidate's fork revision and patch hashes, plus unchanged fork main and PR heads/bases. Incomplete transplants require an explicit disposition. Reviewed adaptations can restore needed tests and docs or relocate changes into Marin; the tool captures their patch hashes and replays all selected stacks before pushing draft PRs. Retries reject changed source identities, patch bytes, destination heads, or published text.\n\nInclude the GPU-qualified Snowball layout from [#10163](https://github.com/marin-community/marin/pull/10163): separate reference nodes, recomputation, optimizer offload, and per-role geometry validation. Remove the obsolete FSDP profile.\n\nThe nested runtime uses published Marin packages and the current harness API.\nA dedicated updater advances those libraries within the nested version\nconstraints, checks imports and constructor keywords in the isolated\nenvironment, and restores the lock on failure.\n\nThe [migration guide](https://github.com/marin-community/marin/blob/weaver/forks-merge-marinskyrl/docs/dev-guide/skyrl-migration.md) covers refreshes, dependency updates, train/export/resume/evaluate acceptance, and rebasing PRs that edit the deleted fork pin. Move the CPU CatCount, OPD, Grug/Megatron, and asynchronous GPU CatCount schedules into Marin, preserving their metric gates, weekly/manual cases, failure artifacts, and cleanup. Run GPU CatCount from the checked-out Marin revision instead of cloning Marin and rewriting a fork pin. Point new dashboard results at Marin while preserving fork history. The nested executable boundary follows [Harbor #10287](https://github.com/marin-community/marin/pull/10287) and [Evalchemy #10288](https://github.com/marin-community/marin/pull/10288).",
+      "sha": "ea93941256996206691eef58f29e8b0fa7fa5060",
+      "url": "https://github.com/marin-community/marin/commit/ea93941256996206691eef58f29e8b0fa7fa5060",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-20T19:01:22Z",
+      "committed_at": "2026-10-20T19:01:22Z",
+      "message": "Vendor Evalchemy with an isolated evaluation runtime\n\nVendor Evalchemy under `vendor/evalchemy` with all 42 benchmark dataset\ngenerators, active graders and resume support. Remove benchmark pages,\ndatabase tracking, reporting, original model providers, standalone rollout\ndrivers and unused evaluator configurations. Keep the prompt processing and\nscoring code used by Marin.\n\nEvalchemy has its own `uv.lock` and environment outside the root workspace's\ndependency resolution. Marin invokes its CLI in a child process. FineStore and\nRigging resolve from checkout-local sources so changes can land atomically.\nReplace the active fork pin and refresh machinery, and retire the fork's\nnightly dashboard lane while preserving its history.\n\nFetch larger canonical benchmark datasets from full Hugging Face commit SHAs.\nStage shared copies under repository/revision/file keys using the configured\nscratch storage, with leases and completion markers. Standalone runs can use\nthe native HF cache without origin probes or an explicit local/object-store\ndestination. Direct HTTP files use the same staging mechanism with an explicit\npublisher version; downloads stream without additional content hashing. The\nNUPA-Loose and NUPA5K-Loose benchmarks also read from the shared cache. Preserve\ndataset ordering, prompts, benchmark test cases and sample identities; keep tiny\ndatasets and custom snapshots bundled. The default Iris bundle is 14.4 MiB,\nwithin the deployed 25 MiB limit.\n\nImmutable evaluation caches track evaluator inputs, portable configuration\nand the dependency lock. Evaluation records retain broader adapter and\nlocal-library provenance. Dated `eval-policy-*` configurations that select\nexternal Evalchemy commits fail before writing configs or starting jobs.\nHistorical policies and grader replay scripts require the corresponding\npre-vendoring Marin checkout.",
+      "sha": "7bceef9cc7ad32b095e041c58bea5ce4ae51e0da",
+      "url": "https://github.com/marin-community/marin/commit/7bceef9cc7ad32b095e041c58bea5ce4ae51e0da",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-20T19:01:18Z",
+      "committed_at": "2026-10-20T19:01:18Z",
+      "message": "[evaldash] Make model selection searchable and names readable (#9897)\n\nReplace the Runs model and eval menus and Compare model buttons with\nsearchable, scrollable dropdowns. Clicking opens the options; typing\nnarrows them, and clicking a row or pressing Enter selects an exact\nname. Compare shows removable selections and caps the set at four\nmodels.\n\nRuns offers names from the complete run catalog and applies filters\nbefore the result limit, so models absent from the latest 200 launches\nremain searchable. Its URL preserves filters, view, and result limit.\nFiltering a launch by eval keeps its sibling evals and computes status\nfrom the full launch. Compare preserves the cohort and benchmark\nselection inherited from the Panel page and still excludes models\nwithout an eligible non-zero score in that selection.\n\nLong model names wrap in dropdowns, comparison results, chart legends,\nand model cards, with config digests on a separate line. The Models page\nreports loading failures and offers Retry.\n\nValidated with the frontend build, repository lint and type checks, 81\nAPI/statistics/catalog tests, seven browser interaction checks against\nlocal fixture records, and manual Chrome checks. Production deployment\nis separate.\n\n---------\n\nCo-authored-by: William Held <will.held@openathena.ai>",
+      "sha": "bbd73c1c7479455959d759d8850a673b8fad9d33",
+      "url": "https://github.com/marin-community/marin/commit/bbd73c1c7479455959d759d8850a673b8fad9d33",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-20T18:24:36Z",
+      "committed_at": "2026-10-20T18:24:36Z",
+      "message": "Vendor Harbor with an isolated runtime and local Marin dependencies (#10287)\n\nMove Harbor's evaluation runtime into `vendor/harbor` with its own uv\nproject and lock. Editable local Rigging and FineStore sources allow\ndependency updates to land together. Marin invokes Harbor through a\nsubprocess; ordinary workspace environments do not install it.\n\nImport the runtime from Harbor revision\n`9d099696a567f489a111dc7e3c61183c98f007f0`. Retain agents, environment\nproviders, verification, archives, telemetry, and acquisition of\nprebuilt task datasets. The Tau3 relay resides with runtime agents.\nRemove benchmark generators and their development tooling, inputs,\nlocks, and tests, along with the website, results viewer, benchmark\npublishing, hosted result sharing, and unused registry snapshot.\nPrebuilt datasets remain available through Hugging Face, the Harbor\nregistry, and local task trees.\n\nAll Harbor launches execute the checked-out source. Historical cohort\nmetadata continues to validate saved records. Evaluation provenance\nrecords a combined source digest for Harbor, its Marin driver, and local\nRigging and FineStore dependencies alongside the Harbor lock digest. CI\nchecks the independent lock for freshness.\n\nPreserve packaged runtime assets in Iris bundles and exclude vendored\nunit tests by default.\n\nRelated incident: [TPU CI runner\ndeletion](https://marina.oa.dev/echo/wiki/793).\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "3d2fd52791f480c0510bf354c5f785013ffef001",
+      "url": "https://github.com/marin-community/marin/commit/3d2fd52791f480c0510bf354c5f785013ffef001",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-20T18:13:51Z",
+      "committed_at": "2026-10-20T18:13:51Z",
+      "message": "[ci] Restrict Levanter TPU tests with explicit markers (#9867)\n\nRestrict Levanter TPU CI to affected tests explicitly marked `tpu` to\nreduce repeated CPU coverage within the lane's time budget. Discover\nmarkers without importing test dependencies, then let pytest select\nmarked cases within those files. CPU test selection and default safety\nexclusions remain unchanged. Retain packed-segment isolation coverage\nthrough Splash attention by marking its TPU-only parameter.\n\nThe initial [TPU CI\nrun](https://github.com/marin-community/marin/actions/runs/37589646549/job/112688033313)\ntook 8 minutes 12 seconds for tests and 10 minutes 10 seconds including\nsetup.",
+      "sha": "dffcd12e3584a40bf369108dbb3e86c73f9ccf65",
+      "url": "https://github.com/marin-community/marin/commit/dffcd12e3584a40bf369108dbb3e86c73f9ccf65",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-20T17:39:14Z",
+      "committed_at": "2026-10-20T17:39:14Z",
+      "message": "[eval] Check in the September evaluation campaign (#9569)\n\nCheck in the model, evaluator, and launcher configurations for the\nSeptember 2026 evaluation campaign, together with the runtime fixes\nneeded for serving, retry, resume, and coverage. The launcher validates\nexternal pins, writes immutable effective-config snapshots, and accepts\nan optional submitter-controlled version label. That label does not\nattest policy conformance.\n\nHarbor results are bound to the full model and hosted judge\nconfigurations, dataset, policy, runtime, and task limit. Resume checks\nthis identity before submission and reuse. A changed checkpoint under\nthe same served name is rejected, as are existing roots without\nmodel-bound provenance. Recovery retries known infrastructure failures\nand unscored trials while retaining scored outcomes and unknown errors.\n\nThe frozen Harbor runtime pins 94b118022fe3e677784a638daf33d57a836fa5fe\nand includes the Tau3 adapter. The Evalchemy lock and generated pin\nmatch Marin's external dependency configuration.\n\nSWE-bench uses the native Mini-SWE adapter from merged [Harbor\n#232](https://github.com/marin-community/harbor/pull/232) and\n[#233](https://github.com/marin-community/harbor/pull/233). Its\n32,768-token context includes the prompt and reply together. Mini-SWE\ncounts the rendered prompt through the serving tokenizer, including\ntools and the generation prefix, and caps the reply within the remaining\nbudget and server window. Harbor loads Mini-SWE's base configuration\nbefore applying overrides and selects its batch agent, which saves the\ntrajectory on context exhaustion without prompting. Harbor can then\nverify the existing patch.\n\nSotopia uses the packaged agent from merged [Harbor\n#231](https://github.com/marin-community/harbor/pull/231). Judge\nfailures become verifier infrastructure errors. The Marin agent wrappers\nand their harness dependencies are removed. Sotopia's native generation\nstill does not enforce its declared context budget, so those results\ncannot establish conformance to the 32K context policy.\n\nPart of #9566.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Benjamin Feuer <penfever@gmail.com>\nCo-authored-by: William Held <will.held@openathena.ai>\nCo-authored-by: Helw150 <wbh230@nyu.edu>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "6885cabd456787794551a2e41fbff99188fedd37",
+      "url": "https://github.com/marin-community/marin/commit/6885cabd456787794551a2e41fbff99188fedd37",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-20T17:38:11Z",
+      "committed_at": "2026-10-20T17:38:11Z",
+      "message": "[haliax] Let ragged_dot pick a Triton kernel family explicitly (#10099)\n\n`ragged_dot` accepts `implementation=\"triton_group_grid\"` and\n`\"triton_tile_map\"`, which run one Pallas-Triton kernel family whatever\nthe GPU. `RAGGED_DOT_IMPL` takes the same values, which is how the MoE\nlayers select it. `\"triton\"` and `\"auto\"` keep the per-GPU default:\ntile-map on AMD Instinct, Hopper and data-center Blackwell, and\ngroup-grid on every other GPU, such as A100, L4, A6000 and consumer\nBlackwell (sm_120). Neither family has been measured on those GPUs, so\ntheir default does not change.\n\nTile-map on those GPUs, which this opt-in now allows, used the\ngroup-grid blocks (128x128x32, 4 warps, 4 stages). On H100 those blocks\nmade tile-map 0.78-0.89x of group-grid at the Mixtral-like shape (G=8,\n4096x14336) at M=16384. A sweep of 96 configs on H100 picked one config\nper layout among configs whose operand stages fit in 99 KiB of shared\nmemory. 99 KiB is the per-block limit on sm_86, sm_89 and sm_120; A100\nallows 163 KiB. Per call in bf16, against group-grid with its own\nblocks:\n\n| Layout | Blocks (m x n x k), warps, stages, group_m | June, G=32,\nM=16k and 128k | Mixtral-like, G=8, M=16k and 64k |\n|---|---|---|---|\n| fwd | 128x256x32, 8, 4, 8 | 1.12-1.16x | 1.18-1.83x |\n| dlhs | 128x256x32, 8, 4, 1 | 1.21-1.59x | 1.39-2.22x |\n| drhs | 128x128x32, 4, 3, 8 | 1.00-1.08x | 1.03-1.18x |\n\nThe Iris jobs are `/dev/ragged-dot-group-grid-vs-tile-map` and\n`/dev/ragged-dot-generic-config-sweep`, both on H100. The 1.83x and\n2.22x peaks come partly from group-grid slowing down once a group's rows\nexceed L2 (`/dev/ragged-dot-group-grid-l2-cliff`), which a separate PR\nwill address. In the same grid, the tuned H100 configs remained the\nbest, so this PR leaves the tuned tables unchanged.\n\nThe ragged_dot tests pass on one H100 (43 passed, 30 f32 cases skipped\nfor TF32; `/dev/ragged-dot-family-opt-in-tests-3`) and in the CPU\ninterpreter. A new GPU test checks the value and gradients of each\nexplicit family against XLA.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "173393955ba64243f88578de2689ded17a8cd3dd",
+      "url": "https://github.com/marin-community/marin/commit/173393955ba64243f88578de2689ded17a8cd3dd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-10-20T16:10:08Z",
+      "committed_at": "2026-10-20T16:10:08Z",
+      "message": "[shellbox] Run local commands below their host process's CPU priority (#10156)\n\nLocal sandbox commands now start at niceness 10 above the host process,\nso\nCPU-bound commands compete less with the process that drives their\nmachines.\nWith the local backend, solver and grader commands run in the\ncoordinator's\nown pod. In a Taskforge validation run on cw-rno2a, sandbox and ShellSim\nstarts\nin a 4-CPU coordinator grew to 5-32 s while long CPU-bound solver\ncommands\nran. With 16 busy-loop commands pinned to two CPUs, creating and running\na new\nmachine took 484 ms at p50 and 916 ms at p99 at equal priority, and 360\nms and\n383 ms with this change. Sizing the coordinator's CPU request stays the\nmain\nremedy.\n\nThe local-machine suite passes as root on cw-rno2a under the PRIVILEGED\nprofile (35 passed, 2 skipped after merging main), except\n`test_a_python_environment_runs_its_own_interpreter_and_locked_packages`,\nwhich also fails on main there (offline resolution with a fresh uv\ncache). Part of #10119.",
+      "sha": "9ef4c34173b4af013178e64c753c5456098f298f",
+      "url": "https://github.com/marin-community/marin/commit/9ef4c34173b4af013178e64c753c5456098f298f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-10-20T16:04:24Z",
+      "committed_at": "2026-10-20T16:04:24Z",
+      "message": "[shellbox] Let local machines write system directories copy-on-write (#10155)\n\nLocalMachineFactory takes\nsystem_directories=SystemDirectories.COPY_ON_WRITE,\nwhich overlays /usr, /bin, /sbin, /lib*, /etc and /opt in each machine\nwith a\nwritable layer of its own. Commands see the host's files plus their\nmachine's\nwrites; the writes persist across that machine's commands, close()\ndiscards\nthem, and the host never changes. The default stays READ_ONLY.\n\nGenerated Taskforge tasks that write under /opt (a seeded generator\nwritten by\na setup command, task resources shipped there) failed on the local\nbackend and\npassed in gVisor. With this mode they run locally.\n\nFiles the host mounts inside an overlaid directory are bound back\nread-only\nafter the overlay, because overlayfs shows only the directory's own\nfilesystem; without this, a Kubernetes pod's /etc/resolv.conf and\n/etc/hosts\nwould revert to the image's copies. The workdir may lie in an overlaid\ndirectory, and upload and download there, like an upload to /, go\nthrough the\nsandbox as a tar stream so they see the machine's layer. These transfer\ncommands run in a fixed environment that MachineSpec.env does not\nchange, and\nthe downloaded stream is treated as untrusted: it must start with a\nregular\nfile or directory, hard links must stay inside it, and devices are\nrefused. A\ndownload of / from a copy-on-write machine is refused. The factory's\nstartup probe mounts\nthe overlays, so a host without overlayfs, or with a temporary directory\non\noverlayfs, raises SandboxUnavailable. Writes keep file permissions, so\nchanging\nroot-owned directories needs a root host process, as on Iris under the\nPRIVILEGED profile.\n\nOn cw-rno2a, the layer adds no measurable cost per command (18.1 ms with\n/opt, /usr and /etc overlaid, 18.2 ms without), and two concurrent\ncommands of\none machine share its layer correctly.\n\nThe local-machine suite passes as root on cw-rno2a under the PRIVILEGED\nprofile, except\n`test_a_python_environment_runs_its_own_interpreter_and_locked_packages`,\nwhich also fails on main there (offline resolution with a fresh uv\ncache). The copy-on-write tests skip on non-root hosts. After the review\nfixes, the local-machine suite gave 34 passed, 2 skipped and that same\nfailure as root on cw-rno2a. Part of #10119.",
+      "sha": "52b8b1adf4d8db34deb185bef4901e62d14550ad",
+      "url": "https://github.com/marin-community/marin/commit/52b8b1adf4d8db34deb185bef4901e62d14550ad",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "gonzalobenegas",
+      "author_name": "Gonzalo Benegas",
+      "authored_at": "2026-10-20T13:49:07Z",
+      "committed_at": "2026-10-20T13:49:07Z",
+      "message": "Acquire pinned Harbor Hub releases through the curation cache (#10198)\n\nAcquire pinned Harbor Hub releases through the existing cached\nsource-download stage. Preserve each task's original archive bytes,\nverify its extracted contents with Harbor's native content hash, and\nrecord the resolved task references in a release manifest.\n\nThe Hub client is bundled with the Harbor evaluation framework. This\nimplementation reuses Marin's pinned, isolated Harbor environment and\ncommand builder. Acquisition itself does not run agents or graders.\n\nLike HF acquisition, download the complete release before curation\nsampling and retain native files for dataset-specific parsing.\nHarborHubSource uses the existing read(StoragePath, ConversionContext)\ncallback, download cache, and local-input overrides. Retries reuse\ncompleted archives. Cache identity includes the release, acquisition\ncode, and pinned Harbor commit. Harbor resolves release membership;\nper-task content verification is independent of that resolution.\nDataset-level scoring files remain unsupported.\n\nSeven focused cases pass locally. Pipeline tests run in ordinary CI; the\nthree SDK-dependent acquisition cases run manually in the pinned Harbor\nenvironment and skip in ordinary CI. A live smoke test downloaded the\npinned Skill2Env task task_api-design-reviewer_jdkbai64, verified its\nnative content hash, and read the resulting archive through the existing\npipeline custom-reader interface, producing one row with the task\nprompt. This validates acquisition and reading for one task;\nfull-release acquisition, remote-storage acquisition, runnable\nconversion, and grading were not exercised by this smoke test.\n\nPart of #9630.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "22e29179376ec59f1499392df9156562a734e09a",
+      "url": "https://github.com/marin-community/marin/commit/22e29179376ec59f1499392df9156562a734e09a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-20T13:13:42Z",
+      "committed_at": "2026-10-20T13:13:42Z",
+      "message": "[ops] Document separate Daytona credentials for validation builds (#10331)\n\nUse the Daytona eval account for validation tasks that need declarative\nimage builds. Keep training on the RL account and forward the separately\nnamed validation credential through the coordinator and task launcher.\nClassify build-permission failures as infrastructure errors.\n\nExtracted from #10190. Part of #10305.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "f6ab2caaf98f51641e4fa5342af9a939a1cbb65b",
+      "url": "https://github.com/marin-community/marin/commit/f6ab2caaf98f51641e4fa5342af9a939a1cbb65b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-20T02:40:16Z",
+      "committed_at": "2026-10-20T02:40:16Z",
+      "message": "[grug] Update context-sharding tests for the local token flatten (#10313)\n\nAfter #10145, each device flattens its own block of rows and sequence\nshard. Under context parallelism, expert-parallel group `c` now holds\nsequence shard `c` of all rows. Before, it held the whole rows `c` and\n`c + 2`. Three tests in `tests/test_moe_context_sharding.py` compared\nagainst the old layout, and `unit (marin 3/3)` failed on main at\nfe4c536df. The references now give each device the same tokens in the\nsame local order as the context mesh. The updated tests fail against the\nmodel before #10145.\n\nThe CI test selector reads only module-level imports. These tests and\n`experiments/grug/moe_hero_ep/test_context_parallel.py` import the hero\nmodel only in a subprocess script, so the CI for #10145 did not run\nthem. A module-level import in each file now records that dependency.\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "5ec80e71242485b353b1f4556d3d68eb0a4dddf5",
+      "url": "https://github.com/marin-community/marin/commit/5ec80e71242485b353b1f4556d3d68eb0a4dddf5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-20T00:46:38Z",
+      "committed_at": "2026-10-20T00:46:38Z",
+      "message": "[rolloutengine] Run managed agents on chat endpoints (#10264)\n\nManaged agents can now run on chat endpoints through one `run_task`\ncall. A registered harness is the agent program, the model is its\nendpoint, and a task with `NoGrader` holds open-ended work. This is part\nof #10165.\n\n`ChatModel` in `rolloutengine.chat` uses `TraceMode.MESSAGES` with an\nOpenAI-compatible chat endpoint, such as vLLM, SGLang, or GLM. Prompt\noptions replace its `max_tokens` and `extra_body` keys. The `model`,\n`messages`, `stream`, and `n` fields are reserved, including within\n`extra_body`. A response without `usage` fails one model attempt instead\nof raising a `RolloutContractError` that stops the caller. The next\nrequest sends back only `role`, `content`, `tool_calls`, and\n`reasoning_content`; a refusal goes into `ModelTurn.metadata`.\n\n`HarnessContext` now holds `limits` so an `AgentHarness` program can\nread them without a `ModelSession`. Three failure paths are corrected:\n`check` rejects `output_paths` without a task machine, which previously\nproduced `outputs={}` without an error; an agent that ends with a\n`CancelledError` before the engine stops it, for example from a\ncancelled child task or a cancel of its own task, fails its attempt\ninstead of making `run_task` raise `CancelledError` (in #10203, a cancel\nof the agent task by another task propagated); and `RolloutInterrupted`\nand `GradedRolloutInterrupted` survive pickling with their rollout,\noperation, and grade. `RolloutFailure.diagnostics` also retains the\nerror message and notes that pickle drops. Previously, Zephyr replaced\nthe exception with a `ZephyrWorkerError` retaining only its type and\nmessage.\n\n`docs/references/task-rollouts.md` now has a short “Run an agent”\nsection.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10264#issuecomment-6263236373)\n<!-- marin-prose-cleanup -->\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "fe4c536dfdc2f9ca8c3a3ac077dcc4e635a26de8",
+      "url": "https://github.com/marin-community/marin/commit/fe4c536dfdc2f9ca8c3a3ac077dcc4e635a26de8",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-21T00:00:00Z",
+    "start": "2026-10-20T00:00:00Z"
+  }
+}

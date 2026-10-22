@@ -1,0 +1,307 @@
+{
+  "commit_count": 27,
+  "commits": [
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-21T23:57:15Z",
+      "committed_at": "2026-10-21T23:57:15Z",
+      "message": "[harbor] Pin mini-SWE LiteLLM to a verified release (#10466)\n\nPin LiteLLM to 1.103.5 when Harbor installs mini-SWE-agent in a sandbox.\nThe previous install left LiteLLM's transitive version unconstrained, so\na fresh sandbox could resolve the compromised 1.107.0 release published\non October 21, 2026.\n\nThe selected version predates the compromised release and has been used\nsuccessfully with mini-SWE-agent in Marin. This change protects future\ninstalls; existing sandboxes and credentials require separate incident\nresponse. The [incident record](https://marina.oa.dev/echo/wiki/829)\ntracks the suspected jobs and unresolved IP attribution.\n\nThe affected Harbor test suite passed (974 tests), and the branch passed\nthe repository lint checks and advisory review.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "bf3bb61ace44df59c7b5dffa0a30f210df8f06ed",
+      "url": "https://github.com/marin-community/marin/commit/bf3bb61ace44df59c7b5dffa0a30f210df8f06ed",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-21T23:50:36Z",
+      "committed_at": "2026-10-21T23:50:36Z",
+      "message": "[taskforge] Make GlmClient picklable and usable in each event loop (#10396)\n\nA pickled `GlmClient` now holds only its endpoint source and provider\nconfig, so code can send a client to Zephyr workers, and each copy opens\nits own connections there. Before, `pickle.dumps(GlmClient(...))` raised\n`TypeError: cannot pickle '_thread.RLock' object`, because the httpx\npool holds locks.\n\nThe client also opens one httpx pool for each event loop that uses it,\nand it drops the pools of closed loops. A Zephyr function is\nsynchronous, so it starts each model call with `asyncio.run`, and an\nhttpx pool from a closed loop fails on its next kept-alive connection\nwith `RuntimeError: Event loop is closed`. `__aexit__` closes the pool\nof the running loop, and each loop's SDK client moves to a new endpoint\nat its next request, as before.\n\nWith this change, the failed-run analysis of #10265 can take a\n`ModelClient` and drop its client factory. The two new tests fail on\nmain: one at the pickle, and one with \"Event loop is closed\" on a\nkept-alive connection.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "9445f95deb7344cdc28ea228838279dcfedf9b31",
+      "url": "https://github.com/marin-community/marin/commit/9445f95deb7344cdc28ea228838279dcfedf9b31",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-21T23:23:37Z",
+      "committed_at": "2026-10-21T23:23:37Z",
+      "message": "[rl] Enable explicitly configured local task backends (#10455)\n\nPreserve explicit empty task-backend mappings during configuration\ncomposition, allowing `environment.task_sessions.local: {}` to enable\nShellbox's local machine factory. Omitted or null configuration disables\nit. Construct the factory directly and preserve Shellbox's\n`SandboxUnavailable` error when the host cannot run its sandbox.\n\nInclude the backend configuration adapter in the runtime bundle and\ninstall the CPU dependency extra for the host launcher. Pass explicitly\nconfigured Iris container profiles to both coordinator and trainer\nlaunches.\n\nUse the published Shellbox build containing #10328 so importing the\nlocal backend works on non-Linux hosts. All 57 focused configuration,\nlauncher and bundle tests pass with the frozen lock. Actual Linux\nsandbox execution remains unqualified.\n\nPart of #10314.",
+      "sha": "898be1dfb978f4b5f71fa3aac4c675cec916260b",
+      "url": "https://github.com/marin-community/marin/commit/898be1dfb978f4b5f71fa3aac4c675cec916260b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-10-21T22:54:56Z",
+      "committed_at": "2026-10-21T22:54:56Z",
+      "message": "[hero] Sample vibe-check completions at temperature 0.7 from step 270k (#10224)\n\nRaise the hero checkpoint completion sampling temperature from 0.2 to\n0.7 and\nbump the sampler release to hero-native-v6-temperature-0.7, so the\nreport labels\nand sorts the new samples separately from earlier results.\n\n0.2 was giving overly repetitive responses. A one-off sample at 1.0 on\nstep 270k\n(release hero-native-v5-temperature-1) was tried first; 0.7 sits between\nthe two.\n\nA spec change re-identifies every sample request, so discovery now skips\ncheckpoints before FIRST_SAMPLED_STEP (270k) instead of backfilling the\nfull\nlineage. Earlier releases keep their results in the report.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "df7ee51e3d136150f6474e0f1df80d8557d4f67b",
+      "url": "https://github.com/marin-community/marin/commit/df7ee51e3d136150f6474e0f1df80d8557d4f67b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-21T22:31:21Z",
+      "committed_at": "2026-10-21T22:31:21Z",
+      "message": "[fsutil] Add remote transfers and private HF destinations (#10441)\n\nAdd `--remote` to `fsutil cp` and `mv` to run transfers as CPU jobs on\n`cw-us-east-02a` and stream their logs through Iris. Forward Hugging\nFace credentials through the job environment.\n\nUse Hugging Face's native `hf://` paths: `hf://owner/repo/...` and\n`hf://models/owner/repo/...` select model repositories, while\n`hf://datasets/...` and `hf://buckets/...` select datasets and buckets.\nCreate missing HF buckets and repositories privately before transfer\nplanning so `HfFileSystem` does not retain a cached \"not found\" result.\nReject copies onto the same HF file when URLs use either model form or\nomit the default `main` revision.\n\nDeclare private `open-athena/marin` bucket creation in the manually\noperated `marin-buckets` Pulumi stack. Protect the creation resource and\nretain the bucket when that resource is removed after unprotection.\nCreation uses the operator's Hugging Face credentials and requires\npermission to create buckets under `open-athena`.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "69b68eb43974b25c99069e4be524c03c7477eb11",
+      "url": "https://github.com/marin-community/marin/commit/69b68eb43974b25c99069e4be524c03c7477eb11",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-10-21T22:10:38Z",
+      "committed_at": "2026-10-21T22:10:38Z",
+      "message": "[iac] Grant Marin Dev and Pulumi operator access to a new developer (#10451)\n\nGrant `projects/hai-gcp-models/roles/marindev` and\n`projects/hai-gcp-models/roles/marinPulumiAdmin` on `hai-gcp-models` to\none\nnewly registered, KMS-encrypted human principal. The developer will work\non\nMarin and operate the `marin` GCP Pulumi stack from their organization\naccount;\nthe same person already holds both roles on a separate personal account.\nExisting OpenAthena domain policies already admit the account through\nIris IAP.\n\nA grant approver should run `review-grant` to confirm the decrypted\nprincipal\nand roles, then merge and run `pulumi up` on the `marin` stack.\n\n(asking for a friend)",
+      "sha": "760268b1552f554466e864540954653d8cfd56b5",
+      "url": "https://github.com/marin-community/marin/commit/760268b1552f554466e864540954653d8cfd56b5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-21T21:35:11Z",
+      "committed_at": "2026-10-21T21:35:11Z",
+      "message": "rolloutengine: let a shell harness set the output limit of each command (#10442)\n\nAdd `ShellHarness.output_limit_bytes` to limit the stdout and stderr\nreturned to the model by each shell command. The default remains\n`DEFAULT_MACHINE_OUTPUT_LIMIT_BYTES` (1 MiB), preserving the training\nharness truncation chosen in #10184. A harness that runs an agent for\nits results can set a lower limit.\n\nOne MiB of text is about 250,000 tokens, roughly the full GLM context\nwindow. In a 30-idea run of agentic Taskforge, a build program printed\nan entire TaskSpec. The next request overflowed the context window and\nended the session.\n\nThe harness refuses an `output_limit_bytes` of 0 or less, because\nShellSim slices a stream with a negative limit and returns almost all of\nit. `docs/references/task-rollouts.md` documents the parameter and its\ndefault.\n\nThis branch also holds #10443, which merged into it: `CapabilityIdea`,\n`capability_idea_record` and `FILE_SAFE_ID` move from\n`experiments/post_training/capability_driven_envs/catalog.py` to\n`taskforge.capability`, so that a generator in the library can take an\nidea as input. The behavior does not change.\n\nPart of #10152.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10442#issuecomment-6326181328)\n<!-- marin-prose-cleanup -->\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "e524e9e12773de7be3f1e7fd8fc80c8d356ef275",
+      "url": "https://github.com/marin-community/marin/commit/e524e9e12773de7be3f1e7fd8fc80c8d356ef275",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-21T21:24:31Z",
+      "committed_at": "2026-10-21T21:24:31Z",
+      "message": "[SkyRL] Share BF16 checkpoint records with FP32 master weights (#10437)\n\nDeduplicate BF16 model weights against their synchronized FP32 optimizer\nmasters in Megatron S3 checkpoints. Both logical names reference one\nstored FP32 record. Full training restores load masters and moments\nonce, then cast masters into BF16 model buffers and synchronize\ndistributed parameter shards. Model-only restores read the shared\nrecords and cast them to BF16.\n\nBuffers and weights without matching model-space masters retain separate\nrecords. For matching BF16 parameters with FP32 masters and Adam\nmoments, tensor storage and full-restore reads fall from 14 to 12 bytes\nper parameter: about 14%, or 134 GB for a 939 GB checkpoint with this\nlayout. Model-only loads read FP32 records, twice the weight bytes of a\nBF16-only copy.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "a78a660c7a1e672809b2a23fb1e1b3767838af46",
+      "url": "https://github.com/marin-community/marin/commit/a78a660c7a1e672809b2a23fb1e1b3767838af46",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-21T21:10:54Z",
+      "committed_at": "2026-10-21T21:10:54Z",
+      "message": "[rl] Preserve per-job container profiles through launch\n\nCarry an explicitly selected Iris container profile through the RL coordinator request and serialized trainer launch configuration. Nested sandbox graders can use the selected per-job profile for both the coordinator and trainer; unset profiles preserve the existing launch document and Iris defaults.\n\nPart of #10314.",
+      "sha": "7701723cf590e2d5b27961f7aa5c58d42db5bc65",
+      "url": "https://github.com/marin-community/marin/commit/7701723cf590e2d5b27961f7aa5c58d42db5bc65",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-21T21:10:10Z",
+      "committed_at": "2026-10-21T21:10:10Z",
+      "message": "Preserve Harbor scores during inline rollout grading (#10363)\n\nPreserve Harbor reward values when inline rollout grading converts trial\nresults into training records. Missing scores remain distinguishable\nfrom valid zero scores.\n\nTransplanted from\nhttps://github.com/marin-community/MarinSkyRL/pull/1008 by @penfever.\nOriginal discussion and reviews remain at that URL.\n\nSource base: `d361d939926a0308a0892f25adbbe851e709de34`; source head:\n`98de86b3fe22c9aaa1a0f50621cc3195484179ed`.\n\n<!-- skyrl-migration: source=marin-community/MarinSkyRL#1008\nhead=98de86b3fe22c9aaa1a0f50621cc3195484179ed -->\n<!-- skyrl-port-patch:\n98841093feeab00553835d87304e7b0e56dc3d1e0912ea52271a527cbe5e7ff9 -->\n<!-- skyrl-destination: b60712cdfa96b8c66547a9b0e744e393d0603771 -->\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "20bf09c89f507e1e3c1f0c425619898cc2db3ac0",
+      "url": "https://github.com/marin-community/marin/commit/20bf09c89f507e1e3c1f0c425619898cc2db3ac0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-21T20:47:12Z",
+      "committed_at": "2026-10-21T20:47:12Z",
+      "message": "[TaskCompendium] Add optional terminal ejection submissions (#9614)\n\nAdvertise an optional terminal `eject_button(reason)` alongside normal\nsubmission, with identical visible tools and instructions for solvable\ntasks and tasks explicitly classified as unsolvable. Ejection earns\nreward 1 only for the private unsolvable classification; ordinary\nanswers on those tasks and mistaken ejections earn 0. Retain the reason\nwithout scoring its prose. Reject mixed ejection/answer batches and any\nlater interaction after ejection. Runtime infrastructure failures\nproduce an error result without a reward.\n\nStore the private classification in the shared VerifyIT `unsolvable`\nmode. Use TaskCompendium schema version 0.28 to preserve the original\ntask context and normal answer presentation; required calls and\ncall-count limits continue to apply to ordinary native-action answers.\nThe episode runtime records terminal submissions without executing their\ncalls. Callers explicitly mark confirmed unsolvable tasks; unsupported\nruntimes and missing evidence do not establish unsolvability. No model\nperformance evaluation was run.",
+      "sha": "4b59bdb6b52d5d5b19f664b63df4fb65ce368bc3",
+      "url": "https://github.com/marin-community/marin/commit/4b59bdb6b52d5d5b19f664b63df4fb65ce368bc3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-21T20:24:47Z",
+      "committed_at": "2026-10-21T20:24:47Z",
+      "message": "[iris] Show unreachable peers in queued job status (#10434)\n\nReport an unreachable federation peer in the pending reason for jobs\npinned to it. Omit the peer's stale free-capacity metric from\n`ListPeers` until a successful heartbeat, while retaining last-known\nbackend shapes for shape matching.\n\nOn `cw-rno2a`, the controller's capability RPC still timed out while its\n`/health` endpoint responded. The controller and finelog also reported\nCoreWeave object-storage write suspension; the relation to the RPC\ntimeout remains unconfirmed. The [incident\nnote](https://echo.oa.dev/wiki/820) records the evidence and recovery\nchecks.\n\nThe full safe Iris suite passed (2,922 tests) on current main, and\nrepository lint passed.\n\nPart of #10433\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "dff2ebc85aecaa32b5326d18585397fcca6c07ef",
+      "url": "https://github.com/marin-community/marin/commit/dff2ebc85aecaa32b5326d18585397fcca6c07ef",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-21T20:23:57Z",
+      "committed_at": "2026-10-21T20:23:57Z",
+      "message": "[shellbox] Resolve test packages before enabling offline mode (#10438)\n\nAllow the first package-backed machine creation to resolve requirements\nonline, then disable uv network access before creating a second machine\nwith a fresh factory. The offline-reuse test previously disabled network\naccess before its initial resolution, so it failed on clean CI caches\neven after the fixture installed the same wheel from a hash lock.\n\nPreserve the checks that the second factory reuses the resolved Python\nenvironment and starts with a fresh machine filesystem.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "76de140824f8112c4925600ad640def056f9ddd6",
+      "url": "https://github.com/marin-community/marin/commit/76de140824f8112c4925600ad640def056f9ddd6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-21T20:18:04Z",
+      "committed_at": "2026-10-21T20:18:04Z",
+      "message": "[iris] Bound bundle uploads and pin CoreWeave controllers (#10436)\n\nBound launch payload persistence to 30 seconds across the bundle lock,\nexistence check, and upload. Cancel a stalled asynchronous upload and\nreturn an `unavailable` job creation error before inserting the new job.\nThis prevents stalled S3 bundle uploads from occupying every controller\nRPC thread.\n\nDeclare `marin-rno2a` through the shared bucket stack with the standard\naccess policy and TTL lifecycle rules, and select it for RNO2A task\noutputs and scratch. Keep existing controller state and Finelog archive\npaths until their referenced objects can be migrated. Persist hostname\npins for the RNO2A, US-EAST-02A, and US-EAST-08A controllers so restarts\nretain their local state disks.\n\nPin the Iris browser smoke job to Ubuntu 24.04 because Playwright 1.57.0\ndoes not support Ubuntu 26.04. Include the Ubuntu version and\narchitecture in its browser cache key.\n\n[Incident record](https://marina.oa.dev/echo/wiki/817).\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "12842c7b970fc7b1d2b0357aed5c47b9757640d3",
+      "url": "https://github.com/marin-community/marin/commit/12842c7b970fc7b1d2b0357aed5c47b9757640d3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-21T19:21:35Z",
+      "committed_at": "2026-10-21T19:21:35Z",
+      "message": "levanter: keep eval metrics between telemetry detail intervals (#10417)\n\nKeep evaluation metrics between telemetry detail intervals.\n`TelemetryTracker` publishes metrics under `eval/`, `labeled_eval/`, and\n`lm_eval/` at every step. At steps outside the detail interval, it\npreviously published only `train_loss`, `phase`, and progress time, so\nevaluation metrics logged at those steps were lost.\n\nThese prefixes are the defaults in `eval.py`,\n`callbacks/labeled_eval.py`, `eval_harness.py`, and `train_dpo.py`. A\nrun with a custom prefix keeps the detail interval. A shared constant\nwould change the defaults of those four modules and is outside this fix.\n\nSplit from #10108.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10417#issuecomment-6310435654)\n<!-- marin-prose-cleanup -->\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "7981e039d40fd991128346225c6ffa950969964e",
+      "url": "https://github.com/marin-community/marin/commit/7981e039d40fd991128346225c6ffa950969964e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-10-21T19:08:46Z",
+      "committed_at": "2026-10-21T19:08:46Z",
+      "message": "[dependencies] Bump certifi to 2026.10.19 (#10435)\n\nBump certifi from 2026.1.4 to 2026.10.19 so marin environments stop\ntrusting the compromised eMudhra root.\n\nOn 2026-10-17, private keys for eight eMudhra intermediate CAs under the\n`emSign ECC Root CA - G3` root were found to be recoverable from their\npublic certificates\n([CVE-2026-111943](https://access.redhat.com/security/vulnerabilities/RHSB-2026-012),\n[Mozilla/Google/Apple\nresponse](https://www.bleepingcomputer.com/news/security/mozilla-google-apple-block-compromised-emudhra-ca-certificates/)).\nMozilla distrusted that root, and certifi 2026.10.19 removes it from the\nCA bundle. Python HTTPS clients that use certifi (requests, httpx, pip,\nhuggingface_hub) ignore the OS trust store, so OS `ca-certificates`\nupdates do not protect them. Until the lock changes, every `uv sync`\nreinstalls the old bundle.\n\nThe new bundle also carries nine months of routine Mozilla root-store\nchanges: 20 other roots removed (including the legacy DigiCert Global,\nAssured ID, and High Assurance EV roots) and 5 added.\n\nThe lock was regenerated with uv 0.13.1 so the diff covers only the\ncertifi entry. uv 0.13.2 and later also rewrite about 600 platform\nmarker lines.",
+      "sha": "2ace346b8332c57fa86a80e6fc2959b920b45112",
+      "url": "https://github.com/marin-community/marin/commit/2ace346b8332c57fa86a80e6fc2959b920b45112",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-21T17:43:11Z",
+      "committed_at": "2026-10-21T17:43:11Z",
+      "message": "fray: pass actor concurrency to Iris actor servers (#10416)\n\nPass `ActorConfig.max_concurrency` from `FrayIrisClient` to the Iris\n`ActorServer` method executor for actor groups and `host_actor`,\nreplacing the fixed 32-thread limit. Long-running actor methods could\nfill those 32 threads and delay control-plane calls such as worker\nheartbeats.\n\nThe inference broker sets `max_concurrency=32` explicitly. The\n`ActorConfig.max_concurrency` default is 1, so an Iris actor that does\nnot set it now runs one method at a time, as specified by the Fray\ncontract and Ray backend. On main, every `create_actor_group` caller\nsets it: the Zephyr coordinator and workers use 100, and the inference\nbroker uses 32 in this PR.\n\nSplit from #10108.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10416#issuecomment-6310450822)\n<!-- marin-prose-cleanup -->\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "52f752926734e95505ce26cf9ee136859dd5bcab",
+      "url": "https://github.com/marin-community/marin/commit/52f752926734e95505ce26cf9ee136859dd5bcab",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-21T17:40:50Z",
+      "committed_at": "2026-10-21T17:40:50Z",
+      "message": "[harbor] Classify Daytona SDK failures as infrastructure (#10408)\n\nClassify the Daytona SDK's base DaytonaError as an infrastructure\nfailure. Harbor can persist this name after a session creation failure;\nMarin currently treats it as taxonomy drift and marks the whole\nevaluation infra_failed before applying its completion gate.\n\nThe reported TBLite-100 run scored 93 of 100 trials, above the 90% gate,\nand had mean reward 0.146 in harbor_result.json. An otherwise eligible\nrun can now retain that aggregate with the failed trial unscored. The\nexisting record requires replay to acquire metrics.\n\nFixes #10407\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "d90425c5ef90eb7f2a63c2433174d7b7d2067e33",
+      "url": "https://github.com/marin-community/marin/commit/d90425c5ef90eb7f2a63c2433174d7b7d2067e33",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-21T17:01:10Z",
+      "committed_at": "2026-10-21T17:01:10Z",
+      "message": "[skyrl] Accept equivalent boxed math fractions (#10352)\n\nNormalize TeX fraction commands and parse an outer minus sign before\nexact rational comparison. This prevents false-negative rewards for\nequivalent symbolic and negative boxed fractions while preserving\nunequal-answer rejection.\n\nTransplanted from https://github.com/marin-community/MarinSkyRL/pull/867\nby @penfever. Original discussion and reviews remain at that URL.\n\nSource base: `d2bfac28720314c754ce970da0e55b99528fe730`; source head:\n`fe35087f694e3c23f1bc93583baeee5e909ba16d`.\n\n<!-- skyrl-migration: source=marin-community/MarinSkyRL#867\nhead=fe35087f694e3c23f1bc93583baeee5e909ba16d -->\n<!-- skyrl-port-patch:\n38da9ce3e1d38bb39a8893a887479e15127664f0d1a6376bd4b5b38bb22ebae5 -->\n<!-- skyrl-destination: e74638d892edfc870ad5c6005eb7c512092be244 -->\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "e5f196574973f65392ba25f2aabd77b159c63643",
+      "url": "https://github.com/marin-community/marin/commit/e5f196574973f65392ba25f2aabd77b159c63643",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-21T16:31:39Z",
+      "committed_at": "2026-10-21T16:31:39Z",
+      "message": "[iris] Charge budgets to the job owner (#10401)\n\nCharge spend and enforce budget limits under `jobs.user_id`, matching\njob counts in the dashboard. Previously, counts used the job owner while\nspend and limits used the authenticated submitter. Counts and spend\nappeared under different identities, and owner-based budget overrides\ndid not apply.\n\nAdmins can charge work to the owner they choose. Non-admin top-level\nsubmissions still use the authenticated identity as their owner.\nFederation authorization continues to use `jobs.submitting_user`. Spend\nremains local to each cluster.\n\n[Diagnosis](https://marina.oa.dev/echo/wiki/809).",
+      "sha": "ef434a11a548d0df04a0be801267ac03031184c0",
+      "url": "https://github.com/marin-community/marin/commit/ef434a11a548d0df04a0be801267ac03031184c0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-21T07:13:02Z",
+      "committed_at": "2026-10-21T07:13:02Z",
+      "message": "[moe] Speed up d1280 baseline cross entropy backward (#9561)\n\nSelect Levanter's existing `xla_fast_bwd` fused cross-entropy backend\nfor the hidden-width 1280 baseline MoE heuristic. Other widths keep the\ndefault backend. The forward loss and attention configuration match the\ncurrent baseline.\n\nIn matched 32-step runs with hidden width 1280, batch size 256, sequence\nlength 4096, and TPU v4-32, median throughput over steps 10–30 rose from\n[161,468 tokens/s with the default\nbackend](https://wandb.ai/marin-community/marin_moe/runs/moe_baseline_ce_probe_d1280_issue9529_main_ce_control_a)\nto [166,723 tokens/s with fast\nbackward](https://wandb.ai/marin-community/marin_moe/runs/moe_baseline_ce_probe_d1280_issue9529_main_ce_fast_b),\na 3.25% gain. Both runs finished on JAX 0.11.1 and libtpu 0.0.46. Final\ntraining loss was 8.977 for control and 8.984 for fast backward; these\nshort runs do not establish long-run quality. A small-model test checks\nexact loss equality and projection and embedding gradient agreement\nwithin 1e-5.\n\nPart of #9529.",
+      "sha": "af9c6789e878bed1a6fc9513232bcfc54ac73b3a",
+      "url": "https://github.com/marin-community/marin/commit/af9c6789e878bed1a6fc9513232bcfc54ac73b3a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-21T07:11:20Z",
+      "committed_at": "2026-10-21T07:11:20Z",
+      "message": "Add harbor launch configs for the cybersecurity safety suites (#10256)\n\nAdd one launch config per ported cybersecurity suite for the evaluation\nlaunch CLI: AgentHarm, AgentThreatBench, AgentDojo, InterCode-CTF, 3CB,\nCybench, CVE-Bench, GDM in-house CTF, CyberSecEval 2 (judge suites and\nvulnerability_exploit), and CyberSecEval 4 (threat_intelligence, mitre,\nmitre_frr, multilingual prompt injection). Each points at the task-dir\ndataset published on the Hugging Face Hub for its suite and pins the\nretry\npolicy that keeps Daytona DinD dockerd flakes (\"Cannot connect to the\nDocker daemon\", a bare RuntimeError) from failing a whole run; before\nthis,\none flake class outside the default retry taxonomy could kill an eval\nafter\nminutes.\n\nThe judged suites declare their complete verifier env. Harbor resolves\nevery\nenv placeholder a task toml declares strictly, so the configs must name\nOPENAI_API_KEY, OPENAI_BASE_URL, JUDGE_MODEL, and the per-suite extras\n(REFUSAL_JUDGE_MODEL, EXPANSION_MODEL). They route the judge through\nTogether's OpenAI-compatible endpoint with gpt-oss-120b because the\npaper\ngpt-4o judges need an OpenAI credit path we do not have; swapping back\nis a\nthree-line edit per config.\n\nAll fourteen configs ran live on cw-rno2a against Qwen3.6-35B-A3B and\nproduced the baseline scores recorded in the cybersecurity tracker. The\nadapters that generate these task datasets are in the companion harbor\nPR.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "431d4083110f3c6fa36c7eda6783cf0c7ad17223",
+      "url": "https://github.com/marin-community/marin/commit/431d4083110f3c6fa36c7eda6783cf0c7ad17223",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-21T04:46:39Z",
+      "committed_at": "2026-10-21T04:46:39Z",
+      "message": "[finestore] Retry schema publication after an in-flight conflict (#10413)\n\nRetry schema registration when a conditional write conflicts before\nanother writer publishes the object. The immediate reread could see no\nobject and fail an assertion, breaking concurrent writes.\n\nBound retries to 60 seconds while retaining content-digest validation. A\ndeterministic simulated-S3 race reproduced the assertion before this\nchange and passed after it; all 252 FineStore tests pass.\n\nFixes #10410\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "2b15d525715fb885382103a12936e8ec1a33f801",
+      "url": "https://github.com/marin-community/marin/commit/2b15d525715fb885382103a12936e8ec1a33f801",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-21T04:14:30Z",
+      "committed_at": "2026-10-21T04:14:30Z",
+      "message": "[taskforge] Turn failed rollouts into capability ideas (#10265)\n\nDoc:\nhttps://docs.google.com/document/d/1DXtl3bOsGvhb1usA3cfZ6-G1TDyObf_G0g-TRVq4DtA\n\nTurn policy failures into capability ideas that `task_workpieces` and\n`generate_tasks` can use to create training tasks.\n`analyze_failed_runs(rollouts, make_client, *, pass_threshold,\nmax_new_ideas, shard_size, extract_ideas_llm_policy,\nmerge_ideas_llm_policy, catalog_version, min_tasks_per_idea=2,\nmax_ideas_per_merge=1000)` takes `(TaskSpec, GradedRollout)` pairs and\nreturns the plan of one Zephyr map-reduce pipeline, as the doc proposes.\nThe source is the rollouts in shards of `shard_size`. `filter` keeps the\npolicy failures, `flat_map(yield_ideas)` makes one structured call for\neach failed rollout, `reduce(merge_ideas, merge_idea_lists)` merges each\nshard and then the lists of the shards, with one structured call for at\nmost `max_ideas_per_merge` ideas, and `flat_map(to_ideas)` makes the\n`CapabilityIdea` values, the ideas with more rollouts first.\n\nEach capability is a general skill that transfers to many tasks and\ndomains, such as the answer format, tool use, a stop to loops of\nrepeated calls, or a careful reading of the task. It holds the catalog\nfields `name`, `outcome`, `includes`, and `excludes`, and it does not\ndescribe the failed tasks, so `generate_tasks` writes the details of the\ntraining tasks. A rollout that stopped at its turn limit counts as a gap\nonly if it used its turns on repeated or unneeded steps, because the\npolicy does not see the limit.\n\n`policy_failed` is true for a grade below `pass_threshold`, an invalid\nsubmission, or an attempt that ran past its deadline or whose harness\nfailed after a model turn, because a slow or looping policy or a bad\ntool call can cause those. It is false for task, grader, and\ninfrastructure failures and for interruptions by the model server or the\nmachine, so those do not become training targets. The rollout's first\nline names the operation that interrupted it. The call for a rollout\ngives up to three ideas, or none if the rollout shows no gap. It sees a\nsummary line, the tools that the task gave, and the messages, with no\ngrader or its answer. The task comes with each rollout because the\nrecord does not keep the tools. A rollout whose reply stays invalid\ngives no ideas and adds 1 to the pipeline counter\n`failed_runs.invalid_replies`.\n\nA `MaybeIdea` keeps its evidence as a set of run IDs, and the IDs of\ntheir tasks. A merge call sees each idea with its number of rollouts and\ngives the line IDs that each merged idea holds, and code takes the union\nof their evidence, so a rollout counts once. The reply must name only\nits lines and give each merged idea a different ID, and the structured\ncall sends an invalid reply back with the error. A reply can leave out\nthe lines of rare skills, as the prompt keeps the ideas that explain the\nmost rollouts, and the pipeline counter `failed_runs.dropped_rollouts`\nadds the rollouts that the merged ideas no longer cite. A rule that put\neach line in exactly one merged idea failed 2 of 3 merges of the 797\ntau-bench failures and made larger catch-all ideas, and the merge that\ncan leave out lines lost the evidence of at most 2.2% of the rollouts.\nThe same merge serves the two levels, and one group needs no second\nmerge. The merge reply lists the line IDs of each merged idea, and GLM\nsometimes runs away to the output limit in a long structured reply, so a\nmerge makes up to three calls. A merged idea cannot repeat its line IDs\nas its `includes`, because GLM wrote the IDs there for every capability\nin 6 of 27 merges. A final idea must cite failed rollouts of at least\n`min_tasks_per_idea` tasks, or of every failed task when there are\nfewer, so that one defective grader on a task with many samples cannot\nmake an idea by itself. The merges rank such ideas last, so that they do\nnot take the place of an idea that cites enough tasks. A merge call sees\nat most `max_ideas_per_merge` ideas, about 66 prompt tokens each, and\nmore ideas merge in rounds, so neither a large shard nor many shards can\nmake a merge prompt too long. The calls of one shard run one after\nanother on one worker, and the shards run in parallel. Zephyr calls the\nfunctions on its workers, outside an event loop, so each call makes its\nown client with `make_client`, for example `functools.partial(GlmClient,\nsource, GLM_PROVIDER)`.\n\nThis design replaces a managed agent that read the failed rollouts as\nfiles on a ShellSim machine. Both designs ran with GLM-5.3 at low\nreasoning effort on real failed rollouts: tau-bench trajectories of\nGPT-4o and Claude 3.5 Sonnet (72, 144, and all 797 failures) and 120\nSWE-agent rollouts on GitHub issues. The agent's evidence named 16%, 6%,\nand 1% of the tau-bench failures and 8% of the SWE failures. Per-rollout\ncalls read every rollout. They beat the agent in every direct comparison\non these sets, with a GLM judge, and with a Claude judge on all sets\nexcept the 797 failures. They also found all the failure categories of a\nreference taxonomy. The merged capabilities are broader than the\nagent's: a blind judge rated their focus about 3 of 5, against about 4.4\nfor the agent. A merge that kept more and narrower capabilities lost\nrecall. Results:\n`s3://marin-us-east-02a/user/rav/projects/analyze-failed-runs/compare/`.\n\nThis pipeline ran end to end with GLM-5.3 on cw-us-east-02a, with a\nlocal Zephyr client (Iris jobs `/rav/zephyr-batch-a` and\n`/rav/zephyr-batch-b`). On 72 tau-bench failures in one shard it gave 8\nideas in 279 s, and on 144 failures in two shards of 72 it gave 7 ideas\nin 320 s. Both cited every failed rollout and skipped none. An earlier\nversion with one shard for each rollout and a `reshard` before the merge\ntook 37 s and 57 s on the same sets and found every category of the\nreference taxonomy, because its per-rollout calls ran in parallel.\n\n`FILE_SAFE_ID` moves from `generate_tasks` to `catalog.py`, so that the\nanalysis does not import the generation driver. `marin-taskforge`\ndepends on `marin-rolloutengine` for the rollout records and the task\ntools and on `marin-zephyr` for the pipeline, and `taskforge-unit` also\nruns when `lib/rolloutengine`, `lib/zephyr`, or `lib/fray` changes.\n\nPart of #10164.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "df2a8d9883ba5c2b6b9b35ce5c127d763706ebb2",
+      "url": "https://github.com/marin-community/marin/commit/df2a8d9883ba5c2b6b9b35ce5c127d763706ebb2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-21T01:09:40Z",
+      "committed_at": "2026-10-21T01:09:40Z",
+      "message": "[shellbox] Prebuild snapshots and retry rejected Daytona creates (#10332)\n\nExpose snapshot preparation without creating a sandbox. Reuse the\nexisting image-source/resource identity, or accept an explicit snapshot\nname for launcher-owned mappings. Registry references must be\ndigest-pinned for immutable snapshot reuse.\n\nRetry Daytona sandbox-creation HTTP 429 responses within the caller's\nstartup deadline. Retry only when the SDK traceback identifies the\nrejected create request; a failure during a later read must not create a\nsecond sandbox. Respect the provider retry delay and preserve\ncancellation.\n\nExtracted from #10190. Part of #10305.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "e4f5b7d0089a4c16ad9cd202a68f15ef4d9b8e79",
+      "url": "https://github.com/marin-community/marin/commit/e4f5b7d0089a4c16ad9cd202a68f15ef4d9b8e79",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-21T00:26:46Z",
+      "committed_at": "2026-10-21T00:26:46Z",
+      "message": "Link the SOTOPIA-hard paired sample viewer (#10166)\n\nAdd the [published SOTOPIA-hard\ncomparison](https://storage.googleapis.com/marin-public/penfever/sotopia-hard-samples/2026.10.20/index.html)\nto the reports index. The viewer contains ten paired Snowball and Qwen3\nCoder scenarios with mean rewards of 0.390 and 0.630, respectively.\n\nSource runs:\n`20261011-115820-open-athena-Grug-67B-A2B-Merge-Campaign2-DARE-TIES-02-2026.10.10-sotopia-hard-db8a`\nand\n`20261003-193429-Qwen-Qwen3-Coder-30B-A3B-Instruct-sotopia-hard-a69a`.\nThe analysis-site publisher records these IDs with the hosted viewer.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "18387be8b37f2446a8b054674a1e0e28fa9edc4d",
+      "url": "https://github.com/marin-community/marin/commit/18387be8b37f2446a8b054674a1e0e28fa9edc4d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-21T00:16:15Z",
+      "committed_at": "2026-10-21T00:16:15Z",
+      "message": "[docs] Require responsible-use text on Hugging Face model cards (#10337)\n\nThe Hugging Face model upload instructions now require the model\nrepository's root `README.md` to include this exact paragraph on every\nupload or update:\n\n> We release our tools to the public with the intent that they are used\nsafely, ethically, and responsibly. They are meant to contribute to the\npublic's understanding of science, and aid in its advancement. By using\nthis Marin model, you agree to comply with all applicable law.\n\nThe paragraph accompanies the existing research-artifact warning and\nOpenMDW 1.1 license requirements. The instructions prohibit duplicate\ncopies of either paragraph and require post-upload checks of the\npublished `README.md` and `LICENSE` for the warning, responsible-use\nparagraph, OpenMDW 1.1 license metadata, and full license text.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10337#issuecomment-6292793162)\n<!-- marin-prose-cleanup -->\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "3a0cecc656b468e7aa1f751d21ef720002ae0e99",
+      "url": "https://github.com/marin-community/marin/commit/3a0cecc656b468e7aa1f751d21ef720002ae0e99",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-22T00:00:00Z",
+    "start": "2026-10-21T00:00:00Z"
+  }
+}

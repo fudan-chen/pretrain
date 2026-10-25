@@ -1,0 +1,65 @@
+{
+  "commit_count": 5,
+  "commits": [
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-24T05:48:15Z",
+      "committed_at": "2026-10-24T05:48:15Z",
+      "message": "Update Pillow, virtualenv and filelock for security fixes (#10627)\n\nRaise the workspace security floors to Pillow 13.0.0 and virtualenv\n21.14.10, and move Levanter's filelock requirement to >=4.2.1,<5. Pillow\nfixes the [FPX JPEG\noverflow](https://github.com/advisories/GHSA-5x8w-8jj5-q52h) and\n[lossless-JPEG thumbnail/draft\noverflow](https://github.com/advisories/GHSA-8g5g-8vmr-9782); virtualenv\nfixes [POSIX launcher\nquoting](https://github.com/advisories/GHSA-c978-59m8-c77v) and\n[temporary seed-cache\nlifetime](https://github.com/advisories/GHSA-4f8h-vr72-p32c); filelock\nfixes [SQLite read/write-lock path\nhandling](https://github.com/advisories/GHSA-v4x8-3wr5-3wq8). Preserve\nunrelated lock records. Distlib 0.4.3, packaging 26.3 and\npython-discovery 1.6.1 are the minimum companion versions satisfying\nvirtualenv's declared floors.\n\nVirtualenv 21.14.8 was confirmed vulnerable; 21.14.9 fixes launcher\nquoting, while 21.14.10 also fixes dangling seed-package links after\ntemporary-cache cleanup. Existing generated environments are untouched\nand are not repaired by upgrading virtualenv alone. A later independent\npip install or upgrade can rewrite launcher wrappers, so trusted\ndestination paths remain necessary.\n\nThe FPX path requires olefile, which is absent from the root lock; the\nseparate lossless-JPEG issue has no such prerequisite. Deployment\nexposure is unverified. Filelock's 4.x SoftReadWriteLock protocol is\nincompatible with older participants on a shared lock path; repository\ncallers use ordinary FileLock, and no SoftReadWriteLock callers were\nfound. No running processes or lock directories were changed.\n\nThe lock check, required pre-commit checks, advisory review, 112\nupstream Pillow tests, 492 filelock tests and 31 virtualenv\nlauncher/cache tests passed. Targeted pip-audit reports no known\nvulnerabilities in the six changed packages. The broad root suite could\nnot collect locally because pytest-xdist is missing; CI at\n14bc39ab2d3417a47193f7d0cd4a016a19780de8 finished with 43 passed checks,\n14 skipped and none failed or pending.",
+      "sha": "2cae063c877172844fe6ff90e94354cc08a273fa",
+      "url": "https://github.com/marin-community/marin/commit/2cae063c877172844fe6ff90e94354cc08a273fa",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-24T01:28:00Z",
+      "committed_at": "2026-10-24T01:28:00Z",
+      "message": "[harbor] Install Mini-SWE adapter dependencies in the sandbox (#10631)\n\nInstall the OpenAI, HTTPX, and Tenacity dependencies used by the\nMini-SWE model adapter in its isolated tool environment. SWE-bench\ntrials currently fail before generation with `ModuleNotFoundError: No\nmodule named 'httpx'`, and the resulting nonzero exit is counted as a\nmodel failure.\n\nCheck the adapter import during setup so missing dependencies fail\nbefore the agent runs.",
+      "sha": "57e6418017bcd4b3d07fc280975faa30bd9b6787",
+      "url": "https://github.com/marin-community/marin/commit/57e6418017bcd4b3d07fc280975faa30bd9b6787",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-24T00:24:54Z",
+      "committed_at": "2026-10-24T00:24:54Z",
+      "message": "[taskforge] Agentic Taskforge: build programs, varied answers, bubblewrap solvers (#10621)\n\n* part of #9638\n* agentic taskforge keeps the build program of each accepted task, so a\ncaller can make more instances of it, and can solve tasks in bubblewrap\n* `submit` also takes the build program and, after the other checks and\nbefore the review, checks that it writes the task again and that 8 other\nids give runnable tasks whose reference answers vary [^1]\n* `taskforge.agentic.instances.task_instances` runs the program again on\nthe workspace snapshot of an accepted task\n* `AgenticConfig.solver_factory`, `--solver-backend local`: solver\nrollouts in bubblewrap; a task with a shell then sets\n`command_semantics=linux_process` and installs its python with\n`PackageSpec.pypi_packages`, and the prompt and the example program\ndescribe the selected machine\n* `generate_tasks_agentic.workspace_factory` also mounts the base\ninterpreter (`interpreter_mounts`), so `python3` in the sandbox is the\nenvironment's interpreter on nodes where uv names its minor-version link\nin `pyvenv.cfg`\n* first of a stack for the rsi loop: this, #10622 (SkyRL task feed),\n#9626 (loop), #10623 (evaluation)\n\n[^1]: with qwen3-1.7b one accepted family had the reference answers 3, 4\nor 5, and the policy learned to answer a guess without the work (0.06\nagainst 0.51 for the control on that family's probes)\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "2d9a7cb99dca306906bb20b1e941f02be89d4ac4",
+      "url": "https://github.com/marin-community/marin/commit/2d9a7cb99dca306906bb20b1e941f02be89d4ac4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-24T00:24:06Z",
+      "committed_at": "2026-10-24T00:24:06Z",
+      "message": "[inference] Keep auxiliary requests out of the generation queue (#10551)\n\nForward model-info, metrics, and tokenization requests directly to\nworkers so long generations cannot block them in the broker queue.\n\nOnly workers with live heartbeat leases receive these requests. After\npreemption, the replacement worker registers its new address. On a\nconnection failure or timeout, the proxy can try another ready worker\nwithin the original request deadline.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "45d6172f23fdd53338380f06a3ad6461d5a56039",
+      "url": "https://github.com/marin-community/marin/commit/45d6172f23fdd53338380f06a3ad6461d5a56039",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-24T00:05:38Z",
+      "committed_at": "2026-10-24T00:05:38Z",
+      "message": "[levanter] Fix standalone GPU Torch runtime dependencies (#9657)\n\nStandalone Levanter GPU jobs failed while importing Torch with\n`ImportError: libcufile.so.0`. Declare Torch and its CUDA 12.8 source in\nLevanter's GPU extra so uv includes the runtime dependencies when\nMarin's GPU extra is absent.\n\nThe regenerated lock changes extra-selection markers without adding or\nupgrading packages. Earlier GPU validation passed four paged-attention\nparity cases and tiny Snowball generation on H100 and GB200. GB200 used\nfocused pytest dependencies because the broad test group includes an\nARM-incompatible torchcodec wheel.\n\nPart of #7219.",
+      "sha": "9ec1fcd97b2dbc36c4b3638a5c489953ee652b5f",
+      "url": "https://github.com/marin-community/marin/commit/9ec1fcd97b2dbc36c4b3638a5c489953ee652b5f",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-25T00:00:00Z",
+    "start": "2026-10-24T00:00:00Z"
+  }
+}

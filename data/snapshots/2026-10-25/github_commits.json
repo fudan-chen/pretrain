@@ -1,0 +1,21 @@
+{
+  "commit_count": 1,
+  "commits": [
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-25T04:15:41Z",
+      "committed_at": "2026-10-25T04:15:41Z",
+      "message": "[eval] Retry Tau3 Daytona Docker setup failures (#10669)\n\nRetry Tau³ trials after `DaytonaDockerSetupError` using the existing\nbudget of up to 10 retries per trial, with exponential backoff. The\nerror is missing from the trial retry allowlist, so a trial stops after\nthree internal sandbox-startup attempts.\n\nFresh sandboxes give retries another chance to avoid the incompatible\nDocker-in-Docker placements reported in [Daytona\n#5146](https://github.com/daytonaio/daytona/issues/5146).",
+      "sha": "8577d258214dd0dcb992c04458ee4eb10496d4e5",
+      "url": "https://github.com/marin-community/marin/commit/8577d258214dd0dcb992c04458ee4eb10496d4e5",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-26T00:00:00Z",
+    "start": "2026-10-25T00:00:00Z"
+  }
+}

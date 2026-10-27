@@ -1,0 +1,43 @@
+{
+  "commit_count": 3,
+  "commits": [
+    {
+      "author": "ryan-williams",
+      "author_name": "Ryan Williams",
+      "authored_at": "2026-10-26T18:54:51Z",
+      "committed_at": "2026-10-26T18:54:51Z",
+      "message": "[iac] Grant the Marin Dev role to a new developer (#10729)\n\nGrant `projects/hai-gcp-models/roles/marindev` on `hai-gcp-models` to a\nnew OA developer (registered as `human-082`) for day-to-day Marin\ndevelopment. Iris IAP access already comes from the\n`domain:openathena.ai` member on both controller backends.\n\nA reviewer should run `review-grant` to confirm the decrypted principal,\nthen `pulumi up` on the `marin` stack.",
+      "sha": "108ae7fe0beb5c1d95d69e0fa77e403136cca1bb",
+      "url": "https://github.com/marin-community/marin/commit/108ae7fe0beb5c1d95d69e0fa77e403136cca1bb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-10-26T15:22:11Z",
+      "committed_at": "2026-10-26T15:22:11Z",
+      "message": "[eval] Preserve echo payloads when generation overrides are set (#10534)\n\nPreserve lm-eval's echo/loglikelihood payload when caller generation\noverrides are configured. A `max_gen_toks=256` override previously\nexpanded the echoed response with generated tokens that lm-eval included\nin its loglikelihood sum. The completions path now keeps the original\n`max_tokens=1`, `temperature=0`, and `seed=1234`, subject only to the\nexisting downward context cap.\n\nThe failing BoolQ run used the generic\n`experiments/evaluation/configs/evalchemy/boolq.yaml` (`max_tokens:\n256`). The campaign configuration at\n`experiments/evaluation/campaigns/eval-campaign-09-25-unlabeled/evalchemy-configs/boolq.yaml`\nhas no cap, so H100 runs using it, including the 0.832 BoolQ accuracy\nbaseline, are unaffected. Together with merged #10526, this fixes both\nsides: the client suppresses generation overrides for loglikelihood\ntasks, and vendored Evalchemy ignores them on echo requests. See the\n[parity\nresults](https://github.com/marin-community/marin/issues/10270#issuecomment-6326371478).\n\nThe local-chat and OpenAI-chat adapters reject loglikelihood requests;\ntheir payload helpers default to `generate=False` even for chat\ngeneration. They retain generation overrides, covered by a regression\ntest. The change is limited to the vendored payload guard and tests.\n\nThe vendored completion tests passed (33), the Evalchemy config tests\npassed (58), and the generation config and override contract tests\npassed (97). Repository formatting and type checks passed. The commands\nwere `host-test-budget uv run --directory vendor/evalchemy --frozen\n--group test pytest tests/test_completion_responses.py -q`,\n`host-test-budget /home/karan/oa/marin-task-258/.venv/bin/python -m\npytest tests/evals/test_evalchemy_config.py -q`, `host-test-budget uv\nrun --directory vendor/evalchemy --frozen --group test pytest\ntests/contracts/test_generation_config.py\ntests/contracts/test_generation_overrides.py -q`, and\n`./infra/pre-commit.py --changed-files --fix`, respectively.\n\nPart of #10270.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10534#issuecomment-6350999339)\n<!-- marin-prose-cleanup -->",
+      "sha": "2091ffaf6d04b7df8fb8e866159cd86612c0b4d9",
+      "url": "https://github.com/marin-community/marin/commit/2091ffaf6d04b7df8fb8e866159cd86612c0b4d9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-26T15:13:33Z",
+      "committed_at": "2026-10-26T15:13:33Z",
+      "message": "[levanter] Resume interrupted Hugging Face model mirrors (#10276)\n\nResume incomplete Hugging Face model mirrors by comparing stored file\nsizes\nwith the requested repository tree. Keep files of the expected size;\ndownload\nmissing or partial files, and check upload size before writing the\ncompletion\nmarker. Retries no longer read the contents of completed regional\nshards.\n\nA same-size corrupt object will be reused because retries do not hash\nstored\nfiles. Regional retry throughput has not been measured for GLM-5.2.\n\nAll 16 model-cache tests pass. The affected safe suite had 507 passes\nand four\nskips.\n\nFixes #9230\n\n---------\n\nCo-authored-by: Karan Sagar <1545121+karansag@users.noreply.github.com>\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "e26272339c6d9dedc408f7c09cce2e6beae4404f",
+      "url": "https://github.com/marin-community/marin/commit/e26272339c6d9dedc408f7c09cce2e6beae4404f",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-27T00:00:00Z",
+    "start": "2026-10-26T00:00:00Z"
+  }
+}

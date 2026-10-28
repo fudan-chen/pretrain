@@ -1,0 +1,21 @@
+{
+  "commit_count": 1,
+  "commits": [
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-27T19:26:24Z",
+      "committed_at": "2026-10-27T19:26:24Z",
+      "message": "[skyrl] Resume Megatron checkpoints saved with CPU optimizer offload (#10715)\n\nLoading a checkpoint into a Megatron policy with `optimizer_cpu_offload:\ntrue` failed with a `KeyError` in Megatron's\n`HybridDeviceOptimizer._update_fp32_params_by_new_state`, so no run with\nthat setting could resume. The Snowball OPD recipe\n(`snowball_mopd_ultra_32k.yaml`) uses it: resuming a Snowball 67B\ncheckpoint through that recipe on main failed in the first 10 seconds of\nthe policy load.\n\nThe method looks up an fp32 copy for every parameter with optimizer\nstate, but `param_to_fp32_param` holds only parameters that were not\nalready fp32, and the distributed optimizer passes fp32 main shards\nonly. Every load runs it, starting with the self-reload in\n`DistributedOptimizer.sharded_state_dict(is_loading=True)`, before any\ncheckpoint file is read. Megatron 0.18.0 through 0.19.2 is affected.\nSkyRL now replaces the method with one that skips parameters that have\nno separate fp32 copy.\n\nOnce the load succeeded, the next save needed tens of GiB more host\nmemory per rank than a save in a run that never resumed. On Snowball 67B\nat 768 GB per learner node, the save after a resume was killed for low\nnode memory. Restoring offloaded optimizer state makes\n`HybridDeviceOptimizer` rebuild its pinned host copies of every\nparameter, and PyTorch's caching host allocator keeps the replaced\npinned blocks. `load_checkpoint` now synchronizes and calls\n`torch.accelerator.memory.empty_host_cache()` after restoring the\noptimizer, as `load_megatron_model_to_gpu` already does. On a\n1.6B-parameter Grug MoE at DP=2, this brings the post-resume save's peak\nRSS from 31.7 to 28.9 GiB per rank, against 28.8 GiB without a resume.\nWith it, the Snowball 67B resume at 768 GB per node trains, saves, and\nresumes again from that save.\n\nThe new GPU test saves an offloaded checkpoint at DP=2, steps again,\nreloads, and requires the restored weights to equal the saved ones and\nthe next step to repeat the step taken after saving, exactly. It also\nrequires every rank to hold no idle pinned host memory after the load.\nIt fails with the `KeyError` without the method replacement, and with\n174,685,007 idle pinned bytes per rank without the release. It writes\nthe checkpoint to S3 scratch because Megatron restore reads only\nCoreWeave S3 checkpoints.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "80efd705ec201cb1c3968e8b4f960e880da08e70",
+      "url": "https://github.com/marin-community/marin/commit/80efd705ec201cb1c3968e8b4f960e880da08e70",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-28T00:00:00Z",
+    "start": "2026-10-27T00:00:00Z"
+  }
+}

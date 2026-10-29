@@ -1,0 +1,87 @@
+{
+  "commit_count": 7,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-28T21:52:42Z",
+      "committed_at": "2026-10-28T21:52:42Z",
+      "message": "Release nonlocal router replay target backing storage (#10369)\n\nCopy local router-replay targets so backward recomputation releases\nnonlocal backing storage. Keep shared storage when a rank owns the\ncomplete tensor.\n\nFour CPU regression cases check unchanged values and retained storage\nfor packed/unpacked batches and single-row tensor-parallel slices. They\npass with the fix and fail on the previous implementation. Run them in\nthe SkyRL CPU CI lane.\n\nBroader replay-suite restoration is in #10632. Ported from [SkyRL\n#1031](https://github.com/marin-community/MarinSkyRL/pull/1031), source\nrevision `47d6da95c94fc67ad31cb89678e6bab6e0b67b63`.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "e10329b38791993e7ed46ea8a1238b131ec5a48b",
+      "url": "https://github.com/marin-community/marin/commit/e10329b38791993e7ed46ea8a1238b131ec5a48b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-28T12:31:16Z",
+      "committed_at": "2026-10-28T12:31:16Z",
+      "message": "[finestore] Track row versions and recover expired caches (#10553)\n\nRecord original row-commit ranges in shard metadata. Exact primary-key\nand blob-descriptor lookups visit candidates by descending maximum row\ncommit and skip older payloads once no unread shard can supersede a\nkey's winning row. Table point lookups still read candidate schemas;\ndescriptor lookups can skip older files entirely.\n\nRecover PersistentKvCache after shard expiry by advancing a cache\nhistory floor to the greatest row-commit upper bound of the missing\nfiles. Reads apply the floor to their local snapshot, ignoring\ndescriptor and chunk rows committed at or below the floor so superseded\nvalues cannot reappear. Newer entries remain usable, including rows\nsharing a shard with older history. The next write persists the floor in\nthe manifest and removes missing or wholly invalidated shard references,\npreserving shards added concurrently by other writers. Compaction\nremoves invalidated rows from mixed shards.\n\nDuring writes, refresh live shards and schemas older than half the\nlifetime indicated by the cache root's ttl=Nd path segment (N days).\nServer-side copies on S3 and GCS reset object age to prevent lifecycle\nexpiry. Check before the first write, then at most daily or once per\nquarter TTL for shorter lifetimes. Reads that encounter missing shards\nor schemas request another check on the next write.\n\nRecovery applies to disposable key/value caches. Ordinary archives\ncontinue raising errors for missing committed data. Recovered caches\ndeclare the required cache-history-floor-v1 feature so older readers\nreject them.\n\nNamespace every `PersistentKvCache` archive under `<cache-root>/v2`,\nincluding roots resolved by `for_prefix`. The cache adds the version\ninternally and `location()` returns the versioned archive path. New\nbinaries use a separate manifest so recovery cannot make the old shared\ncache unreadable to older binaries. Versioned caches start empty and\nfill as callers regenerate missing values.\n\nIncident record: [expired Cutlass cache\nshards](https://marina.oa.dev/echo/wiki/847).\n\nPart of #9206.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "623134de90723e7f189036da005067f36817b6e7",
+      "url": "https://github.com/marin-community/marin/commit/623134de90723e7f189036da005067f36817b6e7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-10-28T03:56:30Z",
+      "committed_at": "2026-10-28T03:56:30Z",
+      "message": "Keep Iris startup waits outside the default executor (#10679)\n\nIris sandbox startup awaits `asyncio.sleep(2)` between readiness polls.\nSubmission, each status read of the job's single task, and the workdir\n`mkdir` run in the default executor; no thread is held while waiting. A\nfailed or cancelled wait closes the machine. `shellbox-unit` installs\nthe locked `iris` extra so the Iris adapter tests run in CI.\n\nRoot cause: on `main`, `create` runs submission and the readiness loop,\nwith its blocking `time.sleep(2)`, as one `asyncio.to_thread` call, so\nevery pending startup holds an executor thread that commands and grading\nneed.\n\nOne matched real RNO 64-trajectory pair (`atqamar-sbc-rno-h64-base-a1`\non `2cae063c8771`, `atqamar-sbc-rno-h64-async-a1` on `8e4c8102511b`):\nstartup executor-thread-seconds 878 → 79 (−91%), whole-wave wall time\n26.9 → 22.8 s (−15%), tool p50 883 vs 871 ms (no latency change\nclaimed).",
+      "sha": "755a7374d3fe411cc8385a9fde79600045e47bad",
+      "url": "https://github.com/marin-community/marin/commit/755a7374d3fe411cc8385a9fde79600045e47bad",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-10-28T03:56:26Z",
+      "committed_at": "2026-10-28T03:56:26Z",
+      "message": "[rl] Group online EAGLE windows by prompt, not trajectory (#10659)\n\nOnline EAGLE now groups capture windows by prompt on both request paths.\n`request_id_for_session` turns a rollout session id `<prompt\nuid>_<repetition>` into a request id carrying the prompt's digest (any\nother session id is its own group); the token-in path uses it as the\nvLLM request id and the chat-completions path sends it as\n`x-request-id`, which vLLM names `chatcmpl-<id>`, so\n`request_group_from_id` strips that prefix. All samples of one prompt\nnow share a group, which makes the per-prompt sequence cap and the\nprompt-disjoint holdout work as intended. Routing still uses the full\nsession id.\n\nBoth helpers live in `inference_engines/base.py` so the chat client does\nnot import the torch-based EAGLE trainer. Checked against the real\nhelpers: two repetitions of `task_a` (including one through the\n`chatcmpl-` prefix) map to one group, `task_b` to another, and\n`account_a`/`account_b` stay separate;\n`cloud/iris/tests/test_assistant_prefix_harness.py` passes (9).",
+      "sha": "aced76bb4f7d41223aa5e420af84b4b6eb5b1457",
+      "url": "https://github.com/marin-community/marin/commit/aced76bb4f7d41223aa5e420af84b4b6eb5b1457",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-10-28T03:56:21Z",
+      "committed_at": "2026-10-28T03:56:21Z",
+      "message": "[rl] Raise SkyRL rollout concurrency to the in-flight group cap (#10402)\n\nEach SkyRL rollout worker runs up to 1,024 trajectories at once, so the\nin-flight group cap and the staleness limit set rollout concurrency. An\nIris launch that leaves `trainer.rollout_buffer.max_in_flight` null sets\nit to 1.5 × `train_batch_size` groups, rounded up, so half of the next\nbatch generates while the current one finishes. In a Harbor run the cap\nis at most `n_concurrent_trials` / `n_samples_per_prompt`.\n`experiments.post_training.async_rl` gets 192. Evaluation runs at most\nas many Harbor trials per worker as training.\n\nWith `batch_policy: rolling`, a prompt whose group misses the staleness\nlimit is regenerated at most `trainer.rollout_buffer.max_stale_retries`\ntimes in a row (default 1), then waits for the prompt order to draw it\nagain; `async/stale_retries_exhausted` counts such prompts.\n\nSnowball 67B-A2B single-turn math through `async_rl` on 40 H100 in\ncw-rno2a (32 trainer GPUs, one vLLM engine at DP8/EP8), 128 prompts × 4\ntrajectories per step, no evaluation; main and this change launched\ntogether. Medians over steps 2–19 (`default`) and 2–13 (`on_policy`).\n\n| | `--preset default`, staleness 4 | `--preset on_policy`, staleness 0\n|\n|---|---|---|\n| step time | 42.8 s → 27.0 s | 106.4 s → 95.4 s |\n| trainer wait for generation | 16.9 s → 0.1 s | 80.6 s → 70.4 s |\n| vLLM running requests per GPU | 15 → 48 | 7 → 8 |\n| generated tokens/s per vLLM GPU | 1,130 → 2,987 | 667 → 705 |\n| trained response tokens/s | 8,894 → 13,839 | 3,731 → 4,468 |\n| KV cache use, per-step peak | 4.5% → 13.4% | 3.2% → 4.2% |\n| groups discarded as stale per step (of 128) | 0 → 25 | 0 → 0 |\n\nOn `default`, mean trained-group staleness rises from 2.06 to 2.74. A\nrepeat with jobs started 32 minutes apart took 40.1 s per step on main\nand 26.9 s, with 21 stale groups, on this change. On `on_policy` the\ngain is within the step-time standard deviation (13 s and 15 s). No step\nused more than 15.9% of the KV cache; the vLLM waiting queue stayed\nempty.\n\nNot run with this change: agentic multi-turn and Harbor tasks, in-run\nevaluation, Qwen, CatCount and the MOPD recipes. With this change those\nrecipes run up to 512 trajectories at once (CatCount canary), 256 and\n4,096 (curriculum Qwen arms), and 192 and 384 (MOPD 32k and its async\nsmoke, one Daytona sandbox per SWE trajectory). The MOPD 32k recipe uses\n512 Harbor trials, keeping its Harbor bound (128 groups) above its batch\nof 48, and the default `generator.max_num_seqs` (1,024). Daytona and\nlocal task sandboxes have no limit of their own, so in training they run\nthe trajectory counts above and in evaluation up to 1,024 at once.\n\nIris jobs (user atqamar)\n`users-ahmad-checkpoints-async-rl-snowball-{default-set-06e87ec2,on_policy-set-2cf146b4}-<arm>-2026.09.18-*`,\neach running the listed commit plus a run-only commit that sets the job\nname and cluster. Default: `ccab1-control` (main 3bf0d7a1be), `ccab1-pr`\n(b447962634); repeat `ccab3-control` (main 57e6418017),\n`ccab4-persample` (3438434b21, each trajectory placed on a vLLM rank by\nits own session id, as on main and in this change). On-policy:\n`ccab1-control` (main 3bf0d7a1be), `ccab2-pr-norouting` (7a3ab8329f).",
+      "sha": "3179aa01bc03a2704f4d28cdf5fe27632664663f",
+      "url": "https://github.com/marin-community/marin/commit/3179aa01bc03a2704f4d28cdf5fe27632664663f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-28T02:30:20Z",
+      "committed_at": "2026-10-28T02:30:20Z",
+      "message": "Document public communication terminology conventions (#10734)\n\nAdd a public communication conventions page linked from the house style\nguide and docs navigation. Specify the hyphenated spellings\n“pre-training” and “post-training”.",
+      "sha": "121c9fcaf91ac5ab53a75f2c127bf1d89f3f0172",
+      "url": "https://github.com/marin-community/marin/commit/121c9fcaf91ac5ab53a75f2c127bf1d89f3f0172",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-28T01:43:13Z",
+      "committed_at": "2026-10-28T01:43:13Z",
+      "message": "[harbor] Preserve synchronous tokenization failures (#10630)\n\nRetry transient `/tokenize` failures during Terminus context recovery\nand wrap exhausted failures in `ContextManagementInfrastructureError`.\nThe synchronous path currently hides the HTTP error and tries a local\ntokenizer, whose `ValueError` causes Marin to reject the whole eval as\nan unclassified failure.\n\nKeep local fallback for endpoints that return 404. Completes the\nsynchronous path left unchanged by #10584.",
+      "sha": "384d8b214701cdb5da23fe1f6e6e0e218ad7ccb8",
+      "url": "https://github.com/marin-community/marin/commit/384d8b214701cdb5da23fe1f6e6e0e218ad7ccb8",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-29T00:00:00Z",
+    "start": "2026-10-28T00:00:00Z"
+  }
+}

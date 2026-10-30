@@ -1,0 +1,76 @@
+{
+  "commit_count": 6,
+  "commits": [
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-29T14:02:21Z",
+      "committed_at": "2026-10-29T14:02:21Z",
+      "message": "Require virtualenv 21.14.13 or newer in both environments (#10745)\n\nRequire virtualenv 21.14.13 or newer in the workspace and standalone\nevalchemy environment to address CVE-2026-115586. Refresh both lockfiles\nwithout changing other resolved packages.\n\nThe required lint advisory review is incomplete, so this draft is not\nready for merge. Lockfile consistency and diff-scoped lint passed.\nResults from broader tests could not be recovered after validation was\ninterrupted; no security regression test result is claimed.",
+      "sha": "a48c1a74b883de5b6c3924d6c7f4e4ed9656a525",
+      "url": "https://github.com/marin-community/marin/commit/a48c1a74b883de5b6c3924d6c7f4e4ed9656a525",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-29T12:42:22Z",
+      "committed_at": "2026-10-29T12:42:22Z",
+      "message": "[marina] Consolidate app sources and retire the applet distinction (#10767)\n\nConsolidate maintained Marina source under `infra/marina/apps/` and use\n“app” for both checked-in and ad hoc packages. Check in source when\nfuture changes are expected; ad hoc means no future changes are\nexpected. If maintenance becomes necessary later, preserve the app's\nexisting UUID when checking in its source.\n\nReplace `marina applets` with `marina apps`, rename the application\nskill to `marina-app`, and update examples, loader flags, imports, agent\nsource paths, and operational guidance.\n\nAll apps release versioned code to Postgres through `marina release`;\nnamed apps add routes and infrastructure-approved capabilities. Preserve\nstable UUIDs, the stored `applet.toml`/`applet_id` format, runtime APIs,\nand database identifiers so retained revisions remain usable. Moving\nsource does not release applications or load data.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "7bd7e77fcfd7b7c5e7d8b8d18fcea9f4cd6839ec",
+      "url": "https://github.com/marin-community/marin/commit/7bd7e77fcfd7b7c5e7d8b8d18fcea9f4cd6839ec",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-29T12:11:30Z",
+      "committed_at": "2026-10-29T12:11:30Z",
+      "message": "Keep JAX peers aligned across retries and extend Datakit canary waits (#10759)\n\nMake JAX peers discover the coordinator using task 0's current attempt.\nIn the October 28 Grug multislice canary, task 0 reached attempt 5 while\ntask 1 reached attempt 3. Task 1 polled its own attempt name, then timed\nout; task 0 exited after the JAX registration deadline. The peer now\nrefreshes task 0's attempt during discovery, including after a retry.\n\nExtend the Datakit Tier 1 and Tier 2 Actions waits to 20,200 seconds. On\nOctober 28, the Iris jobs succeeded about 4h44m and 5h26m after\nsubmission, after their 7,100- and 14,400-second CI waits expired. The\nnew wait leaves about 13 minutes under the 350-minute Actions job limit\nfor diagnostics. Worker placement can still delay either ferry when\ncluster memory is scarce.\n\nThe [incident record](https://marina.oa.dev/echo/wiki/892) holds the\ndiagnostic steps. PR #10420 also changes JAX endpoint names to isolate\nsibling jobs. Preserve both naming rules when merging these branches.\n\nFixes #10755. Part of #10752.\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "8a92f90382559206b03ead1afbbd32c35f68fcff",
+      "url": "https://github.com/marin-community/marin/commit/8a92f90382559206b03ead1afbbd32c35f68fcff",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-29T12:04:10Z",
+      "committed_at": "2026-10-29T12:04:10Z",
+      "message": "[harbor] Strip drop_params from OpenAI requests (#10657)\n\nRemove the LiteLLM-only `drop_params` option before sending Mini-SWE\nrequests through the OpenAI SDK. Mini-SWE's default YAML sets it, but\n`Completions.create` rejects it now that we deprecated LiteLLM, so\ntrials fail before generation and are scored as model failures. Other\nrequest options pass through unchanged.",
+      "sha": "8fb5f334a40d1bd491a27cbee139f8ab75acdc3a",
+      "url": "https://github.com/marin-community/marin/commit/8fb5f334a40d1bd491a27cbee139f8ab75acdc3a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-29T02:59:33Z",
+      "committed_at": "2026-10-29T02:59:33Z",
+      "message": "Require OAuthLib 4 in affected locked environments (#10749)\n\nRequire OAuthLib >=4.0.0 in the root, SkyRL and Harbor environments and\nrefresh their independent locks. Only OAuthLib changes version.\nEvalchemy and Grafana already lock OAuthLib 4 and retain their versions.\n\nThis addresses\n[GHSA-3jp2-3mrg-2vxc](https://github.com/advisories/GHSA-3jp2-3mrg-2vxc),\nwhich affects the previous 3.3.1 locks. The [4.0.0\nrelease](https://github.com/oauthlib/oauthlib/releases/tag/v4.0.0)\nremoves token-revocation JSONP and validates grant type before client\nauthentication. Keep the major update separate from [the other\ndependency patches](https://github.com/marin-community/marin/pull/10748)\nfor compatibility review. No observed exploitation is claimed.\n\nThe three locks pass offline freshness checks. Required diff-scoped lint\nand branch advisory review complete with no findings. Harbor's offline\nruntime passes 987 tests and all 3 acquisition tests pass. Positive\ncompatibility probes pass with requests-oauthlib 2.0.0 and\ngoogle-auth-oauthlib 1.2.2 from the root lock: a client-credentials\nexchange, bearer use, and a Google authorization-code flow with\ntoken-to-credentials conversion. Every HTTP response is mocked with\nsynthetic credentials. Live identity-provider login and custom\nauthorization-server integrations remain untested.\n\nRigging's 21 authentication tests pass. The macOS root suite reports\n3,064 passed, 11 skipped and 5 expected failures, with one Linux-only\nbubblewrap failure and four collection errors from missing optional\nTorch. All five issues reproduce on unchanged main 755a737. Linux CI\npasses at bb8248dc17, including Evalchemy, SkyRL, Harbor and the\nLevanter Torch/TPU lanes. The affected-test runner's broad command omits\nthe test group, so the root suite was run with `uv run --frozen\n--package marin-core --group test pytest -n 2`, preserving default\nsafety markers.",
+      "sha": "666cf38f51f5848a782f8c1d9b2c4cca99a82621",
+      "url": "https://github.com/marin-community/marin/commit/666cf38f51f5848a782f8c1d9b2c4cca99a82621",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-29T00:07:30Z",
+      "committed_at": "2026-10-29T00:07:30Z",
+      "message": "[iris] Add an allowlist egress policy and make it the CI default (#10538)\n\nAdd `EGRESS_POLICY_ALLOWLIST`. An allowlisted task keeps access to the\ncontroller, finelog, other tasks and cluster nodes, but reaches outside\nthe cluster only through an allowlist. The allowlist combines Iris's\nbase list (`BASE_EGRESS_ALLOWLIST`: package indexes, Astral's uv\ninstaller, GitHub, Hugging Face, Google Cloud APIs, Weights & Biases and\nthe Iris dashboards on `*.oa.dev`), the cluster's\n`defaults.egress_allowlist.allow`, and the job's own rules. Users add\nrules with `iris job run --egress-allow` or\n`IrisClient.submit(egress_allow=...)`. A rule is a domain, a one-label\nwildcard pattern or a CIDR, optionally limited to TCP ports; a job\ncarries at most 64, counting those it inherits. Rules take effect when\nthe job runs under ALLOWLIST and have no effect elsewhere, so a launcher\ncan declare the hosts its jobs need on every cluster. The controller\nstores a job's rules in a new `job_config.egress_allow_json` column\n(migration 0053).\n\nWhen `defaults.egress_allowlist.default` is set, the controller resolves\nan unspecified policy to ALLOWLIST for every job except SANDBOX jobs. A\nchild job inherits its parent's policy and rules, so `--egress-policy\nEGRESS_POLICY_CLUSTER` on a root job opts out the whole tree. Only\ncw-us-west-04a sets the default here.\n\nKubernetes enforces the policy with Cilium when\n`kubernetes_provider.cilium` is set. Other Kubernetes clusters run\nALLOWLIST jobs under CLUSTER and the controller logs a warning, so\nlaunchers can request the allowlist while clusters gain enforcement.\n`iris cluster start` creates a namespace-wide CiliumNetworkPolicy. A job\nwith its own rules also gets a per-pod policy, applied after the pod is\ncreated and owned by it, so Kubernetes deletes the policy with the pod.\nThe pod's required Secret volume is written after the policy, so its\ncontainers start only once the policy exists. Cilium's DNS proxy answers\nunlisted names with REFUSED, so lookups fail at once. The DNS rules\nadmit every cluster search-domain candidate up to nine labels, because\nmusl-based tools such as uv fail a whole lookup at the first refused\ncandidate. `toFQDNs` does not admit in-cluster addresses, so CoreWeave's\nnode-local LOTA cache behind `cwlota.com` needs a\n`cilium.egress_endpoints` selector. On a host-network cluster, the\ncontroller resolves a GPU job with more than one task to CLUSTER: NCCL\nneeds the nodes' InfiniBand devices through host networking, which pod\npolicy cannot restrict. Without `kubernetes_provider.cilium`, pods of\nstored ALLOWLIST jobs start on the cluster network, so removing Cilium\nfrom the config rolls the allowlist back. The dashboard's job page shows\nthe egress policy a job runs under and its rules.\n\nDocker workers accept ALLOWLIST as best effort. The task runs on the\nhost network, and the worker runs a per-task resolver on a loopback\naddress in 127.53.0.0/16 that refuses unlisted names. Connections to\nliteral addresses are not filtered.\n\nThe eval launcher declares the hosts its evaluations reach beyond the\nbase list: Daytona for Harbor evals on Daytona, Harbor's Supabase\nregistry for registry datasets, an Evalchemy judge's host, and\ntiktoken's download host for MRCR. A connection survey of the three\nproduction CoreWeave clusters found 23 of 346 running task pods, each\nfrom a different root job, reaching hosts outside the base list; 11 of\nthose jobs were Harbor evals.\n\nDefault job environments turn off vendor telemetry with\n`DO_NOT_TRACK=1`, `VLLM_NO_USAGE_STATS=1`, `RAY_USAGE_STATS_ENABLED=0`\nand `WANDB_ERROR_REPORTING=false`. vLLM and Ray usage stats, Hugging\nFace Hub telemetry and W&B's own crash reports would otherwise be\nrefused under the allowlist. W&B run logging is unchanged.\n\nThe allowlist limits accidental and casual exfiltration. Allowlisted\nservices such as GitHub and Cloud Storage can still carry data out.\n\nA cluster that sets `kubernetes_provider.cilium` needs the controller\nClusterRole's Cilium policy rule from #10548, granting create and patch,\napplied with `pulumi up` before it deploys this controller. Until then,\n`iris cluster start` reports the missing rule and stops before changing\nthe deployment.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "6035c1d5367b9d51b337062cb67e274271d8024a",
+      "url": "https://github.com/marin-community/marin/commit/6035c1d5367b9d51b337062cb67e274271d8024a",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-30T00:00:00Z",
+    "start": "2026-10-29T00:00:00Z"
+  }
+}

@@ -1,0 +1,175 @@
+{
+  "commit_count": 15,
+  "commits": [
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-30T23:21:16Z",
+      "committed_at": "2026-10-30T23:21:16Z",
+      "message": "[eval] Preserve GSM8K answers without crediting operands (#10808)\n\nPort the GSM8K extraction and scoring rules from Evalchemy commit\na993b52543c493e58956be94ed6d3420b94143c0 into Marin's vendored\nevaluator. These rules were used for the corrected 2026 September\nevaluation campaign associated with #10197 but were absent from current\nmain.\n\nFlexible extraction passes the complete final boxed text to the scorer,\npreserving 11:30, currency and nested LaTeX. Restore acceptance of unit\nannotations and arithmetic forms, such as $139 for 139 and 3 onions + 1\npotato for 4. For questions containing \"time\", accept whole-hour clock\nanswers such as 2:00 for 2. For questions containing \"percent\" or \"pass\nrate\", accept a fractional form such as 1/4 for 25. An incorrect final\nbox must not receive credit from an earlier number in the reasoning.\n\nUnlike the historical patch, scalar fallbacks match complete scalar or\nannotated answers. They do not credit an operand from 1/4, 3 + 1 or\n11:30, or the radicand of sqrt(4). Regression tests cover those false\npositives and preserve correct full-expression grading.\n\nReplaying stored responses can change exact_match. The diff changes only\nthe GSM8K task scorer, its regression tests and runtime notes; metric\nnames, prompts and generation settings remain unchanged. NUPA and the\nMini/Micro subset machinery are outside this change.\n\nRNO2A CPU validation passed all 102 selected GSM8K and shared-math\ngrader checks, including the generated-answer extraction path. The\nrepository pre-commit entry point passed and the advisory review\nreported no findings.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "f4b7d5ace57acef1dde9234214a58764ed1f0138",
+      "url": "https://github.com/marin-community/marin/commit/f4b7d5ace57acef1dde9234214a58764ed1f0138",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-30T21:07:38Z",
+      "committed_at": "2026-10-30T21:07:38Z",
+      "message": "Patch dependency vulnerabilities across Python, npm, and Rust (#10803)\n\nRequire patched dependencies in the root and Grafana Python\nenvironments, nine frontend lockfiles, and three Rust workspaces.\nRebuild the shipped inference dashboard with DOMPurify 3.4.17 and Vue\n3.5.44. Remove Black from Marin's lint dependency group; the required\nlint command already runs its own isolated formatter through uvx.\n\nMove Datasets to 5.0.1 and fsspec/gcsfs/s3fs to 2026.6.0 together\nbecause the previous Datasets cap excluded the patched storage versions.\nRefresh dependent local-package lock metadata. Move S3 cache directories\nthrough explicit file pairs so stricter copy-error handling skips\nsynthetic prefixes and still rejects missing real objects.\n\nUpgrade Finelog's buffa, buffa-types, and ConnectRPC runtime/code\ngenerator to the 0.8 family. Replace the affected OwnedView request\ninterfaces with borrowed ServiceRequest handlers and retain shared Arrow\nIPC bytes across blocking storage calls. Preserve InvalidArgument\nresponses for malformed zstd requests through both decoder paths.\n\nEnable grouped Dependabot security updates for all tracked uv projects,\nnpm projects, and Cargo workspaces while keeping routine version-update\nPRs disabled.\n\nSeven reviewed alerts remain unresolved: Torch needs a coordinated\nCUDA/Triton upgrade, Thrift requires a query-engine migration, and\nGrafana's moment/React Router dependencies require matching host/SDK\nchanges. Accelerate and deepmerge still lack verified upstream fixes.\n\nThe native dependency fixes require rebuilding and adopting the affected\nwheels or images before existing deployments benefit.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "9a7c1deface250a8a5bcb2fac8d1dda9351f9fcb",
+      "url": "https://github.com/marin-community/marin/commit/9a7c1deface250a8a5bcb2fac8d1dda9351f9fcb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-30T19:47:22Z",
+      "committed_at": "2026-10-30T19:47:22Z",
+      "message": "[eval] Move SOTOPIA scoring into Harbor and count repeated trials (#10670)\n\nCompute SOTOPIA length-controlled scores in Harbor at job completion.\nLength is the evaluated agent's emitted character count. Report the\ncorrected overall score as the continuous primary metric, preserve raw\nrewards, and have Marin read Harbor's result without recomputing the\ncorrection.\n\nRequire an explicit comparison cohort in the Harbor job configuration.\nThe `eval-campaign-09-25-unlabeled` configs supply a versioned 13-model\nbaseline cohort. Match the candidate's original model location to the\ncohort, replacing its baseline entry with the current run or adding it\nif absent. Save the source archive locations, hashes of the cohort and\nfit inputs, fitted correction, and adjusted episode scores under\n`metric_evidence` in Harbor's `result.json`. Resolve completed trial\nsummaries against the current job directory when resuming a relocated\njob. Missing baseline archives or transcript summaries for scored\nepisodes fail the Harbor job and record the run as `failed`.\n\nPreserve the original model location in Harbor's `model_name` and route\nrequests using its existing `model_alias` field. This keeps model\nprovenance and trial resume identity stable when a serving alias\nchanges. SOTOPIA and AIME route inference through the alias, and ACP\nuses it for session selection.\n\nRemove the Marin SOTOPIA wrapper and its fitting dependency extra. The\ncampaign's `analysis/sotopia_length_control/rank.py` reuses Harbor's\ncalculation and runs in Harbor's environment. Changing the campaign\ncohort invalidates SOTOPIA's cache identity while preserving\nFinanceBench and OlympiadBench identities.\n\nCount independently sampled Evalchemy repetitions as separate coverage\nitems, counting each trial only once across extraction filters. Use\ndeclared trial counts to retain missing repetitions in the coverage\ndenominator and replace the OlympiadBench-specific counting workaround.\n\nPart of #10197.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "9e566ed6addd4375015cc802e0f7487648ee8d24",
+      "url": "https://github.com/marin-community/marin/commit/9e566ed6addd4375015cc802e0f7487648ee8d24",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-30T18:38:19Z",
+      "committed_at": "2026-10-30T18:38:19Z",
+      "message": "[iris] Reject RECREATE for active Kubernetes jobs (#10795)\n\nReject `EXISTING_JOB_POLICY_RECREATE` for an active Kubernetes job\nbefore cancelling it. The previous path removed the old job while its\npod could keep running. Four copies of one controller job ran after\nrepeated redeploys on cw-us-east-02a (#10712). Callers now receive\n`FAILED_PRECONDITION` with a cancel, pod-verification, and resubmit\nprocedure.\n\nA fake-Kubernetes regression starts a pod and checks that a recreate\nrequest leaves the running job and pod intact. This prevents the\nreported active-job entry point. Replacement of a terminal job still\nneeds confirmed pod deletion and distinct identities for replacement\npods and coscheduled groups.\n\nPart of #10712\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "815c4b2c8197bcf1613b405d3cad144dbe0b9f81",
+      "url": "https://github.com/marin-community/marin/commit/815c4b2c8197bcf1613b405d3cad144dbe0b9f81",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-30T18:36:52Z",
+      "committed_at": "2026-10-30T18:36:52Z",
+      "message": "[iris] Show pending worker diagnostics for running jobs (#10744)\n\nShow cached scheduler and autoscaler reasons in Iris status for running\njobs with pending replicas. In the October 27 Datakit canary, two store\nworkers ran while 104 remained pending; the worker job's status omitted\nthe placement reason.\n\nThe regression exercises a 32 GiB worker request against an occupied 32\nGiB worker and a 16 GiB fallback through `GetJobStatus` and `ListJobs`.\nStatus reads use the existing task summary and per-cycle diagnostic\ncache, with no new scheduling pass or database query. The reason clears\nwhen no tasks remain pending.\n\nCanary cancellation behavior is unchanged. A memory shortage can still\npersist until the CI timeout.\n\nPart of #10743\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "e3cd366f26a698c132c1c19a07ad03fd3e64bf45",
+      "url": "https://github.com/marin-community/marin/commit/e3cd366f26a698c132c1c19a07ad03fd3e64bf45",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "lukedhlee",
+      "author_name": "(Luke) Donghyun Lee",
+      "authored_at": "2026-10-30T17:10:17Z",
+      "committed_at": "2026-10-30T17:10:17Z",
+      "message": "[datakit] Register CalibForge relay SFT traces as chat (#10027)\n\nRegister the `terminus2_relay_sft` configuration of [laion/calibforge-relay-traces](https://huggingface.co/datasets/laion/calibforge-relay-traces), pinned at `66feab4`, as `calibforge-relay/terminus2` in Datakit's chat registry. The source combines CalibForge student/teacher relay episodes and Kimi-2.5 SWE-smith traces for decontamination and downstream harness conversion.\n\nParse each reply once through the shared Terminus parser. CalibForge enables supported JSON-closing repairs and joins closed reasoning spans; the existing Terminus adapters use strict parsing. Drop an episode if any assistant reply lacks a command, including student replies excluded from the source training loss, and reject unfinished reasoning so its example commands cannot become actions. Commands remain JSON text in assistant messages; conversion to mini SWE agent actions is downstream work.\n\nPreserve teacher, task source, outcome, and `source_train_turns` metadata. The `source_train_turns` flags describe source messages after removing the template-only system message. Reasoning and final text may become separate output messages, and the renderer and trainer do not apply these flags as a loss mask. Training on rendered text therefore also supervises student turns and does not reproduce the original teacher-only training recipe.",
+      "sha": "0e657941b01cd0012efe131bb2006c49e0510df1",
+      "url": "https://github.com/marin-community/marin/commit/0e657941b01cd0012efe131bb2006c49e0510df1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-10-30T15:47:17Z",
+      "committed_at": "2026-10-30T15:47:17Z",
+      "message": "[datakit] Restore missing HF files on download reruns (#10778)\n\n`download_hf` now checks each destination before fetching its Hugging\nFace file. Missing or size-mismatched files are streamed, and complete\nfiles are reused. Zephyr rewrites its metrics shards on rerun so an\nexisting metrics file cannot skip a transfer task.\n\nA rerun previously returned successfully after a destination was deleted\nwhile leaving that file absent. The regression test covers deleted and\ntruncated destinations. In a 128-file local fixture, one deleted file\nwas restored; the other 127 were reused before any source read. Those\nreused files totaled 16.6 MiB. Reuse compares file sizes, so callers\nshould pin the source revision when writing repeatedly to one output\npath.\n\nFixes #10766\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "671c7bcf784abda1a3996a73062e408e2dbb8f5d",
+      "url": "https://github.com/marin-community/marin/commit/671c7bcf784abda1a3996a73062e408e2dbb8f5d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-30T14:17:11Z",
+      "committed_at": "2026-10-30T14:17:11Z",
+      "message": "Configure training NCCL channel limits explicitly (#10368)\n\nAllow batch-invariant TP1/ETP1 Megatron policies to set a training NCCL\nchannel limit while broadcast weight publication keeps vLLM's compatible\nchannel limit. The default remains unchanged. Expert-block publication\nrequires the default or one-channel setting; leave `NCCL_MAX_CTAS` unset\nwhen using this option.\n\nOn the tested 192-H100, 65K Hero workload, eight channels reduced warmed\nlearner update time from 50.74 to 29.08 seconds. One and eight produced\nidentical tested scores and expert choices, but neither established\nexact batch invariance. Automatic channel selection ran out of memory on\nits second update. See the [channel guidance and linked\nmeasurements](https://github.com/marin-community/marin/blob/skyrl-migration/pr-1027/docs/dev-guide/skyrl.md#grug-training-communication).\n\nThe cleanup preserves the runtime patch and GPU test, with 290 CPU cases\npassing. The CPU transport regression also fails without its\ncompatibility guard. GPUs were not rerun on the updated Marin branch.\n\nPorted from [MarinSkyRL\n#1027](https://github.com/marin-community/MarinSkyRL/pull/1027), which\nretains the original discussion and GPU evidence. Source base:\n`32edb00f784dac6995136d034ad7231a9b985bc0`; source head:\n`b3f37c271a78d1fabe444263f10f8a987c506483`.\n\n<!-- skyrl-migration: source=marin-community/MarinSkyRL#1027\nhead=b3f37c271a78d1fabe444263f10f8a987c506483 -->\n<!-- skyrl-port-patch:\necbba8a1a00e530fdfe5ff4a9c099ac56123190cadedb75c9e787be3c67f8d29 -->\n<!-- skyrl-destination: dbc495334fe4332ffa3b7430b5612c8ce1830f31 -->\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "1a7c4e1d7154074834f2fb71734e48b9b74adbfa",
+      "url": "https://github.com/marin-community/marin/commit/1a7c4e1d7154074834f2fb71734e48b9b74adbfa",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-10-30T13:56:14Z",
+      "committed_at": "2026-10-30T13:56:14Z",
+      "message": "[eval] Retry timed-out inference startup (#10656)\n\nRetry candidate and judge server startup after a readiness timeout, up\nto `max_retries_failure` times. A single startup timeout currently fails\nevery eval sharing that server.\n\nStop the old jobs before retrying. If submitting a worker fails, also\nstop workers already submitted. Other startup errors and errors after\nreadiness still propagate.",
+      "sha": "ed6ee239d8ee140f88199ce04ed1f8a295750489",
+      "url": "https://github.com/marin-community/marin/commit/ed6ee239d8ee140f88199ce04ed1f8a295750489",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-30T13:55:05Z",
+      "committed_at": "2026-10-30T13:55:05Z",
+      "message": "Fix Mini-SWE native client startup failures (#10655)\n\nRemove the LiteLLM-only `drop_params` option inherited from Mini-SWE’s\n`mini.yaml` before using its native OpenAI adapter. Otherwise, trials\nfail before their first completion with an unsupported-keyword\nTypeError.\n\nRun setup import checks with Python’s safe-path option so a task\nrepository cannot shadow installed agent dependencies. SWE-bench\nrequests tasks previously imported their old `/testbed/requests` package\nduring the model-adapter check and failed before inference.\n\nThe SDK regression test reproduces the unsupported keyword on main, and\na subprocess regression reproduces the import failure with a shadowing\ntask package. Both pass with these changes; all 991 offline Harbor\nchecks pass.\n\nBase of the evaluation-policy stack; followed by #10665.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "071c86b629ecfed0c0a4e929585fcd754bea7544",
+      "url": "https://github.com/marin-community/marin/commit/071c86b629ecfed0c0a4e929585fcd754bea7544",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-10-30T13:41:19Z",
+      "committed_at": "2026-10-30T13:41:19Z",
+      "message": "[grug] Clip the hero gradient norm at 1.0 and prepare its handoff (#10783)\n\nClip the hero's total gradient norm to 1.0 in the train step, and\nprepare the handoff to the clipped run `hero-gradclip-step<N>k`. The\nrunning `hero-ctx16k-step257k` is unaffected until it is relaunched from\nthis commit. Merge only after N is filled in at cutover.\n\n#10677 traced the hero's gradient spikes to single 16K sequences. They\nare long, repetitive, sink-less windows. At the exact bf16 forward\nstate, their per-sequence gradient is enormous, and it compounds from\nthe upper layers down to the embeddings. Since step 340000 the median\n`grad/norm/total` is 0.501.\n\nStep 352190 reached 4.49. Step 353060 reached 20.84 (41.6x the median):\n- Layers 0–26 were 50–208x their recent medians, with the peak at layer\n22. Layers 29–47 were 1.3–2.3x.\n- `token_embed` was 138x.\n- The loss jumped from 1.018 at step 353060 to 1.101 at step 353061, the\nonly rise above 0.05 since step 351000.\n- It recovered over about 50 steps. The mean loss was 1.018 over\n353040–353059, 1.073 over 353061–353065, 1.030 over 353076–353085, and\n1.018 over 353101–353140.\n\nThe norm is logged only every 10th step, so spikes on the other nine\nsteps are never seen.\n\nThe train step now computes `optax.global_norm` over the whole gradient,\nthe quantity W&B logs as `grad/norm/total`. Above `max_grad_norm`, it\nscales every leaf by `max_norm / norm` before the optimizer. At or below\nthe limit, every leaf is multiplied by exactly 1.\n- Every step logs `train/grad_norm` (pre-clip) and `train/grad_clipped`.\nThe watch's `grad/norm/*` keep their pre-clip meaning and their 10-step\ncadence.\n- `HERO_MAX_GRAD_NORM = 1.0` is required by `hero_grug_trainer_config`\nand set for the d6144 rung. The narrow ladder rungs stay unclipped.\n- `launch_diagnostics --max-grad-norm` defaults to 1.0.\n\nThe clip is outside the optimizer, so the opt_state pytree and\ncheckpoint layout do not change, and current hero checkpoints restore as\nthey are. The optimizer's existing per-group `max_grad_norm` would not:\nit prepends `clip_by_global_norm` to each muonh/adamh/adam chain. That\nmoves every opt_state key, for example from\n`inner_states['adam'].inner_state[0].mu` to `.inner_state[1].mu`\n(checked with `jax.eval_shape`). It also clips each group on its own\nnorm rather than the total. That path is left unused.\n\n`current_run.py` and `trigger_hero.sh` follow the #9960 and #10101\nhandoffs, with N left as `REPLACE_BEFORE_DEPLOYMENT`. The script refuses\nto fork or launch with that value. The three values are:\n- `hero-gradclip-step<N/1000>k`;\n-\n`s3://marin-us-east-02a/marin/grug/hero-ctx16k-step257k/2026.08.19.2/checkpoints/step-N`;\n- `hero-ctx16k-step257k?_step=<N-1>`.\n\nThe cutover follows the README's \"Hero cutovers and W&B lineage\" and\n`code-cutover.md`:\n1. Request a permanent checkpoint from the old run's training-control\nendpoint, with header `X-Levanter-Training-Control:\nrequest-permanent-checkpoint`. The hero's code at `eadf76a1bc` wires\n`TrainingDashboard` to `Checkpointer.request_checkpoint`. That maps the\nrequest to PERMANENT retention, and the next step saves `step-N` to the\npermanent root with `is_temporary: false`.\n2. Wait for that `metadata.json` with `\"is_temporary\": false`, and\nconfirm on the parent that `_step` N−1 is `global_step` N−1. It was at\n353999.\n3. Fill in N and merge.\n4. Let the old run record the 200-step matched control window after\n`step-N` before stopping it.\n5. Run `trigger_hero.sh fork-wandb`, stop the old coordinator, then run\n`trigger_hero.sh launch`.\n6. Apply the agreed gates. Rollback relaunches `hero-ctx16k-step257k` at\n`eadf76a1bc`.\n\nTwo one-rack resume tests restored the hero's permanent `step-354000`\nread-only on cw-us-east-08a at production priority. Settings:\n- global batch 256 (2816 / 11);\n- the hero's optimizer sized for batch 2816 (beta2 0.95, epsilon\n6.04e-15), with MuonH and Adam learning rates × sqrt(1/11) (0.000992 and\n0.000229);\n- clip 1.0;\n- output under\n`s3://marin-us-east-08a/tmp/ttl=30d/hero-clip-resume-test/`.\n\nrt1 ran `f00d75cff3`, and rt2 ran `0d56a910a5`. Both set the batch-2816\nsizing and the LR scale with temporary diagnostic flags\n(`--optimizer-batch-size 2816 --lr-scale 0.3015`). The flags are not\npart of this PR; branch state `2f7e57ae26` has them. The clip and the\ntrain step are unchanged since those runs.\n\n| |\n[hero-clip-rt1](https://wandb.ai/marin-community/marin_moe/runs/hero-clip-rt1)\n|\n[hero-clip-rt2](https://wandb.ai/marin-community/marin_moe/runs/hero-clip-rt2)\n|\n| --- | --- | --- |\n| steps | 354000–354032, cancelled | 354000–354019 |\n| loss at 354000 | 1.014783 (hero 1.022036 on its full batch) | 1.014783\n|\n| mean loss 354001–354019 | 1.023 (hero 1.017) | 1.023, within 1.2e-4 of\nrt1 per step |\n| median `train/grad_norm` | 0.39, logged every step | 0.39, logged\nevery step |\n| clip fired | 354012 (1.041), 354029 (1.975) | 354002 (3.228) |\n| step time, MFU | 13.4 s, 31.5% (hero 13.7–18.0 s) | 13.2 s, 31.8% |\n| peak memory | 123.21 GiB | 123.21 GiB |\n\nResults:\n- No step produced a NaN.\n- `train/grad_clipped` equals `train/grad_norm > 1` on every row.\n- `train/grad_norm` equals the watch's `grad/norm/total` on every 10th\nstep.\n- rt1's first attempt lost two ranks to a tokenizer-staging race in\n`/tmp/levanter_tokenizers` after a clean 188 s restore; its automatic\nretry trained.\n\nThe two runs see identical batches from identical weights, yet their\nspikes land on different steps. This matches #10677's finding that a\nspike sits at an ill-conditioned point that rounding moves. The fire\nrate at batch 256 does not predict the hero's: one pathological sequence\ncarries 11x more weight in a 256-row mean. At the hero's median of 0.50,\nthe clip should fire on spikes like 352190 and 353060.\n\nNew CPU tests cover:\n- the clip's bitwise no-op and its global rescale;\n- the clipped train step;\n- restoring an unclipped checkpoint into a clipping run.\n\nThe `tests/test_moe_hero_ep.py`, `test_scaling_ladder.py`, and\n`test_grug_variant_contracts.py` suites pass (110 tests), and\n`./infra/pre-commit.py --all-files` is clean. `--review` flagged three\nissues:\n- a positional tuple return, now the `ClippedGradients` NamedTuple;\n- rollout context in the clip constant's comment, now removed;\n- a bare `\"d6144\"` literal, left as is because the file already compares\nagainst it in several places.\n\nPart of #10677.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "8aac0db3d9de5e38ede80a6dd1aaeafdc3f16147",
+      "url": "https://github.com/marin-community/marin/commit/8aac0db3d9de5e38ede80a6dd1aaeafdc3f16147",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "GBX-Max1220",
+      "author_name": "Baixin Guo",
+      "authored_at": "2026-10-30T12:01:54Z",
+      "committed_at": "2026-10-30T12:01:54Z",
+      "message": "Screening findings for same-history preference pairs from agent traces (Marin #10042) (#10741)\n\n## Screening findings for same-history preference pairs (Marin #10042)\n\nAdds a feasibility screening artifact for the \"local DPO from agent\ntraces\" question, plus the code that reproduces it. It does **not**\nconstruct preference pairs and does not train anything.\n\n**What it establishes**\n\n- **Parser-tier screening is feasible on this data.** Exact prompt token\nids, a served tool schema extracted per-turn from each completion prefix\n(not a single first-prompt pull), and provable action spans for 123 of\n156 completion turns. Within every one of the 22 rows the schema is\nbyte-identical across that row's per-turn prefixes (22/22 rows, one\nschema hash per row); cross-row identity was not separately verified.\nThe span proof has three gates reported separately: round trip\n(`encode(decode(ids)) == ids`), exactly one `<function=...>` block, and\na three-way segmentation check that fails when a single token spans an\naction boundary.\n- **Natural preference pairs are not established.** The sample holds one\ntrace per task id, so there is no second branch under the same history\nto compare; there is also no per-action outcome label and no pre-action\nenvironment state.\n\n**Findings**\n\n1. **Pairing evidence.** Provided: `instruction` / prompt ids / action\nids / completion logprobs 22/22, served schema extracted 22/22 --\nextraction only; agreement with what the engine actually served is\n**not** verified (the export carries no independent record to compare\nagainst). Missing: execution-result column, pre-action environment-state\ncolumn, per-step verifier (the verifier is episode-level).\n`conversations` carries no `tool` role in this export, but 133 of 156\nassistant turns are followed by a non-empty message with tool-result\ncharacteristics. Those are called *following messages*, not\nobservations: the data does not establish that they came from the\nenvironment in response to the call, and they are unlabeled and\nunframed. The gap is structure, not text.\n2. **Natural format phenomena (156 turns).** 91 clean-parsable; 32 over\nan operator-set 512-token cap (proven spans -- length, not format); 22\nprose turns (**not** tool calls, so not malformed); 8\nmultiple-function-block turns (a **multiple-block phenomenon; harness\nvalidity not fully established** -- the opencode adapter's `findall`\nover the `conversations`-column `<tool_call>` envelopes shows the\nexported format supports multiple calls per message, but it does not\noperate on the native literal token stream, so native multi-block\nvalidity is unverified); 3 tokenizer round-trip artifacts. Zero turns\nare established as natural malformed calls, which is absence of\nconfirmed positives under one narrow parser, not evidence the data is\nclean.\n3. **Recorded on-policy logprobs.** Completion side only, one scalar per\ntoken (not top-k). Low-probability tokens (`< -1.0`, threshold fixed a\npriori) are less frequent inside action spans (656 / 42,648 = 1.538%)\nthan in the surrounding text of the same turns (260 / 5,384 = 4.829%).\nThe correspondence check is **token-count agreement only** (156/156\nturns, 0 mismatches) -- positional correspondence is assumed, not\nverified. These are the generating model's own confidence, not a\ndisagreement signal, so low probability is not used as an error label.\n\n**Next steps (detailed in the README)**\n\n1. Reconcile the adapter's one-observation-per-call rule with this\nexport -- it currently rejects rows for a reason unrelated to model\nbehaviour.\n2. Get a slice with >= 2 attempts per task id, or per-step environment\nresults instead of the episode-level verifier. This is a screening\ncondition, not permission to pair: prefixes must be equal token by\ntoken, schema identical at both decision points, pre-action environment\nstate verifiably equivalent, and the contrast must fall on the action\nrather than the episode outcome.\n3. Only then derive a real error taxonomy from harness-side parse\nfailures, and use it to judge any synthetic corruption distribution.\n\n**Limits**\n\n- Snowball rescoring was **not** executed: the stored Qwen ids cannot be\nreused directly as Snowball input (vocabulary mismatch), and the\ntext-level route was not attempted, not verified, and not costed.\n- One cohort, one harness, one native serialization; n = 156 turns. The\n512-token cap is operator-set, not a data property.\n- The source dataset declares no license, so only aggregate counts are\nprinted, never raw record text.\n- The synthetic corruption rule is deliberately out of scope.\n- When a per-turn prefix carries no `<tools>` block, the schema is\nreported as schema-unavailable and that turn is counted separately -- it\nis never auto-classified as malformed.\n\n**Files** -- `experiments/post_training/trace_preferences/`: `README.md`\n(findings + reproduction), `parse.py`, `analyze_traces.py`,\n`test_trace_prefs.py`. 614 lines of Python across 3 files (the count\nincludes the tests); this is above Ben's suggested ~500-line budget --\nthe excess is entirely the per-turn schema extraction, the\nconfirmed/undetermined malformed separation, and the targeted tests\nadded during review. The tests live beside the experiment per\n`experiments/AGENTS.md`.\n\nCPU only, no model run, no API calls, nothing downloaded. The sample and\ntokenizer are not in the repo: paths are passed explicitly and the\nreal-data test skips when they are absent, so it never fails on a fresh\ncheckout.\n\n\nRelated to issue #10042.\n\n---------\n\nCo-authored-by: Ben Feuer <bf996@nyu.edu>",
+      "sha": "4d4b4ef1e2069d70bca9bba8c6a35b55fb5f6654",
+      "url": "https://github.com/marin-community/marin/commit/4d4b4ef1e2069d70bca9bba8c6a35b55fb5f6654",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-30T02:32:37Z",
+      "committed_at": "2026-10-30T02:32:37Z",
+      "message": "Raise patched Python dependency floors across locked environments (#10748)\n\nRequire Authlib >=1.9.1, dnspython >=2.9.0, GitPython >=3.2.0, msgpack\n>=1.2.3 and NLTK >=3.10.4 in the affected environments. Refresh the\nroot, SkyRL, Harbor, Evalchemy and OlympiadBench ablation locks\nindependently. Only the affected package versions change; Evalchemy\nkeeps GitPython 3.2.1. [OAuthLib 4 is a separate\nchange](https://github.com/marin-community/marin/pull/10749) because its\nrelease changes grant validation and removes JSONP support.\n\nThese floors address the reviewed advisories for [Authlib JWS\nvalidation](https://github.com/advisories/GHSA-6v38-4h7w-rj9h), [empty\nHMAC keys](https://github.com/advisories/GHSA-8m4g-j4wp-wgcg), [key\nconfusion](https://github.com/advisories/GHSA-7vr2-2fgp-9w7p),\n[dnspython](https://github.com/advisories/GHSA-45c3-73f7-pv4m),\n[GitPython command\nwrappers](https://github.com/advisories/GHSA-w8jc-g24h-crhw), [GitPython\nmetadata parsing](https://github.com/advisories/GHSA-m64x-33q8-m5h7),\n[msgpack](https://github.com/advisories/GHSA-j586-36cw-2gc2) and\n[NLTK](https://github.com/advisories/GHSA-j456-xh4h-cpf2). Affected lock\nentries establish dependency exposure; no exploitation is claimed.\n\nAll five locks pass offline freshness checks. Required diff-scoped lint\nand branch advisory review complete with no findings. Harbor's offline\nruntime passes 987 tests and all 3 acquisition tests pass. Positive\ncompatibility probes pass for signed JWTs and mocked OAuth clients,\nrepository metadata and boolean config, in-memory DNS wire parsing,\nmsgpack and Flax checkpoint roundtrips, and NLTK corpus, sentence,\nROUGE, IFBench and IFEval paths. NLTK resources reside in a private data\ndirectory; resource-path confinement remains enabled. No live\ncredentials or exploit reproductions are used; accelerator runtime\nbehavior remains untested locally.\n\nThe macOS root suite reports 3,064 passed, 11 skipped and 5 expected\nfailures, with one Linux-only bubblewrap failure and four collection\nerrors from missing optional Torch; all five issues reproduce on\nunchanged main 755a737. Evalchemy reports 827 passed, 22 skipped and 21\nfailures in sandbox resource-limit/multiprocessing checks and a\ntemporary-path assertion. Representative failures from all three\ncategories reproduce on main. Its 17 NLTK sentence-grader tests and\nLevanter's GitPython integration test pass. Linux CI passes at\n300303074b, including Evalchemy, SkyRL, Harbor and the Levanter\nTorch/TPU lanes. The affected-test runner's broad command omits the test\ngroup, so the root suite was run with `uv run --frozen --package\nmarin-core --group test pytest -n 2`, preserving default safety markers.",
+      "sha": "a16537859e11b68b7a1d4776421937fb8162ffc8",
+      "url": "https://github.com/marin-community/marin/commit/a16537859e11b68b7a1d4776421937fb8162ffc8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-10-30T00:46:30Z",
+      "committed_at": "2026-10-30T00:46:30Z",
+      "message": "[iac] Declare an existing Marin Dev grant in Pulumi (#10781)\n\nGrant `projects/hai-gcp-models/roles/marindev` on `hai-gcp-models` to\none KMS-encrypted human principal (`human-085`). The live project policy\nalready has this member, but `iam_data.yaml` does not. The role's\n`IAMBinding` owns the full member set, so the next `pulumi up` would\nremove the member.\n\nA grant approver should run `review-grant` to confirm the decrypted\nprincipal, then merge and run `pulumi up` on the `marin` stack.\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "60b9904528c18b78e7e442d39ce03f15f3b7936c",
+      "url": "https://github.com/marin-community/marin/commit/60b9904528c18b78e7e442d39ce03f15f3b7936c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-10-30T00:36:34Z",
+      "committed_at": "2026-10-30T00:36:34Z",
+      "message": "[iac] Grant Marin Dev access to two developers (#10775)\n\nGrant `projects/hai-gcp-models/roles/marindev` on `hai-gcp-models` to\ntwo KMS-encrypted human principals for standard Marin development and\nTPU work. The existing `domain:stanford.edu` members on the\n`iris-marin-be` and `iris-marin-dev-be` IAP bindings already cover both\naccounts.\n\nA grant approver should run `review-grant` to confirm the decrypted\nidentities and role, then merge and run `pulumi up` on the `marin` stack\nin `infra/pulumi`.",
+      "sha": "f2c9b091f5e240b3db37ced097b7919ca091c985",
+      "url": "https://github.com/marin-community/marin/commit/f2c9b091f5e240b3db37ced097b7919ca091c985",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-10-31T00:00:00Z",
+    "start": "2026-10-30T00:00:00Z"
+  }
+}

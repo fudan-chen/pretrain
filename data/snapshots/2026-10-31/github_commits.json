@@ -1,0 +1,32 @@
+{
+  "commit_count": 2,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-10-31T22:23:59Z",
+      "committed_at": "2026-10-31T22:23:59Z",
+      "message": "[shellbox] Add persistent container tasks and host capabilities\n\nAdd persistent Shellbox tasks with a primary container and supporting runtime containers. The local factory starts each member in bubblewrap; members share private loopback and retain separate filesystems and PID namespaces. Single machines use the same task representation. Timeout, cancellation, member failure and TTL reclaim the task.\n\n```mermaid\nflowchart TB\n    driver[Trusted driver and provider credentials]\n    relay[Bounded HTTP request/response relay]\n    process[Shared ProcessSession lifecycle]\n    pipe[Local and Docker binary pipes]\n    sdk[Daytona text transport and shared codec]\n    driver <--> relay\n    relay <--> process\n    process <--> pipe\n    process <--> sdk\n    subgraph task[Bubblewrap task: denied external networking]\n        primary[Primary container and HTTP helper]\n        runtime[Runtime container]\n        primary <-->|Private loopback| runtime\n    end\n    pipe <--> primary\n```\n\n`StreamProcessSession` shares read/write serialization, bounded stderr and cancellation-safe closure across pipe and SDK adapters. Adapters supply transport operations; Daytona's host and guest bridge share the text frame codec. The HTTP relay carries complete bounded requests and responses over that byte stream. Pydantic handles host-side message validation and JSON/base64 encoding; the guest helper uses only the standard library. Provider authentication stays with the trusted driver. Local, Docker, gVisor and Daytona support process sessions; QEMU, ShellSim and the existing Iris backend retain their command/file-transfer interfaces.\n\nLocal machines support prepared OCI images and persistent BusyBox/bubblewrap namespaces. A delegated cgroup v2 parent enforces CPU and RAM limits across each machine's descendants. Declared limits require delegation or an explicit ignore policy. Digest-pinned OCI layouts can be verified and reused offline. Disk quotas and accelerator allocation remain unsupported; local execution shares the worker's kernel and requires an isolated worker.\n\nHarbor integration #10628 builds on this contract to import Compose tasks. Native Iris container groups and driver-to-task endpoint authorization are deferred to standalone draft #10822; this change requires no Iris controller rollout and preserves the existing Iris backend.\n\nPart of #10486 and #10489.",
+      "sha": "52ee26f627abaa99b2d8d41a27cd34aafa97d888",
+      "url": "https://github.com/marin-community/marin/commit/52ee26f627abaa99b2d8d41a27cd34aafa97d888",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-10-31T00:42:58Z",
+      "committed_at": "2026-10-31T00:42:58Z",
+      "message": "Preserve BF16 checkpoint payloads in TensorStore writes (#10792)\n\nLet TensorStore copy staged checkpoint arrays when issuing writes. With\nreferenced-source writes, a 2.5 MiB BF16 array of shape `(5, 64, 64,\n64)` filled with 0.125 restores entirely as zeros: all 1,310,720\nelements differ. Copying preserves every value. A standalone file-backed\nzarr3 reproducer confirms the failure with TensorStore 0.1.84; the\nunderlying cause remains unresolved.\n\nCopying is enabled for every dtype, adding host-copy work and transient\nmemory beyond the staged-array budget. The existing staging and commit\nlifecycle is unchanged.\n\nThe affected CPU suite passed 1,348 tests with seven skipped. Its five\ncheckpoint-path failures also reproduce on unchanged main.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "41a41987e50e5ca68620f41c8714b1864c12f982",
+      "url": "https://github.com/marin-community/marin/commit/41a41987e50e5ca68620f41c8714b1864c12f982",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-01T00:00:00Z",
+    "start": "2026-10-31T00:00:00Z"
+  }
+}

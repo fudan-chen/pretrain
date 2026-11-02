@@ -1,0 +1,32 @@
+{
+  "commit_count": 2,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-01T16:16:53Z",
+      "committed_at": "2026-11-01T16:16:53Z",
+      "message": "[skyrl] Make HF export opt-in and move RNO2A outputs to US-EAST-08A (#10825)\n\nSkyRL launches no longer export Hugging Face checkpoints unless the\nlauncher\nsets `run.export_hf`. When export is enabled, `hf_save_interval`\ndefaults to\n-1, so only the terminal checkpoint gets an export request. A positive\ninterval still requests exports at intermediate checkpoints, and\n`export_hf_checkpoint.py` still exports any checkpoint on demand.\n\nBefore this change the vendored launcher enabled export by default and\n`hf_save_interval` defaulted to `ckpt_interval`, so every checkpoint\nwrote an\n`hf_export_request.json`. Pruning keeps every checkpoint whose export is\nincomplete, and only the terminal export runs automatically.\nIntermediate\ncheckpoints, about 1.3 TB each for a 67B policy with optimizer state,\ntherefore accumulated past `max_ckpts_to_keep`. Launchers that set\n`hf_save_interval` to `max_steps` for terminal-only export no longer\nneed to.\n\nThe `cw-rno2a` task environment now writes durable outputs to\n`s3://marin-us-east-08a/marin` and no longer sets `MARIN_TEMP_PREFIX`,\nso\nscratch and node-health probes use the shared CoreWeave temp bucket in\nUS-EAST-08A. Controller state and Finelog archives stay in\n`marin-us-east-02a`. The new prefixes take effect when the `cw-rno2a`\ncontroller is redeployed. Outputs written under `s3://marin-rno2a/marin`\nsince #10436 stay there.",
+      "sha": "1d274b52c636b6f2a9177b1d4c14b2f74795a8a6",
+      "url": "https://github.com/marin-community/marin/commit/1d274b52c636b6f2a9177b1d4c14b2f74795a8a6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-01T00:33:16Z",
+      "committed_at": "2026-11-01T00:33:16Z",
+      "message": "Disable MPTCP on the Loom host and Caddy (#10823)\n\nDisable MPTCP in the Loom host and Caddy network namespaces and set\n`GODEBUG=multipathtcp=0` for Caddy. Persist the settings across VM\nstartup and proxy recreation, and document how to recreate Caddy without\nrestarting Loom sessions.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "c10f78c078817301f2b5cf07e42b21b04370288a",
+      "url": "https://github.com/marin-community/marin/commit/c10f78c078817301f2b5cf07e42b21b04370288a",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-02T00:00:00Z",
+    "start": "2026-11-01T00:00:00Z"
+  }
+}

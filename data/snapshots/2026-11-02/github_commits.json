@@ -1,0 +1,219 @@
+{
+  "commit_count": 19,
+  "commits": [
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-02T22:48:48Z",
+      "committed_at": "2026-11-02T22:48:48Z",
+      "message": "[grug] Read precomputed fa4_bounds in the AMD Pallas flash kernel (#10217)\n\nLet the AMD Pallas flash attention kernel (`gpu_pallas_triton_flash`)\naccept masks that carry precomputed `fa4_bounds`. Before this change it\nrejected them, so `moe_hero_ep`, `moe_hero_fsdp` and `fast_track` could\nnot run on AMD GPUs with this kernel.\n\n`fa4_bounds` is a pair of per-query arrays: the lowest key position each\nquery may attend to, and a flag for whether the query is a real token or\npadding. These three models run all their layers in one `lax.scan`, and\ndifferent layers use different (long or short) sliding windows. The\nwindow size is a static field of `AttentionMask`, so the scan body\ncannot change it from layer to layer. The models instead precompute one\nset of bounds per window size and pick one per layer\n(`experiments/grug/moe_hero_ep/model.py:1338-1359`). The kernel now uses\nthose bounds as each query's key lower bound, as `gpu_fa4_cute` already\ndoes.\n\nOutputs match the segment-ID path except on padding rows. A padding\nquery attends only to itself, and the loss masks those rows.\n\nThe kernel does not check the bounds. After each padding row's bound is\nset to its own position, the bounds must never decrease from one query\nto the next and must not exceed each query's position.\n`fa4_cute_segment_bounds` produces bounds like this when each segment ID\noccupies one contiguous run. The dK/dV pass relies on that ordering, so\nbounds that break it give wrong key and value gradients without raising\nan error. The module docstring and the comment on\n`AttentionMask.fa4_bounds` state this requirement.\n\nThe tests check the `moe_hero_ep` pattern against the reference\nimplementation on a 2x2 data/model mesh, with bounds computed outside a\n`lax.scan`, sharded over the batch, and selected per layer with\n`jnp.where`. A GPU-only test is the only one that compiles the default\ntile sizes a training run uses; it runs bfloat16 at 4096 tokens with a\n2048 window, through precomputed bounds as `moe_hero_ep` passes them. CI\nruns on CPU, so it skips this test.\n\nPart of #9812.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "09573c54d115680f8403fd05c8596761a89b8292",
+      "url": "https://github.com/marin-community/marin/commit/09573c54d115680f8403fd05c8596761a89b8292",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-02T22:40:59Z",
+      "committed_at": "2026-11-02T22:40:59Z",
+      "message": "[iris] Bound federation peer RPCs with a 60-second default (#10857)\n\nGive federation peer RPCs a 60-second default deadline, preserving explicit limits. Status-sync and job-cancel RPCs share a loop with job delivery. An RPC timeout lets that loop resume; sync timeouts preserve the cursor for retry.\n\nThe [November 2 incident](https://marina.oa.dev/echo/wiki/916) exposed an unbounded sync wait. Its initiating cause remains unknown.\n\nAll 38 tests in `test_federation.py`, formatting checks and type checks passed.",
+      "sha": "f8fdac3bfaf8b655850059aed14e89d6186ce044",
+      "url": "https://github.com/marin-community/marin/commit/f8fdac3bfaf8b655850059aed14e89d6186ce044",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-02T22:18:42Z",
+      "committed_at": "2026-11-02T22:18:42Z",
+      "message": "[experiments] Add opt-in collective-overlap flags for multi-node AMD runs (#10673)\n\nJobs launched through `experiments/amd/hpcfund/run_gpu.sh` can now pass\n`--overlap-collectives` to get five XLA flags that overlap collectives\nwith compute. On two MI350X nodes this cuts the June Snowball step by\n13%, without model code changes. Jobs that don't pass the option are\nunchanged.\n\nWith data parallelism across nodes, each node holds a full copy of the\nmodel, and each layer's expert-weight gradients are summed across the\nnodes by an all-reduce over the network. XLA issues that all-reduce\ninside the backward pass's loop over layers and, by default, runs it\nwith nothing to overlap it, so the GPUs wait for the network. On two\nMI355X nodes about a quarter of the profiled step was this exposed\nall-reduce.\n\nWith `--overlap-collectives` before the script, the wrapper adds: the\nlatency-hiding scheduler, up to 4 collectives in flight at once (XLA's\ndefault is 1), pipelined all-reduce (XLA moves each loop iteration's\nall-reduce into the next iteration, where compute can hide it),\nwhile-loop double buffering, and starting each collective as soon as its\ninputs are ready. Caller `XLA_FLAGS` still override any of them. The\nflags are opt-in because of the correctness caveat below: they change\nonly scheduling, but more than one collective in flight has corrupted\ntraining elsewhere.\n\nJune Snowball (`synthetic_benchmark.py --size full`), EP8 inside each\nnode and data parallelism across nodes (`--expert-axis 8 --replica-axis\n2`), 8 sequences of 4,096 tokens per GPU, `--moe-impl ring_filtered\n--pooled-transport-capacity-factor 1.1 --attention\ngpu_pallas_triton_flash --remat-mode save_moe`, median step of steps\n2-19:\n\n| Setup | Before | After | Change |\n|---|---|---|---|\n| 2x MI350X nodes, HPC Fund, this wrapper and venv | 1.975-1.982 s |\n1.715-1.717 s | -13% |\n| 1x MI350X node, all nine flags of the ablation below | 1.529-1.534 s |\n1.526-1.529 s | none |\n| 2x MI355X nodes, Vultr, TheRock 7.14 container, main `666cf38f51` |\n1.955-1.971 s | 1.709-1.736 s | -12% |\n\nIn both two-node MI350X jobs, the second run without the flags was\nslower on every step (2.134 s and 3.026 s); the cause is unknown, and\nthe table uses the first run of each job. Peak memory rises by at most 1\nGiB.\n\nA leave-one-out ablation on two MI355X nodes picked the five flags:\nstarting from nine flags (five runs, 1.707-1.740 s, median 1.725 s), it\nremoved one at a time, one run each.\n\n| Flag removed | Step | Change |\n|---|---|---|\n| latency-hiding scheduler | 2.065 s | +20% |\n| overlap limit 4 | 1.964 s | +14% |\n| start collectives as early as possible | 1.793 s | +3.9% |\n| pipelined all-reduce | 1.768 s | +2.5% |\n| while-loop double buffering | 1.752 s | +1.6% |\n| pipelined all-gather | 1.729 s | none |\n| pipelined reduce-scatter | 1.719 s | none |\n| 8 GiB all-gather and reduce-scatter combine thresholds | 1.715 s |\nnone |\n\nThe last three are dropped. With the overlap limit at 1, the remaining\nflags give no gain (1.964 s, the same as no flags).\n\nOn GB200, more than one collective in flight silently corrupted training\nwith Grug's ragged all-to-all transport and the layer-carry offload, so\nthe NVIDIA EP hero forces the limit to 1. Here, two runs with the five\nflags and two without differ in per-step loss by at most 2.7e-4 and in\ncapacity-drop rate (the share of tokens dropped because their expert's\nbuffer is full) by at most 0.4 points; the two runs without the flags\nalready differ from each other by 1.5e-4 and 0.3 points. These runs use\nsynthetic tokens and an untrained router, which detect such races\npoorly. Parity from a trained-router checkpoint has not been checked;\nthe README says to check it before a long run, or to set the overlap\nlimit to 1 in `XLA_FLAGS` to rule the race out at the cost of the gain.\n\nLimits, also recorded in the README: the flags were measured only with\nreplica data parallelism on two nodes, not cross-node FSDP or EP16. With\nthe HPC Fund venv, 4 of 17 runs with the flags crashed while shutting\ndown after their last step (`double free or corruption` as\n`jax.distributed` disconnects, or a segfault), and one more segfaulted\nduring compilation, against 0 of 6 runs without them. Output up to the\ncrash is complete, but Slurm marks the step failed. All 22 flagged runs\nin the MI355X container exited cleanly.\n\nPart of #9812.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "844e32852ef57a77df2e86012d78813935e9641d",
+      "url": "https://github.com/marin-community/marin/commit/844e32852ef57a77df2e86012d78813935e9641d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-02T22:16:19Z",
+      "committed_at": "2026-11-02T22:16:19Z",
+      "message": "[grug] Make FA4 zigzag context sharding configurable (#10610)\n\nAdd `GrugModelConfig.attention_context_layout`, passed through\n`attention()` to the FA4 wrappers, so a run can turn off the zigzag\nquery swap from #10170. `\"zigzag\"` stays the default, so 262K and every\nother context-parallel caller is unchanged. `\"contiguous\"` makes one\nkernel call per shard on its own query rows at offset `shard_index *\nlocal_len`, with no query split and no `ppermute`, the same code path as\nbefore #10170.\n\nZigzag pays off at 262K (see #10170 for the benchmarks) but slightly\nslows 65K, so the hero README says to keep `\"zigzag\"` at 262K and set\n`\"contiguous\"` at 65K, one `HERO_MODEL` line in `heuristic.py`.\n\nThe #10170 CPU position test now runs under both layouts and checks that\nevery query row reaches the kernel at its global position. The GPU\nparity test for sequence-sharded queries (forward and gradients against\nreference attention) now also runs under both layouts. An unknown layout\nvalue raises `ValueError` at the FA4 entry point.",
+      "sha": "6a01a1539f93c90648d15cdb706fe4b3ae3924d1",
+      "url": "https://github.com/marin-community/marin/commit/6a01a1539f93c90648d15cdb706fe4b3ae3924d1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-02T21:56:44Z",
+      "committed_at": "2026-11-02T21:56:44Z",
+      "message": "Offload recompute inputs to pinned CPU memory optionally (#10376)\n\nAllow optional pinned CPU offload of saved activation inputs on\nnon-final Grug pipeline stages. Require full/uniform recomputation and\npipeline parallelism, and reject conflicting activation-offload modes.\nThe option defaults off.\n\nDocument the option in the existing SkyRL guide. The branch targets main\ndirectly and no longer depends on #10367.\n\nThe implementation and GPU tests are unchanged from [SkyRL\n#1029](https://github.com/marin-community/MarinSkyRL/pull/1029), which\nrecords the full-Hero H100 measurements. This cleanup did not rerun the\nGPU tests.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "c1612bd2545da89d39e66e05e62937ed3107126a",
+      "url": "https://github.com/marin-community/marin/commit/c1612bd2545da89d39e66e05e62937ed3107126a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-02T21:27:42Z",
+      "committed_at": "2026-11-02T21:27:42Z",
+      "message": "[rl] Penalize malformed reasoning spans through trajectory reward shaping (#10625)\n\nThis PR implements @penfever and @Helw150's suggestion to add a\nreasoning format violation penalty similar to the length penalty, to\nhelp reduce thinking the format violations detected in #10520.\n\nI toggle it on in https://github.com/marin-community/marin/pull/10626.",
+      "sha": "51f1873030b4e3df0b897f056911945cb7446e77",
+      "url": "https://github.com/marin-community/marin/commit/51f1873030b4e3df0b897f056911945cb7446e77",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-11-02T19:38:49Z",
+      "committed_at": "2026-11-02T19:38:49Z",
+      "message": "[taskforge] Add triage: structural checks and a surface for expansion (#10296)\n\nAdd triage as a deterministic preflight. `stage20_triage.checks` holds the proposal checks that read what `parse` leaves open, each reporting PASS, FAIL or SKIP: the required sections have content (fatal), and the grader section matches the declared verification, every research item states a purpose and the build plan names every declared resource (advisory). `stage20_triage.preflight.preflight(proposal)` runs them and rejects a fatal failure or a null proposal with the reason, accepts anything else, and makes no model call. Header validity is `parse`'s job: it also refuses a resource path outside the build root and a repeated build name. Whether the host can provide the machine is the build's check. `verdict.py` holds the `Verdict` record and `TriageDecision`, whose REPAIR value and `author_state` field are the surface a consumer's triage may use.\n\nThe preflight is the default, and the package has no model review: the README describes a panel with repair and a bounded review with obligations as designs a consumer could add, which experiments found not to be meaningful predictors of downstream quality. `StageCoordinator` still triages with `verdict.accept` here; #10298 moves it onto the preflight's verdict.\n\nBuilds on #10295; #10297 builds on it.",
+      "sha": "cd5f2b1fccd528c2738280f56053981d54329bb7",
+      "url": "https://github.com/marin-community/marin/commit/cd5f2b1fccd528c2738280f56053981d54329bb7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-11-02T19:31:44Z",
+      "committed_at": "2026-11-02T19:31:44Z",
+      "message": "[taskforge] Define typed JSON task proposals and resumable sources (#10295)\n\nDefine typed task proposals with a source identity, environment and verification requirements, research and build plans, and a Markdown body stored inside JSON. Parsing checks the required sections, machine constraints and research citations; canonical serialization gives each proposal a stable content digest.\n\nGeneration uses a JSON schema derived from the proposal dataclasses. This replaces the YAML front-matter parser and document regex while retaining semantic validation and rejecting duplicate keys. Existing YAML artifacts require their original consumer or explicit conversion; their serialized digests change under JSON.\n\nThe proposal source plans a set of candidate tasks before writing each proposal independently. Callers can persist that plan and resume an individual proposal without regenerating its siblings. Builds on #10294; #10296 adds deterministic triage.\n\nThe repository pre-commit gate, 399 offline Taskforge and experiment tests, and the package type check pass.",
+      "sha": "7e27bed9caf7af423f40639834b7e0bbd856db94",
+      "url": "https://github.com/marin-community/marin/commit/7e27bed9caf7af423f40639834b7e0bbd856db94",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-11-02T19:21:07Z",
+      "committed_at": "2026-11-02T19:21:07Z",
+      "message": "[taskforge] Add TaskSpec assembly, lowering, controls and verdicts (#10294)\n\nThe Taskforge build stage produces a task as builder outputs (an instruction, files, an answer and a grader program), and validation runs it under RolloutEngine on whichever host it is on. This adds the `spec` package that turns those outputs into a `TaskSpec` and lowers it for the host.\n\n`spec.draft.assemble` builds the semantic `TaskSpec` and refuses a task that would leak or corrupt its grading: private grader content the solver can read, or an agent-visible file under the grader's `/tests` and `/logs/verifier` roots, which grading stages after the grader's own files. `spec.draft.lower` builds the `TaskRolloutSpec` RolloutEngine runs under its shell harness (`draft.rollout_engine`) and is the one place that chooses each machine's backend. A machine on the grader base image moves to the local backend's CPython only when nothing staged or written on it lies under a system directory that backend cannot write: all of them for a read-only factory, only `/sys` and the resolver's directory for the copy-on-write factory Taskforge builds on Iris. Package machines take PyPI requirements one per entry, and an entry carrying a uv requirements-file option is refused.\n\n`spec.controls` defines the fixed controls a task's control set must hold (a reference, an acceptance and a shortcut control) and turns a candidate's files and reply into the turns a replay serves. `spec.verdict` reads and writes the per-check verdict a grader program reports. `child_process` stops a child process group, for the loader and build children of the later stages.\n\nBuilds on #10293. The shared modules are complete here, and #10295 starts the stages. The RolloutEngine tests of `llm.rollout_model`, the ShellSim fixture images and the sandbox factories' two manual machine tests need `spec.draft`, so they land here.",
+      "sha": "9125f53b1f4ba3393113053c830ca477eae7c6fd",
+      "url": "https://github.com/marin-community/marin/commit/9125f53b1f4ba3393113053c830ca477eae7c6fd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-11-02T19:04:05Z",
+      "committed_at": "2026-11-02T19:04:05Z",
+      "message": "[taskforge] Add machine factories, task images and the image builder (#10293)\n\nTaskforge needs explicit machine backends and a way to build custom task images. Add the shared `sandbox` package.\n\n`machine_factories(backends, controller_url)` constructs exactly the selected shellbox backends and raises when requested Docker or local sandbox support is unavailable. ShellSim-only runs do not probe either. `task_refusals` checks a task's machine requirements before starting a trial.\n\n`IrisImageBuilder` builds a custom image in one Iris CPU job, pushes it in a separate job, and returns a digest-pinned reference after registry readback. Both jobs disable inherited-secret forwarding and receive the submitter's CoreWeave storage credentials for output archives. Only the push job receives registry authentication. Bootstrap and readback errors are classified as infrastructure failures. Build contexts reuse TaskCompendium's validation and are size-checked before file contents are read.\n\nBuilds on #10292; #10294 builds on this. The full repository pre-commit gate, 255 offline Taskforge and experiment tests, and the package type check pass. These changes have not been tested with a live build-to-pull run.",
+      "sha": "f770508861313a14fee03a2de82009430590c579",
+      "url": "https://github.com/marin-community/marin/commit/f770508861313a14fee03a2de82009430590c579",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-02T18:36:39Z",
+      "committed_at": "2026-11-02T18:36:39Z",
+      "message": "[grug] Let the hero launcher run context parallelism (#10618)\n\nThe hero's 262K context extension needs context parallelism, and CP4\nwith row balancing is a throughput option at 65K, but the production\nhero launcher (`launch_scaling_ladder.py`, d6144) did not support it: it\nfixed the expert axis at all 64 GPUs of a rack and had no context axis.\nOnly `launch_diagnostics.py` could run CP. The launcher now can:\n\n- `hero_recipe.py` adds the checked-in constants `HERO_CONTEXT_AXIS_SIZE\n= 1` and `HERO_BALANCE_ATTENTION_ROWS = False` (#10121's row balancing),\nso a deploy that turns on CP sets each with one line.\n- At CP > 1 each rack's 64 GPUs (`HERO_RACK_GPUS`, formerly\n`HERO_EP_EXPERT_AXIS_SIZE`) form 64 / CP expert shards, and the Levanter\ntrainer mesh counts only batch shards, as `launch_diagnostics.py`\nalready did.\n- The eval batch is one sequence per batch shard, so each GPU on the\ndropless eval mesh holds max_seq_len / CP tokens per eval batch: 704\nsequences on the 11-rack hero at CP1, 176 at CP4.\n- All three hero launchers share one launch-time check that the batch,\n`max_seq_len` and the expert bank split over the layout. Its waves check\nnow applies only to the pooled-wave transport, the one that splits local\nexperts into waves. `launch_diagnostics.py` defaults its context axis\nand row balancing to the hero constants.\n- Levanter's `compact_grug_mesh_shape` is public, since the shared check\nsizes the mesh with it.\n- The loader logs each source's start offset at a context switch.\n\nThe running hero is unchanged: its full built config at 65K CP1\n(trainer, mesh, eval, model, optimizer) has the same repr as on `main`,\nand tests pin the CP1 and CP4 layouts.\n\nPart of #8435\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10618#issuecomment-6374360073)\n<!-- marin-prose-cleanup -->\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "87e686208bf176766de4db6bd9fe41dcf89e48dd",
+      "url": "https://github.com/marin-community/marin/commit/87e686208bf176766de4db6bd9fe41dcf89e48dd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-02T18:05:56Z",
+      "committed_at": "2026-11-02T18:05:56Z",
+      "message": "[rl] Optionally reject malformed reasoning spans in task grading (#10624)\n\nThis PR fixes part of\nhttps://github.com/marin-community/marin/issues/10520 🤔 -- Malformed\nthinking traces were being amplified by RL, so let's do less of that!\n\nThis PR detects malformed reasoning spans & optionally rejects them. It\nsets two tasks to `reject`, Nemotron Ultra calendar and code, but\neverything else should be unchanged.\n\nTwo follow-up PRs are stacked.\n* #10625 implements @penfever and @Helw150's suggestion to add a\nreasoning format violation penalty similar to the length penalty.\n* #10626 wires that reasoning format violation penalty by default\n\n---------\n\nCo-authored-by: David Lundgren <4246705+davidlundgren@users.noreply.github.com>",
+      "sha": "b61097b03c7e3844b90a05493777e6bfb27d2a8a",
+      "url": "https://github.com/marin-community/marin/commit/b61097b03c7e3844b90a05493777e6bfb27d2a8a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-11-02T17:59:44Z",
+      "committed_at": "2026-11-02T17:59:44Z",
+      "message": "[rolloutengine] Document length-cut tool calls and unrendered generation-limit prompts (#9839)\n\nDocument two model-adapter rules that `main` implements but does not\nstate, and test the behaviour behind them.\n\nMachine preparation and the shell tool contract, the exports this PR\noriginally added, are now public on `main` in another form. #10203\nexported `rolloutengine.machines.task_machine(task, factory, runtime, *,\ncleanup_timeout)`. The shell tool contract lives in\n`taskcompendium.runtime.shell` (`ShellToolConfig`, `resolve_shell_tool`,\n`run_shell_call`). The merge of `main` therefore drops\n`rolloutengine.shell_tool` and `prepare_machine`.\n\n- `ModelTurn.stop_reason` (`models.py`): `\"length\"` whenever generation\nended on the output token budget, including a reply that the server's\ntool parser reports as tool calls. The shell harness does not execute\nthose calls.\n- `GenerationLimitReached.prompt_token_ids` (`models.py`): empty when\nthe server rejected the prompt without rendering it. The engine records\nthem only when no turn of the conversation completed.\n- `docs/references/task-rollouts.md`: the same two rules next to the\ngeneration-limit paragraph.\n- `test_rollout.py`: a length-cut tool call is graded without being\nexecuted; `task_machine` raises a close failure after a clean body;\n`task_machine` closes its machine when setup fails.",
+      "sha": "fbc0ad5f30330e6917d50b77a479334f346eef4b",
+      "url": "https://github.com/marin-community/marin/commit/fbc0ad5f30330e6917d50b77a479334f346eef4b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dependabot[bot]",
+      "author_name": "dependabot[bot]",
+      "authored_at": "2026-11-02T17:53:04Z",
+      "committed_at": "2026-11-02T17:53:04Z",
+      "message": "Bump pyasn1 from 0.6.4 to 0.6.5 in /infra/grafana in the uv-security group across 1 directory (#10815)\n\nBumps the uv-security group with 1 update in the /infra/grafana\ndirectory: [pyasn1](https://github.com/pyasn1/pyasn1).\n\nUpdates `pyasn1` from 0.6.4 to 0.6.5\n<details>\n<summary>Release notes</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/pyasn1/pyasn1/releases\">pyasn1's\nreleases</a>.</em></p>\n<blockquote>\n<h2>Release 0.6.5</h2>\n<h2>Revision 0.6.5, released 26-10-2026</h2>\n<ul>\n<li>GHSA-mm57-4v3p-rchx: Decoded binary REAL mantissas in linear time\ninstead of repeatedly shifting a growing integer and slicing the\nremaining bytes (thanks for reporting, manus-use, manus-pi, ucsurf,\nadriank31)</li>\n<li>GHSA-2qm8-x737-gmw5: Reassembled constructed BIT STRING fragments\nin linear time while preserving their decoded bit values, including\nintermediate fragment padding (thanks for reporting, manus-use)</li>\n<li>GHSA-9m75-vc3g-4x39: Reassembled constructed OCTET STRING and\ncharacter-string fragments and indefinite-length ANY content in\nlinear time. Nested constructed OCTET STRING fragments now contribute\ntheir decoded octets (thanks for reporting, alimony, manus-pi,\nadriank31)</li>\n<li>GHSA-fm9c-5rcf-2q5p: Bounded schemaless container type tracking\nafter two distinct tag sets to prevent quadratic CPU use from\ncolliding long tag IDs (thanks for reporting, droideck)</li>\n</ul>\n</blockquote>\n</details>\n<details>\n<summary>Changelog</summary>\n<p><em>Sourced from <a\nhref=\"https://github.com/pyasn1/pyasn1/blob/main/CHANGES.rst\">pyasn1's\nchangelog</a>.</em></p>\n<blockquote>\n<h2>Revision 0.6.5, released 26-10-2026</h2>\n<ul>\n<li>GHSA-mm57-4v3p-rchx: Decoded binary REAL mantissas in linear time\ninstead of repeatedly shifting a growing integer and slicing the\nremaining bytes (thanks for reporting, manus-use, manus-pi, ucsurf,\nadriank31)</li>\n<li>GHSA-2qm8-x737-gmw5: Reassembled constructed BIT STRING fragments\nin linear time while preserving their decoded bit values, including\nintermediate fragment padding (thanks for reporting, manus-use)</li>\n<li>GHSA-9m75-vc3g-4x39: Reassembled constructed OCTET STRING and\ncharacter-string fragments and indefinite-length ANY content in\nlinear time. Nested constructed OCTET STRING fragments now contribute\ntheir decoded octets (thanks for reporting, alimony, manus-pi,\nadriank31)</li>\n<li>GHSA-fm9c-5rcf-2q5p: Bounded schemaless container type tracking\nafter two distinct tag sets to prevent quadratic CPU use from\ncolliding long tag IDs (thanks for reporting, droideck)</li>\n</ul>\n</blockquote>\n</details>\n<details>\n<summary>Commits</summary>\n<ul>\n<li><a\nhref=\"https://github.com/pyasn1/pyasn1/commit/5d1673657b729fb580467e2cf4875856bbca5e59\"><code>5d16736</code></a>\nPrepare release 0.6.5</li>\n<li><a\nhref=\"https://github.com/pyasn1/pyasn1/commit/a36e3a3d067148d26197a6b7221fd0e2cde9cc86\"><code>a36e3a3</code></a>\nFix quadratic CPU use in schemaless container decoding</li>\n<li><a\nhref=\"https://github.com/pyasn1/pyasn1/commit/4ce00797c594b59c1fd6b86d9ebc3ba87b7ec9f9\"><code>4ce0079</code></a>\nRemove quadratic constructed OCTET STRING and ANY reassembly</li>\n<li><a\nhref=\"https://github.com/pyasn1/pyasn1/commit/73ba7b043cc7e92cb37f16f2c955bff93b0e6f6c\"><code>73ba7b0</code></a>\nRemove quadratic constructed BIT STRING reassembly</li>\n<li><a\nhref=\"https://github.com/pyasn1/pyasn1/commit/ce3ec3390784780a530047e0e77be5ff457636a4\"><code>ce3ec33</code></a>\nRemove quadratic binary REAL mantissa decoding</li>\n<li>See full diff in <a\nhref=\"https://github.com/pyasn1/pyasn1/compare/v0.6.4...v0.6.5\">compare\nview</a></li>\n</ul>\n</details>\n<br />\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=pyasn1&package-manager=uv&previous-version=0.6.4&new-version=0.6.5)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore <dependency name> major version` will close this\ngroup update PR and stop Dependabot creating any more for the specific\ndependency's major version (unless you unignore this specific\ndependency's major version or upgrade to it yourself)\n- `@dependabot ignore <dependency name> minor version` will close this\ngroup update PR and stop Dependabot creating any more for the specific\ndependency's minor version (unless you unignore this specific\ndependency's minor version or upgrade to it yourself)\n- `@dependabot ignore <dependency name>` will close this group update PR\nand stop Dependabot creating any more for the specific dependency\n(unless you unignore this specific dependency or upgrade to it yourself)\n- `@dependabot unignore <dependency name>` will remove all of the ignore\nconditions of the specified dependency\n- `@dependabot unignore <dependency name> <ignore condition>` will\nremove the ignore condition of the specified dependency and ignore\nconditions\nYou can disable automated security fix PRs for this repo from the\n[Security Alerts\npage](https://github.com/marin-community/marin/network/alerts).\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+      "sha": "17e61580b547d0cb5023cbca944b3c826ddd710b",
+      "url": "https://github.com/marin-community/marin/commit/17e61580b547d0cb5023cbca944b3c826ddd710b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-02T17:46:07Z",
+      "committed_at": "2026-11-02T17:46:07Z",
+      "message": "[skyrl] Retry Grug engine startup after actor failure (#10826)",
+      "sha": "6825d1102486331202989f8012059b77c3b7a628",
+      "url": "https://github.com/marin-community/marin/commit/6825d1102486331202989f8012059b77c3b7a628",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-02T11:55:42Z",
+      "committed_at": "2026-11-02T11:55:42Z",
+      "message": "[datakit] Exclude benchmark variants from CalibForge relay traces (#10839)\n\nExclude CalibForge relay episodes whose task IDs appear in the 405-task\nTerminal-Bench 2.1/TB-Lite exclusion list. At relay revision 66feab4 and\nexclusion revision a33f23c, 229 of 5,916 CalibForge episodes match; the\n4,392 Kimi traces remain. The transform records the pinned list and drop\ncount in its step metadata and counts filtered rows at runtime.\n\nFixes #10838\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "c2fdbefe100234d26b332590480072ef3bde735b",
+      "url": "https://github.com/marin-community/marin/commit/c2fdbefe100234d26b332590480072ef3bde735b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-02T06:34:59Z",
+      "committed_at": "2026-11-02T06:34:59Z",
+      "message": "[datakit] Release the shared Zephyr pool after its last stage (#10067)\n\nRelease the shared Zephyr pool when its last stage succeeds, so idle\nshared workers stop holding hosts needed by dedicated pools.\n`run_reference_steps` runs normalization before starting the shared\npool; a watcher thread calls `ZephyrContext.shutdown()` after every step\nin `DatakitSteps.shared_pool_steps` succeeds. `ZephyrDatakitSteps` and\n`DecontaminationSteps` each list the stages that receive the shared\ncontext. If the watcher's status check raises, the run fails with that\nerror. All three ferries use this path through `run_reference_ferry`, as\ndoes `reference_pipeline.py --target all`. The shared pool uses\n`_IdleWorkerPolicy.RETAIN`, so it previously kept every acquired worker\nuntil the DAG ended: up to 512 workers (2 CPU / 16 GiB each) on v5e\nhosts, while the embed, quality, fuzzy-cluster, and store pools waited\nfor hosts.\n\nReduce the tier-1 store worker from 4 CPU / 32 GiB RAM / 64 GiB disk to\n2 CPU / 8 GiB RAM / 16 GiB disk. A store task with one normalized shard\npeaks below 2 GiB RAM and spills below 1 GiB. On 2026-10-12, the old\nshape received 1 of 106 workers; the new shape received 12 workers in 1\nminute.\n\nOn the fixed code, tier 1 (`/rav/iris-run-job-20261012-153556`)\nsucceeded in 56 minutes. Tier 3 (`/rav/iris-run-job-20261012-153605`)\nsucceeded, and its shared pool stopped at 19:30 UTC after fuzzy dedup.\nTier 3 took 5h47m, exceeding the 20,700-second CI wait. On a busy\ncluster, the shared pool received only 275 of its 512 workers, and\ntokenization took 2h37m, compared with 37 minutes on 2026-10-05.\n\nThe tier-3 fuzzy-cluster workers drop from 16 CPU / 128 GiB / 64 GiB\ndisk to 8 CPU / 64 GiB / 32 GiB, with 64 instead of 32 workers, so the\ntask count stays at 512. Only one of the larger workers fits on a v5e\nhost. On 2026-10-13 the verify workers waited 3h46m for hosts, and the\ntier-3 ferry took 7h30m. At 16 tasks per worker, cluster text peaked at\n66 GiB and verify at 26 GiB.\n\nThe three tiers passed in CI on this branch. Tier 1 took 56 minutes, and\ntier 2 took 1h51m. Tier 3 (`/runner/iris-run-job-20261013-165715`) took\n2h25m, with 36 minutes for fuzzy verification. This is much less than\nthe 20,700-second CI wait.\n\nThe tier concurrency groups now include `github.ref`, so a run started\non a branch and the scheduled run on main do not cancel each other.\n\nFixes https://github.com/marin-community/marin/issues/10047. Part of\nhttps://github.com/marin-community/marin/issues/10059.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "aea328e4281c7094f5452d9c5d45294aaad95200",
+      "url": "https://github.com/marin-community/marin/commit/aea328e4281c7094f5452d9c5d45294aaad95200",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-02T02:55:40Z",
+      "committed_at": "2026-11-02T02:55:40Z",
+      "message": "[grug] Switch the hero to 65K context at permanent step 372000 (#10820)\n\nThe hero trains at 65,536-token context from permanent step-372000 of `hero-gradclip-step356k`, on the same CP1 × EP64 mesh as at 16K, with qk_mult 1.66 and receiver capacity factor 1.5 (up from 1.15). Each rack keeps 4,194,304 tokens per update, so the 11-rack batch is 704 sequences. The 16K phase is appended to the hero's context history with the parent's cumulative FLOPs at step 372000, and the launch record names the child run, handoff checkpoint and W&B fork point. That leaves 18,251 steps (4.7%, 0.84T tokens) at 65K.\n\n`HERO_FLOPS_BASELINE_TOTAL` is the parent's `throughput/total_gflops` × 1e9 projected to W&B `_step` 371999: the parent adds the same FLOPs every 16K step, and projecting from `_step` 359999 matches the logged total at 369975 to 8e-13. The logged value is checked against it before launch.\n\nOn one GB200 rack at 65K, CP1 with capacity factor 1.5 ran at 15.397 s/step with drop fraction 9.80e-4 and peak HBM 128.4 GiB, against 14.699 s, 2.41e-3 and 127.6 GiB for CP4 × EP16, over 500 steps each; its dropless eval completes. CP1 at capacity factor 1.0 drops 1.9% of assignments. qk_mult 1.66 is 1.3 × (0.1 ln(65536/4096) + 1). The one-rack test of this branch ([`tok350-deploy65k-c1-01`](https://wandb.ai/marin-community/marin_moe/runs/tok350-deploy65k-c1-01)), restored from step-360000, ran 60 steps at 15.571 s/step median with drop fraction 8.29e-4 and peak HBM 127.9 GiB; three dropless evals completed (Paloma macro loss 1.995–1.998) with no OOM or retry. Its step is 1.1% slower than the earlier arm's; this branch includes the gradient clipping of #10783, which that arm predated. A 100-step rehearsal from step-366000 ran at 15.518 s/step median with peak HBM 127.9 GiB through two checkpoint saves.\n\nPart of #8435; tracked in #10821.",
+      "sha": "6e6924fedd64cc241f2de50ec3660a386ec12436",
+      "url": "https://github.com/marin-community/marin/commit/6e6924fedd64cc241f2de50ec3660a386ec12436",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "himanshk96",
+      "author_name": "himanshk96",
+      "authored_at": "2026-11-02T01:19:26Z",
+      "committed_at": "2026-11-02T01:19:26Z",
+      "message": "[datakit] Shuffle MinHash LSH buckets as uint64 keys (#10106)\n\nShuffle MinHash LSH buckets through the connected-components group_by as\nPython ints instead of decimal strings. `_emit_bucket_records` casts\neach batch's `buckets` column to `list<uint64>` with pyarrow and yields\nthe ints; `CCInput.bucket` and the CC reducer and combiner annotations\nbecome `int`. The bucket is only a routing key for that group_by. CC\nnever writes it to its link or node files, so nothing persisted changes.\n\n`fuzzy_minhash.py` is untouched: on-disk MinHash attrs stay\n`list<string>`, `MINHASH_ATTR_DATA_VERSION` stays 3 and\n`FUZZY_DUPS_ATTR_DATA_VERSION` is unchanged. No step hash, output path\nor hero-manifest entry moves, and the final fuzzy-dup output is\nidentical to main. String-encoded and `list<uint64>` attrs canonicalize\nto the same int key, so mixed sources still link, as they did through\n`str(b)` on main. A bucket string that does not parse as uint64 now\nfails the job with `ArrowInvalid`; on main it became a key that matched\nonly the same malformed string. Arrow's parser also accepts forms such\nas `0x10` and `007`, which the MinHash writer never emits.\n\nThis is phase 1. Writing `list<uint64>` attrs on disk, with the matching\n`MINHASH_ATTR_DATA_VERSION` bump, is deferred until the planned MinHash\nrerun, since it invalidates cached attrs.",
+      "sha": "ad3ca405a446cfe01dc110fc55ac31a8abdcf953",
+      "url": "https://github.com/marin-community/marin/commit/ad3ca405a446cfe01dc110fc55ac31a8abdcf953",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-03T00:00:00Z",
+    "start": "2026-11-02T00:00:00Z"
+  }
+}

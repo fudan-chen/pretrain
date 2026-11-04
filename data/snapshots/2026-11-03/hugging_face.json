@@ -1,0 +1,59 @@
+{
+  "dataset_count": 0,
+  "datasets": [],
+  "model_count": 1,
+  "models": [
+    {
+      "created_at": "2025-05-15T01:59:58.000Z",
+      "downloads": 2027,
+      "gated": false,
+      "id": "marin-community/marin-8b-base",
+      "kind": "model",
+      "last_modified": "2026-11-03T20:28:18.000Z",
+      "likes": 18,
+      "pipeline_tag": "text-generation",
+      "private": false,
+      "sha": "e1a2021fd607dfba5086e2cbe916c160d03870f1",
+      "tags": [
+        "safetensors",
+        "llama",
+        "text-generation",
+        "en",
+        "dataset:allenai/dolmino-mix-1124",
+        "dataset:allenai/olmo-mix-1124",
+        "dataset:bigcode/starcoderdata",
+        "dataset:EleutherAI/proof-pile-2",
+        "dataset:hltcoe/megawika",
+        "dataset:mlfoundations/dclm-baseline-1.0",
+        "dataset:HuggingFaceTB/finemath",
+        "dataset:marin-community/ar5iv-noproblem-markdown",
+        "dataset:marin-community/ar5iv-warning-markdown",
+        "dataset:marin-community/datashop-science-qa",
+        "dataset:marin-community/stackexchange-markdown",
+        "dataset:marin-community/wikipedia-markdown",
+        "arxiv:2109.01652",
+        "arxiv:1909.09436",
+        "arxiv:2110.14168",
+        "arxiv:2309.12284",
+        "arxiv:2310.03731",
+        "arxiv:2302.13971",
+        "arxiv:2410.05192",
+        "arxiv:2412.02595",
+        "license:apache-2.0",
+        "region:us"
+      ],
+      "updated_in_target_window": true,
+      "url": "https://huggingface.co/marin-community/marin-8b-base"
+    }
+  ],
+  "observation_end": "2026-11-04T09:21:37Z",
+  "source": "marin-community",
+  "spillover_dataset_count": 0,
+  "spillover_datasets": [],
+  "spillover_model_count": 0,
+  "spillover_models": [],
+  "window": {
+    "end": "2026-11-04T00:00:00Z",
+    "start": "2026-11-03T00:00:00Z"
+  }
+}

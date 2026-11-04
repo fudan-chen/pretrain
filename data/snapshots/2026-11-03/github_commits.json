@@ -1,0 +1,230 @@
+{
+  "commit_count": 20,
+  "commits": [
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-03T23:31:48Z",
+      "committed_at": "2026-11-03T23:31:48Z",
+      "message": "[grug] Order the compact mesh as data, expert, context (#10877)\n\nOrder the compact Grug mesh as `(replica_dcn, data, expert, context,\nmodel)`. The old order was `(replica_dcn, data, context, expert,\nmodel)`. This is an alternative to #10709.\n\n- The hero's dropless eval folds `expert` into `data`. With `data` next\nto `expert`, the eval mesh is a reshape of the training mesh. Each\ndevice keeps its training context group. Its eval data group is its\ntraining `(data, expert)` group.\n- Under the old order, at CP > 1 the reshape made device groups that\ntraining does not use. XLA keeps an NCCL communicator for each new group\noutside the allocator pool. At 65K CP4 this used 7.4 GiB per GPU and\ncrashed the eval.\n- The new order makes the device transpose and spec rename from #10709\nunnecessary. #10711 can remove its copy of that code.\n- On 16 CPU devices, the compiled eval uses only device groups that the\ntraining step also uses. The old order adds 10 groups at data 1 × expert\n8 × context 2.\n- At CP1 no device moves, so the 65K hero does not change.\n- At CP > 1 the physical layout changes: at CP4 × EP16, each 4-GPU tray\nholds one context group. CP > 1 PGLE profiles need new measurements.\n- A 12-node GB200 A/B at 262K, CP4 × EP12, 288 experts, random init and\n45 steps found no regression. The median step time was 22.91 s with this\nchange and 22.88 s on main (+0.4%), against a step-to-step spread of\nabout 2 s. Peak memory was 132.2 and 132.3 GiB. The dropless eval\ncompleted in 123 s and 125 s. Main did not hit the communicator OOM at\nthis size, so this run does not test the eval fix. A full-rack CP4 ×\nEP16 run from a hero checkpoint has not run.",
+      "sha": "1107efbb771a6d430402f182293117374959c283",
+      "url": "https://github.com/marin-community/marin/commit/1107efbb771a6d430402f182293117374959c283",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-03T23:28:39Z",
+      "committed_at": "2026-11-03T23:28:39Z",
+      "message": "[tests] Delete tests of removed or uncalled code (#10880)\n\nDelete code that nothing in the repository calls any more, together with\nthe tests that were its only users, so the test suite stops maintaining\ncoverage for code no one runs.\n\nRemoved modules, and the PR after which nothing called them:\n\n- `tests/test_inspect_data_region.py`: its region-validation helpers\nlived in `scripts/debug/inspect_data.py`, which #5089 deleted. The\nhelpers were then copied into the test file, so the test exercised no\nproduction code.\n- `marin.transform.structured_text.table_records` and\n`marin.transform.structured_text.web_data_commons` (the whole\n`structured_text` package), structured-text perplexity slices added in\n#5129: their only caller, `experiments/structured_evals.py`, was deleted\nin #6633.\n- `marin.transform.evaluation.continuation_records`,\n`code_interpretation` and `prompt_format_sensitivity`, perplexity suites\nadded in #6080: their callers,\n`experiments/evals/code_interpretation_ppl.py`,\n`experiments/evals/prompt_format_sensitivity.py` and the 32B\nprompt-format gap experiment, were deleted in #6633.\n`continuation_records` was only used by the other two.\n- `experiments/coral/batch_calibration.py`, the TPU batch-size estimator\nadded in #7204 and extended in #7380: it has had no caller since it was\nadded.\n- `levanter.layers.attention.MultiHeadLatentAttention` and its config,\nDeepSeek-V3-style latent attention added in\nmarin-community/levanter#1091: it was never wired into a model, and its\nonly test checked output shape and the absence of NaNs.\n\nNone of these modules is imported anywhere in `lib/`, `experiments/`,\n`tests/`, `scripts/` or `infra/` except by the deleted tests, and none\nhas a `__main__`, `executor_main` or draccus entry point, so nothing can\nrun them. Anyone who wants one back can restore it from git history\nalong with the experiment that used it.\n\nSome candidates from the same audit stay for now. `raw_lm_eval` is still\nimported by\n`tests/cluster/vllm/generate_representative_eval_prompts.py`. The old\nexact-dedup module is still the only producer of paragraph-level\nduplicate spans and is imported by `tests/integration_test.py` and\n`tests/processing/classification/test_consolidate.py`. The Verifyit\nharness adapters have no callers in this repository but were ported from\nelsewhere and need their owner's sign-off.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "e1eba457872338199a31f54591c86ffc934e5885",
+      "url": "https://github.com/marin-community/marin/commit/e1eba457872338199a31f54591c86ffc934e5885",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-11-03T22:42:25Z",
+      "committed_at": "2026-11-03T22:42:25Z",
+      "message": "[taskforge] Deliver image-job credentials as Iris secrets (#10866)\n\nImage jobs now read a failed build's exit code from its task. The\ncontroller's `GetJobStatus` sets only aggregate counts: `tasks` is empty\nand the job-level `exit_code` is 0. `wait_succeeded` therefore asks\n`job.task(0).status()`, which matches the one-task, no-retry image jobs.\nBefore, a crane or kaniko-export bootstrap failure (exit 125) was raised\nas `BuildFailed`, a Dockerfile error, instead of the host's\n`ImageJobFailed`.\n\nThe registry credential and the CoreWeave storage keys now reach the\nimage jobs as Iris secrets (`EnvironmentSpec.secrets`, still under\n`SecretBehavior.ISOLATE`), and `image_push` reads them from files under\n`$RIGGING_SECRETS_DIR`. They no longer appear in either job's\nenvironment or pod spec. A coordinator job receives the registry\ncredential as the Iris secret `TASKFORGE_REGISTRY_CREDENTIAL` and reads\nit with `require_secret`. Laptops still read it with `gcloud`, because\nrigging's `gcp-secret://` resolver needs `google-cloud-secret-manager`,\nwhich taskforge does not declare. Inherited environment values are still\nblanked, except a parent's explicit `CW_KEY_ID`/`CW_KEY_SECRET`: Iris\nlets those override the secrets of the same name, so blanking them would\nleave the jobs with empty storage keys. The build job still carries the\nsubmitter's CoreWeave key, which Iris requires on every CoreWeave job\nand the output uploader uses. No key scoped to the output-archive prefix\nexists yet, and the module docstring records the exposure.\n\nA live build-to-pull run on `cw-us-east-02a` at 1a2b95385a, submitted\nfrom a laptop, built, pushed and read back a linux/amd64 image by digest\nin 83 s\n([record](https://github.com/marin-community/marin/pull/10293#discussion_r4455935215)).\nIt covers the exit-code and secret-file changes. It did not start a\ncontainer from the image.\n\nThe container backend now comes from the selected factories rather than\na host enum. `container_backend(backends)` returns the single `GVISOR`\nor `DOCKER` entry and raises if there is none or more than one, so\n`lower`, `machine_runtime` and `machine_backend` take the factories and\n`MachineHost` is removed.\n\n`task_refusals` and its refusal types are deleted, since\n`spec.draft.lower` already runs `RolloutEngine.check` on the same\nfactories. `warm_local_python` and `PythonEnvironmentFactory` are\ndeleted because nothing in the repository calls them.\n`scripts/build_image_job.py` uses click. `publish_with_timings` is\nsynchronous and only `ImageBuilder.publish` stays async, because #10298\nawaits it inside an `asyncio.TaskGroup`.\n\nThe stacked #10298, #10300 and #10301 need to follow. `lower` loses its\n`host` argument, so `BuildServiceConfig.host`,\n`infrastructure.host_backends` and `host_checked_factories` should take\nthe backends. `round._lower` and `trials.run_trial` lose\n`task_refusals`, and `build_process` should read the registry credential\nwith `rigging.secrets.get_secret`.\n\nFollow-up to #10293.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "b9f2ee3868dfc3685df7e762185f72237a9df665",
+      "url": "https://github.com/marin-community/marin/commit/b9f2ee3868dfc3685df7e762185f72237a9df665",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "XiaoyuanWang111",
+      "author_name": "Xiaoyuan Wang",
+      "authored_at": "2026-11-03T21:53:23Z",
+      "committed_at": "2026-11-03T21:53:23Z",
+      "message": "[evals] Fix seven IFBench checker defects and pin the dataset revision (#10423)\n\nSync vendor/evalchemy/eval/chat_benchmarks/IFBench/instructions.py with\nallenai/IFBench 1c40f0c, keeping its relative import. Upstream fixed six\nchecker defects that the vendored copy still has: findings F1, F2, and\nF6 to F9 of the audit for #10060,\nhttps://github.com/XiaoyuanWang111/ifbench-audit/blob/a31c6841dae2632dafda740bd51496843d9e5f38/reports/AUDIT.md.\nThe most severe is in repeat:repeat_span, which sliced character indices\nalthough every prompt asks for word indices, so every correct answer\nfailed. The registry and utilities stay unchanged.\n\ncustom:csv_quotes now fails a response with an empty field instead of\nraising IndexError (finding F15; upstream 1c40f0c still raises). When\none response raises, the driver marks the whole IFBench task failed, so\na single such response voids a model's IFBench score. No response in the\naudit's model panel triggers it; 251 of 3,000 random tab-separated\noutputs with the required header do.\n\nallenai/IFBench_test is pinned to 2e8a48de, the head of its main branch,\nas MRCR pins its data. The data does not change. This is the dataset\nhalf of finding G5; the NLTK data that the checkers download stay\nunpinned.\n\nOn first import, the checkers download 70 MiB of NLTK data into\nIFBench/.nltk_data unless NLTK already finds it elsewhere. The Evalchemy\nfork ignored that directory, and the vendored copy (#10288) does not.\nThe new regression tests import the checkers, so\nvendor/evalchemy/.gitignore now ignores it. Without the rule, a checkout\nthat has run the tests gets different Evalchemy source hashes, and its\nIris job submissions fail because the bundle exceeds the 25 MiB limit.\n\nOn the audit's model panel (16 configurations, 228 complete runs, 78,432\nconstraint verdicts), upstream's checkers change 257 strict verdicts\nrelative to the vendored copy's, 227 of them in ratio:overlap, and move\neach configuration's greedy strict prompt-level score by at most one\nprompt (0.33 points). The synced file differs from upstream's only in\nits import and the F15 change, which changes no panel verdict. The\npublished verdicts, in panel_verdicts of\nhttps://huggingface.co/datasets/xiaoyuanwang/ifbench-audit/tree/ceaba90ba6a2acac8fd8b51368a37e27c0ba688f,\nwere graded with the audit's nltk 3.10.0 and emoji 2.15.0. A regrade\nwith the vendored lock's nltk 3.10.3 and emoji 2.16.0 gives the same\ncounts. The nltk upgrade changes 8 of the 156,864 strict and loose\nverdicts, all in sampled runs and the same for the vendored copy and the\nsynced file.\n\nPart of #10060.",
+      "sha": "fca974b90bea247cf640e9cb17b315ed3a89e89d",
+      "url": "https://github.com/marin-community/marin/commit/fca974b90bea247cf640e9cb17b315ed3a89e89d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-03T20:04:57Z",
+      "committed_at": "2026-11-03T20:04:57Z",
+      "message": "[rl] Make HF checkpoint export opt-in (#10644)\n\nMake HF conversion opt-in for standalone SkyRL launches, the quick RL\nloop and the task-session validation canary. This avoids a separate GPU\nconversion job when only training results are needed.\n\nKeep native checkpoint and in-training evaluation policies unchanged.\nThe quick loop exposes `--export-hf`; pipelines whose downstream\nevaluation consumes an HF model keep exporting explicitly.",
+      "sha": "0f8a488f44c68d0c9b1ce966df3338b5439a5c83",
+      "url": "https://github.com/marin-community/marin/commit/0f8a488f44c68d0c9b1ce966df3338b5439a5c83",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-03T20:02:27Z",
+      "committed_at": "2026-11-03T20:02:27Z",
+      "message": "Apply publication metrics in the shared evaluation reader (#10672)\n\nApply publication metric policy `marin-2026-10-16-v1` in the shared\nmeasurement reader and Evaldash: PIQA uses normalized accuracy, IFBench\nuses strict prompt accuracy, and TruthfulQA MC2 uses continuous\naccuracy. Missing selected metrics remain unavailable. Sample grades and\nbinary pass counts follow the selected score; continuous scores have no\npass/fail counts.\n\nApply metric selection when reading results, preserving stored raw\nscores, run identity, and resume behavior. Correct the evaluator's\nIFBench and TruthfulQA metric kinds so newly written coverage reflects\ntheir scoring semantics.\n\nNUPA scorer and replay changes are in #10876. Part of #10197.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "166483204225c3e453e39a33dd9dfcc469cde931",
+      "url": "https://github.com/marin-community/marin/commit/166483204225c3e453e39a33dd9dfcc469cde931",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-03T19:43:23Z",
+      "committed_at": "2026-11-03T19:43:23Z",
+      "message": "[data] Add CalibForge fixture and staged SWE-Smith preparation (#10330)\n\nAdd CalibForge environment inventory, public-fixture packaging,\nnative-reference capture, and filesystem-equivalence tooling. The task\narchive retains private verifier bytes under tests/, separate from the\npublic setup_files/ fixtures. Packaging records source hashes and leaves\nCalibForge tasks pending admission.\n\nAdd staged SWE-Smith authoring controls for repository readiness and\ncomplete or partial repair handoffs. Variants retain their parent's\nsplit. Original correctness tests qualify repairs, and hidden tests\nremain outside actor images. These authoring controls do not\nautomatically register either source as training-approved in the\ncuration pipeline. Extract handoff validation from the retired\nTaskSession wrapper so preparation code can run against current main.\n\nThe historical RolloutEngine wrappers and campaign configs remain on\n#10190. This port does not provide a new live execution harness or\npublish the local Docker image artifacts. The preparation entrypoints\nretain the campaign's input-manifest layout.\n\nPart of #10305.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "731828958845a98f96d8f4cd1e098b199a7b0980",
+      "url": "https://github.com/marin-community/marin/commit/731828958845a98f96d8f4cd1e098b199a7b0980",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-03T19:20:29Z",
+      "committed_at": "2026-11-03T19:20:29Z",
+      "message": "[iac] Grant the Marin Dev role to a new OA developer (#10878)\n\nGrant `projects/hai-gcp-models/roles/marindev` on `hai-gcp-models` to a\nnew OA developer (registered as `human-086`) for day-to-day Marin\ndevelopment. Iris IAP access already comes from the\n`domain:openathena.ai` member on both controller backends.\n\nThe grant is already live. A targeted `pulumi up` on the `marin` stack\napplied only the `marindev` binding and the `iris-principal-directory`\nsecret version, which now includes the new principal. Until this merges,\na `pulumi up` from `main` reverts both. A reviewer should run\n`review-grant` to confirm the decrypted principal.\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "f2ab5d810e10220c539115b5cd6cb38d1605f982",
+      "url": "https://github.com/marin-community/marin/commit/f2ab5d810e10220c539115b5cd6cb38d1605f982",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-03T17:44:49Z",
+      "committed_at": "2026-11-03T17:44:49Z",
+      "message": "[Snowball Atlas] Add the #9920 and #9984 transfer models to the Snowball family tree (#10599)\n\nStacked on #10719. Review and merge #10719 first.\n\nAdd 10 public checkpoints from the transfer experiments in #9920 and\n#9984 to the Snowball family tree. All descend from the sync Step92\nstudent (`open-athena/Snowball-67B-A2B-10T-Mixed-RLVR-Sync-Step92`),\nwhich is already in the tree. The tree grows from 130 to 140 nodes, and\nthe snapshot moves to 2026-10-23. This is the first model addition under\nthe reviewed-PR workflow in #10598 and #10719.\n\n| Node (`open-athena/Snowball-67B-A2B-…`) | Weights revision | Parents |\nStage | Timeline date (basis) | Record |\n|---|---|---|---|---|---|\n| `CruxEval-Expert-E-Step272` | `fb4f8051` | Step92 | SFT | 2026-10-07\n(run name) | #9920 |\n| `CruxEval-Plain-SFT-Step399` | `3e34be3f` | Step92 | SFT | 2026-10-08\n(run name) | #9920 |\n| `CruxEval-RS-SFT-Step282` | `073d128c` | Step92 | SFT | 2026-10-08\n(run name) | #9920 |\n| `CruxEval-OPD-Step75` | `9d189320` | Step92 | RL | 2026-10-09 (final\nresults date) | #9920 |\n| `MMLUPro-Expert-E2-Step254` | `acb97183` | Step92 | SFT | 2026-10-09\n(run name) | #9984 |\n| `MixedPlain-SFT-Step803` | `1a0bcf70` | Step92 | SFT | 2026-10-10 (run\nname) | #9984 |\n| `MixedRS-SFT-Step727` | `95dd3f4a` | Step92 | SFT | 2026-10-10 (run\nname) | #9984 |\n| `MOPD-Step100` | `4bb97259` | Step92 | RL | 2026-10-13 (Hub repo\ncreation) | #9984 |\n| `Merge-TA0.5` | `07001c33` | Step92, E, E₂ | Merge | 2026-10-13 (Hub\nrepo creation) | #9984 |\n| `Merge-TIES-d0.5` | `ffb5b685` | Step92, E, E₂ | Merge | 2026-10-14\n(Hub repo creation) | #9984 |\n\nThe arrows represent weight parents. OPD and MOPD start from Step92;\ntheir teachers (E, E₂) appear in the summary without arrows. Each merge\nhas an arrow from each of its three parents, as in the campaign 2/3\nmerges. Each node pins the weights revision named in its issue. Later\nHub commits changed only the model card: a 2026-10-17 note that the S3\nsource was deleted and the 2026-10-20 responsible-use text. Every repo\nis public. Each node's timeline and last evidence entry state the basis\nfor its date. E+ is omitted because it is a reference model that was not\nuploaded. The a = b = 1.0 merge is omitted because it regressed and was\nnot published.\n\n`node infra/marina/apps/snowball_family_tree/verify_layout.js` reports\n140 visible and 140 placed nodes with 152/152 arrows correct for the\nfull tree; the 10T view has 58/58 nodes and 70/70 arrows correct. `uv\nrun marina validate infra/marina/apps/snowball_family_tree` passes the\npackage and inline_scripts checks. `uv run marina release\ninfra/marina/apps/snowball_family_tree --dry-run --json` builds 9 files\ntotaling 351,529 bytes. `uv run marina release ... --local --json`\nstarted a local revision. `infra/pre-commit.py` passed on the changed\nfiles.\n\nAfter #10719 is merged and its nightly publisher is activated, merging\nthis PR makes the changed graph eligible for the next nightly release.\nManual publication from main remains available.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/10599#issuecomment-6372669038)\n<!-- marin-prose-cleanup -->",
+      "sha": "8fd094fd23f0fd5b6992244c87f10a5bd99f49e3",
+      "url": "https://github.com/marin-community/marin/commit/8fd094fd23f0fd5b6992244c87f10a5bd99f49e3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-03T17:44:49Z",
+      "committed_at": "2026-11-03T17:44:49Z",
+      "message": "[Snowball Atlas] Publish reviewed Snowball family-tree changes nightly (#10719)\n\nPublish changed Snowball family-tree source from reviewed main nightly\nat 04:17 UTC, with manual dispatch and dry-run support. Skip unchanged\nsource, validate the layout, release once against the observed live\nversion, and verify the selected source afterward. Persist the old/new\nprovenance and immutable release URL before verification, and retain the\nrecord even when verification fails. Conflicts fail without automatic\npublication retries.\n\nLegacy live revisions without recorded Git provenance require explicit\nbootstrap after inspection. Reuse the existing main-only Cloud Run\ndeployment identity through GitHub OIDC and declare its Marina IAP\naccess in the shared IAM stack; an IAM operator must apply the reviewed\n`marin` stack in `infra/pulumi/` before activation. Scheduled runs are\ngated by the repository variable `SNOWBALL_TREE_RELEASE=enabled`; manual\npreview/bootstrap stays available while the schedule is disabled. The\nmaintenance guide includes the apply, access-verification and activation\nsteps. Keep the existing public app UUID and URL. Marina now keeps\nmaintained source under `infra/marina/apps/`; this branch uses that path\nand the unified `marina apps` CLI.\n\nRequire curated model and lineage changes to enter through reviewed PRs,\nincluding outside contributions. The scheduled job publishes merged\nsource; it does not discover models or edit the graph. Model additions\nremain separate in #10599.\n\nAll eight affected tests, the 130-node/138-edge layout harness, required\nlint and the strict documentation build pass. This PR installs\npublication automation; no live app release has been performed from this\nbranch.\n\nFixes #10598\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Karan Sagar <1545121+karansag@users.noreply.github.com>\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "431d687c6a324efc947735f27fb64212c424f4e4",
+      "url": "https://github.com/marin-community/marin/commit/431d687c6a324efc947735f27fb64212c424f4e4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-03T16:55:41Z",
+      "committed_at": "2026-11-03T16:55:41Z",
+      "message": "[iris] Clarify child routing and endpoint readiness failures (#10769)\n\nIn-task SkyRL launches now discard root-only routing settings, print why, and submit through the parent's controller. This replaces Marin's duplicate config workaround. Cluster environment defaults use the execution cluster, so cw-rno2a child launches retain the NCCL interface setting; explicit overrides still win.\n\nMissing endpoints consistently raise `ConnectError(NOT_FOUND)`. Marin retries that condition while propagating other RPC failures. Launch errors preserve the RPC code, reason and server details.\n\nPart of #10768.",
+      "sha": "64e66fc59bc82ac5e2c22bd463bcde405e70c412",
+      "url": "https://github.com/marin-community/marin/commit/64e66fc59bc82ac5e2c22bd463bcde405e70c412",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-03T16:26:28Z",
+      "committed_at": "2026-11-03T16:26:28Z",
+      "message": "[iris] Mirror requested limits for federated child jobs (#10771)\n\n_NOTE: mostly a display fix, incorrect values were being displayed\nbefore_\n\nFederated children now show their requested execution and scheduling\ntimeouts, failure and preemption retries, and job-wide failure budget on\nthe hub. Previously the execution peer honored these limits but the hub\ndisplayed its mirror-row defaults, including no timeout and 100\npreemption retries.\n\nFederation sync carries the requested limits and updates the hub's\nstored config. Both the execution peer and hub must run the updated\nprotocol; a peer that omits limits still leaves the mirror defaults\nunchanged. Explicit zero retries and timeouts are preserved.\n\nPart of #10768.\n\nCompanion changes #10769 (client errors/readiness) and #10770 (child\nlifetime) also target main independently. Together they address #10768.\n\n\nReview guide for all three PRs:\nhttps://github.com/marin-community/marin/issues/10768#issuecomment-6591814075\n\n---------\n\nCo-authored-by: David Hall <9633+dlwh@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: David Hall <david.hall@openathena.ai>",
+      "sha": "640613e4574e68bce0a200ecdc2b6f06f8ec003c",
+      "url": "https://github.com/marin-community/marin/commit/640613e4574e68bce0a200ecdc2b6f06f8ec003c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-03T15:37:54Z",
+      "committed_at": "2026-11-03T15:37:54Z",
+      "message": "Serialize tokenizer staging across local processes (#10797)\n\nSerialize tokenizer staging across local processes with a file lock\nbeside the shared staging directory. Waiting callers recheck the\ncompleted local files under the lock and reuse them, preventing another\ndownload from truncating files during loading.\n\nA subprocess regression holds one filesystem copy halfway through while\na second loader starts. The baseline leaves zero-filled bytes in\ntokenizer.json and fails to load; with the lock, both processes load the\ncomplete tokenizer. The same file lock coordinates both threads and\nprocesses.\n\nThe affected CPU suite passed 1,670 tests with seven skipped. Its five\ncheckpoint-path failures also reproduce on unchanged main.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "fb9ef1e6e9c41159f047e69b455389a6739e6280",
+      "url": "https://github.com/marin-community/marin/commit/fb9ef1e6e9c41159f047e69b455389a6739e6280",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-03T15:37:49Z",
+      "committed_at": "2026-11-03T15:37:49Z",
+      "message": "[levanter] Fix packed and context-parallel Snowball SFT (#10492)\n\nHonor packed-conversation segment IDs in Snowball attention so one\nconversation cannot attend to another. Preserve explicit sharding while\nreshaping expert outputs and shifting next-token targets, including\ncontext-parallel evaluation and singleton batch dimensions.\n\nExpose expert dispatch capacity as `SnowballConfig.moe_capacity_factor`,\nretaining the default of 1. Add explicit generation EOS IDs to the\nstandalone HF export path so chat stop tokens survive export. These\nfixes were used by the identity SFT campaign; this branch contains\nreusable runtime changes and regression coverage only.\n\nThe affected safe suite finished with 1,529 passes, 14 skips and six\nfailures; all six failures reproduce on unchanged main at d9d49f2c65. A\ntargeted DPO run after the final callback correction passed 34 tests\nwith one skip. Lint and type checking pass. The existing\naccelerator-only test lanes have not been run locally.\n\nPart of #10491. The generation-config change also addresses one part of\n#10478; it does not implement that issue's broader export-policy\nproposal.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "1b6dbae186300f42c27efe447a1bd7693dd5ebcc",
+      "url": "https://github.com/marin-community/marin/commit/1b6dbae186300f42c27efe447a1bd7693dd5ebcc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-03T15:18:28Z",
+      "committed_at": "2026-11-03T15:18:28Z",
+      "message": "[sft] Bound pending cache batches for long replay documents (#10794)\n\nAllow callers to bound pending Levanter cache batches, retaining the\nexisting default of 128. Long replay documents can contain hundreds of\nmillions of tokens, so the cold-start replay selector reads and writes\nthose documents one at a time with only one pending batch.\n\nThe experiment helper selects whole documents into disjoint <=64K and\n>64K streams, records source offset and selected-index hashes, and\npreserves the token payload. It operates on explicitly supplied\nregion-local shards and joins storage keys through StoragePath.\n\nFocused cache/replay tests pass. The affected suite passed 1,024 tests\nwith four skips; five checkpoint-path failures reproduce unchanged on\nmain `671c7bcf78`. Mechanical checks and independent library/advisory\nreviews passed. Reproduction source: #10789.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "5f89785797d7f100cb68801d3bd0a7d8bd7bf7bc",
+      "url": "https://github.com/marin-community/marin/commit/5f89785797d7f100cb68801d3bd0a7d8bd7bf7bc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-03T14:15:07Z",
+      "committed_at": "2026-11-03T14:15:07Z",
+      "message": "[merging] Allow BF16 and FP16 merge source widening (#10597)\n\nAllow merge sources to widen allowlisted BF16 or FP16 tensors to FP32\nwhen loading shards. The\n`marianna13/Grug-67B-A2B-Antidoom-RLVR1-Step12-SFT-mix-v4-think-step465`\ncheckpoint stores 26 `model.layers.N.mlp.router.bias` tensors as BF16.\nThe other merge parents store those tensors as FP32, so `merge_tensor`\nrejects the mismatch.\n\n`CheckpointSource.dtype_widenings` maps full-match tensor-key regexes to\na declared stored and loaded dtype pair. Only `bfloat16 -> float32` and\n`float16 -> float32` are allowed. A matched tensor with a different\nstored dtype raises; unmatched tensors retain their dtype. Merge\narithmetic remains FP32 and output uses the anchor dtype. The policy\nappears in the recipe and manifest; input shards are unchanged.\n\nFor the SFT-465 source, add:\n\n```json\n{\n  \"dtype_widenings\": {\n    \"model\\\\.layers\\\\.(?:[0-9]|1[0-9]|2[0-5])\\\\.mlp\\\\.router\\\\.bias\": [\"bfloat16\", \"float32\"]\n  }\n}\n```\n\nSynthetic shard tests cover both promotions and mismatched stored\ndtypes. `uv run --no-project infra/ci/run_tests.py` passed all 70\nselected safe tests.\n\n---------\n\nCo-authored-by: Karan Sagar <1545121+karansag@users.noreply.github.com>",
+      "sha": "9e82a1cce60cdf01e3c34af21eb9c26ba79f39bc",
+      "url": "https://github.com/marin-community/marin/commit/9e82a1cce60cdf01e3c34af21eb9c26ba79f39bc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-03T14:12:15Z",
+      "committed_at": "2026-11-03T14:12:15Z",
+      "message": "[levanter] Replicate singleton-batch FA4 segment metadata (#10796)\n\nReplicate singleton-batch segment metadata before building FA4\npacked-sequence offsets. JAX can retain a unit mesh label on a `[1, S]`\nslice while dropping it on the adjacent `[1, 1]` slice, making their\nconcatenation fail sharding type checks. The singleton case now uses the\nexisting metadata replication path.\n\nA multidevice regression test builds bounds for a `[1, S]` batch sharded\nover unit mesh axes and checks them against the unsharded result. GPU\nkernel execution is covered by accelerator CI. Reproduction: #10789.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "06cc8aec0d7c27fdb9d40d040ebc47322b8ad97a",
+      "url": "https://github.com/marin-community/marin/commit/06cc8aec0d7c27fdb9d40d040ebc47322b8ad97a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-03T04:46:19Z",
+      "committed_at": "2026-11-03T04:46:19Z",
+      "message": "[grug] Add a daily one-rack hero canary on GB200 (#10861)\n\nAdd a daily canary that runs the hero model and training step from main\non one GB200 NVL72 rack, so throughput regressions show up before a hero\ndeploy. It uses `launch_diagnostics` with the hero's defaults, restores\nthe pinned permanent checkpoint `step-372000`, trains 35 updates on the\nproduction mixture and runs one dropless eval after the last update.\nEvery run sees the same weights and batches, so a step-time change comes\nfrom the code. Settings that only the production launcher applies, such\nas `gate_router_weight_decay` and `prior_context_phases`, are left out;\nthey do not change step time.\n\nThe workflow submits at 11:00 UTC (3 AM PST, 6 AM EST) at `batch`\npriority, the band of the hero-completions sampler, so neither preempts\nthe other. It waits up to five hours for the training job to start, then\nfor the run, and scores it against the per-metric median of the last\nfive scheduled runs from the same checkpoint. Manual dispatches are\nnamed `hero-canary-manual-*` and never enter that baseline. A step-time\nchange beyond 1.5% posts its own Slack message, since the run stays\ngreen. If no rack frees up in time, `iris_monitor.py wait` cancels the\njob under the new `--child-wait-timeout-policy shutdown` and the day is\nskipped with a notice; a failed run alerts through Slack and Loom. The\ndefault policy still fails on timeout, so other canaries are unchanged.\nA healthy run holds the rack for about 20 minutes.\n\nScored against Matt's one-rack 65K test (`tok350-deploy65k-c1-01`), the\nreport gives 15.572 s/step, 34.41% MFU and 127.9 GiB peak HBM, matching\n#10820. Over 30 steady steps the median step time is within about ±0.5%,\nso the report flags changes beyond 1.5%. That threshold is provisional\nuntil two same-commit runs measure run-to-run variance.\n\nOver the last two months the GB200 fleet had a median of 8 idle nodes. A\nfive-hour window from 11:00 UTC contained a 30-minute stretch with 16 or\nmore idle nodes on 22 of 62 days, so most days will be skipped until the\nqueue behavior is known from real runs. One rack does not exercise\ncross-rack collectives or checkpoint recovery. The Loom triage binding\nneeds a `pulumi up` of `infra/loom` after merge, and the first run can\nonly start once the workflow is on main.\n\nThe MFU tracker lane is Open-Athena/mfu-tracker#15.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "f7df0eb2ab62daa3aae000e3b2dca0433710bb6a",
+      "url": "https://github.com/marin-community/marin/commit/f7df0eb2ab62daa3aae000e3b2dca0433710bb6a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-03T01:59:49Z",
+      "committed_at": "2026-11-03T01:59:49Z",
+      "message": "[levanter] Preserve integral mixture allocations after normalization (#10793)\n\nPreserve exact integer mixture allocations after normalizing weights.\nFloating-point roundoff can turn `1001 / 64000 * 64000` into a value\njust below 1001; truncation then silently moves one document to the\nlargest component. Snap values within 1e-9 of an integer before the\nexisting remainder allocation.\n\nAll 23 mixture tests pass, including the normalized-count regression.\nThe affected suite passed 1,591 tests with seven skips; its five\ncheckpoint-path failures reproduce unchanged on main `671c7bcf78`.\nMechanical checks and independent library/advisory reviews passed.\nReproduction source: #10789.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "9c6e28fc92aabda76669879bede965f0cf58ea78",
+      "url": "https://github.com/marin-community/marin/commit/9c6e28fc92aabda76669879bede965f0cf58ea78",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-03T00:49:09Z",
+      "committed_at": "2026-11-03T00:49:09Z",
+      "message": "Replace CPU test scripts with multi-device tests (#10713)\n\nReplace embedded CPU test scripts with ordinary Python tests so imports,\ndependencies, and assertions remain visible to source analysis. JAX\nbackend resets provide the requested CPU device count locally; tests use\nnative TPU or GPU devices when available.\n\n`multidevice` marks multi-device tests that also work on CPU. CPU CI\nruns them with the required CPU device count. The Levanter TPU lane runs\nits marked multi-device tests when the hardware has enough devices;\ntests whose topology requires eight devices remain CPU-only on the\ncurrent four-device TPU runner. Root and experiment tests stay in their\nexisting CI scopes.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Matt Wittmann <matt.wittmann@openathena.ai>",
+      "sha": "260d93767112780da77918f2c3394ee09608bf04",
+      "url": "https://github.com/marin-community/marin/commit/260d93767112780da77918f2c3394ee09608bf04",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-04T00:00:00Z",
+    "start": "2026-11-03T00:00:00Z"
+  }
+}

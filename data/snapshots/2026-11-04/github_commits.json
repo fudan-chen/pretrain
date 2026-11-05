@@ -1,0 +1,329 @@
+{
+  "commit_count": 29,
+  "commits": [
+    {
+      "author": "Helw150",
+      "author_name": "William Held",
+      "authored_at": "2026-11-04T23:46:51Z",
+      "committed_at": "2026-11-04T23:46:51Z",
+      "message": "[grug] Add sticker vibe checks and preview SVG continuations (#10856)\n\nAdd SVGFind-format drawing checks for a cat on a unicycle and four\nsticker designs: the Marin sailboat emblem, a mochi rice cake character,\na snowball character, and a cat sailing a ship. The three sticker\ncharacters use minimalist monochrome outlines and expressive faces. Each\nnew check includes a reference SVG for scoring, and existing checks are\npreserved.\n\nThe report previews valid SVG from any prompt even when prose follows\nit. Nested SVGs remain intact, and the full generated text stays\navailable beneath the preview.\n\nSampling with the expanded prompt bank starts at step 386,001, after the\nretained checkpoints through step 386,000, to avoid a historical\nbackfill.",
+      "sha": "aafdd56b7ae230bedaeace9961f921a3fc99216f",
+      "url": "https://github.com/marin-community/marin/commit/aafdd56b7ae230bedaeace9961f921a3fc99216f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-04T23:31:55Z",
+      "committed_at": "2026-11-04T23:31:55Z",
+      "message": "[tests] Make misleading tests check what their names claim (#10883)\n\nFix the twelve tests an audit flagged as not checking what their names\nor docstrings claim, so each one now fails when the behavior it names\nbreaks. Two of the fixed tests expose real product bugs. Those are\nmarked as expected failures with `xfail(strict=True)`, so CI fails as\nsoon as someone fixes the bug and forgets to remove the mark.\n\nThe audit found tests that passed no matter what the code did. The olmo2\nsequence-length test compared the model with itself because both inputs\nwere the same 128 tokens. The mistral backward test ran under\n`filter_eval_shape`, so it never computed a gradient. The LoRA\ncheckpoint test saved a checkpoint and never loaded it back. Others\nasserted only private state, swallowed `NotImplementedError`, had their\nonly assertion commented out, or avoided the colliding key they claimed\nto test. Each test now checks its named behavior through observable\nresults. The llama, mistral, and olmo2 backward tests share a new\n`assert_grads_finite_and_nonzero` helper in `levanter.testing.helpers`,\nwhich requires every floating-point gradient leaf to be finite and not\nall zero.\n\nThree items needed a judgment call. The cache API no longer has shard\ngroups, so the \"with groups\" cache test now splits each shard into\nseveral processor batches with a short last batch, and is renamed to say\nso. The async unknown-file-type cache test was a copy of the sync test,\nand the cache build has no async path, so it is deleted. The olmo2\nsequence-length test now matches its llama and olmo3 siblings: four\nlayers instead of the default 32, and their `1e-5` tolerance instead of\n`1e-6`. The old `1e-6` only ever compared a computation with itself;\nacross a 64-token prefix and the full sequence, float32 accumulation\norder alone moves logits by up to 6e-6 at four layers.\n\nThe two expected failures are product bugs. First, Zephyr worker\ncounters are keyed by name only (`_InProcessWorkerContext._counters`,\nand `CounterSnapshot.counters` is a name-keyed dict). A stage counter\nthat shares a name with a pipeline counter merges into the pipeline\nentry, so `pipeline.update_counter(\"metric\", 1)` followed by\n`stage(\"stg\").update_counter(\"metric\", 2)` reads 3 from pipeline scope\nand nothing from the stage. The coordinator already keys completed\ntotals by stage and name, so the gap is on the worker side. Second,\nNamedRef cannot read through a Python list index. The list goes straight\nto `jax.Ref` indexing, which treats it as several indices and raises\n`ValueError: too many values to unpack`, even for `base_ref[{\"x\": [2,\n4]}]`. `slice()` accepts list prefixes, so the list cases moved into\ntheir own expected-failure test and the other index kinds still pass.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "441e6c7a5153df6953de6f92bf82e401a8f55574",
+      "url": "https://github.com/marin-community/marin/commit/441e6c7a5153df6953de6f92bf82e401a8f55574",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-04T23:03:53Z",
+      "committed_at": "2026-11-04T23:03:53Z",
+      "message": "[marina] Add the Belay app with public pages and a session queue (#10829)\n\nAdd the Marin Belay app to Marina. It is the shared home for Belay's\nidea queue and results: anyone can read the project page, the Status\nchecklist and the Hero MFU page; maintainers approve ideas and set run\nlimits from an admin view; and Belay agent sessions claim work and\nreport through it. Until now this ran from a maintainer's laptop.\n\nFlow of one idea:\n\n1. A contributor posts an idea on #9514, optionally naming a track\n(default: the 8-minute d512 speedrun on the current recipe).\n2. A maintainer approves it in the admin view. The view loads #9514 live\nand shows the exact stripped text that will be stored: hidden HTML and\ninvisible characters are removed and flagged. Approve freezes that text\nand queues one event. It can also grant a node budget, study hours and a\nhigher Iris priority than the track's batch default. GitHub reactions do\nnot approve anything.\n3. A Loom `belay` session (#10824) claims the queued events and follows\n`experiments/belay/RUNBOOK.md` on `marin_belay_v1_recipe`: register an\n`X####` id, add code behind an off-by-default flag if needed, and launch\non Iris against a same-commit control. It replies once on the idea's\n#9514 comment.\n4. The same session waits on short runs, records results in the\nregistry, and writes the idea's thread in this app. It edits the #9514\nreply to the verdict. Runs that outlast the session are picked up when\ndue.\n5. Wins are escalated; only a maintainer adopts a change into the\nrecipe.\n\nInfrastructure:\n\n| Piece | Where | Role |\n|---|---|---|\n| This app | Marina, unnamed applet\n`33801d46-e280-46f9-b994-2c78603cdf15`, public mode | Ideas, queue,\nsessions, threads, activity, settings; public pages and data |\n| Public pages |\n`https://public.applets.marina.oa.dev/a/33801d46-e280-46f9-b994-2c78603cdf15/`\n| Read-only, no sign-in. Views are fragments (`#status`,\n`#status/X####`, `#mfu`), because Marina serves an applet only at its\nroot. Transcripts, escalation notes, job ids and identities are omitted\n|\n| Admin and session API |\n`https://applets.marina.oa.dev/a/33801d46-e280-46f9-b994-2c78603cdf15/`\n(IAP) | Admin routes require a listed approver. `/api/agent/claim`\naccepts Loom's VM service account or an approver. Every later session\nwrite needs the per-session secret `claim` issued, and is refused once\nthe session has finished |\n| Sessions | Loom `belay` profile, one at a time, started by a 10-minute\nwatch (#10824) | Do all the work through `uv run python -m\nexperiments.belay <command>` |\n| Runs | Iris; H100 tracks on cw-us-east-02a | At the track's band\n(batch) unless an approval granted more, within the node cap or the\nidea's grant |\n| Records | `marin_belay_v1_registry` branch, public W&B `marin_moe` |\nPermanent results and analysis reports; #9514 gets one reply per idea |\n\nA #9514 comment the registry already lists is never queued again; only a\nmaintainer re-queue with a note reruns it. Session reports cannot set\nnode, hours or priority grants, and a retried report changes nothing.\nPage assets carry a frontend digest, so a cached script never pairs with\nnewer data. Public markdown renders with raw HTML disabled and only\nhttp(s) links.\n\nA private preview of this branch, seeded with demo data and with\ndispatch off, is at\nhttps://applets.marina.oa.dev/a/b5a0d602-3171-47ae-a9f0-7ed1214038cd/\n(Marina sign-in). It will be archived after merge.\n\nFirst release, by someone with release rights: `uv run marina release\ninfra/marina/apps/belay --id 33801d46-e280-46f9-b994-2c78603cdf15\n--base-version 0 --mode public`. Then check the approvers in the admin\nsettings and keep dispatch off until #10824's watch is enabled. Marina\nis shared: any user with release rights can republish this applet or\nwrite its schema, so the allowlists guard the HTTP routes, not the data.\n\nPart of #9451\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "590ba590eb7de63da47723101fece3d7ffae8b42",
+      "url": "https://github.com/marin-community/marin/commit/590ba590eb7de63da47723101fece3d7ffae8b42",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-04T23:00:52Z",
+      "committed_at": "2026-11-04T23:00:52Z",
+      "message": "[iac] Scope the Marin Belay CoreWeave user to its data and run prefixes (#10833)\n\nAdd a CoreWeave organization access policy for Marin Belay's dedicated\nuser (`coreweave/unAfPLe6TaiRmJsewaUog`), so Belay runs can read their\ndata and write only their own outputs.\n\nSince #10475 every CoreWeave job carries its submitter's storage keys,\nso the key Belay's Loom sessions submit with is exactly what every Belay\njob, including agent-written code, can reach. A request must pass both\nthe bucket policy, which admits every principal in the organization, and\nan organization access policy. The Belay user is in no groups, so this\npolicy is its only grant:\n\n| Access | Paths |\n|---|---|\n| List | `marin-us-east-02a`, `marin-us-east-08a` |\n| Read | `marin-us-east-02a/marin/datakit/hero_tok/*`, `marin/paloma/*`,\n`marin/uncheatable_eval/*`; `marin-us-east-08a/tmp/ttl=30d/xprof/*` |\n| Read, write, delete | `marin-us-east-02a/marin/tmp/ttl=30d/belay/*`\nand its Levanter temp-checkpoint path under\n`tmp/ttl=14d/checkpoints-temp/` |\n\nEverything else, including hero checkpoints and other runs, is denied by\ndefault. The read paths are every storage path in a real Belay\nspeedrun's config (`belay-X0221-control-b`); if the tokenizer turns out\nto load from elsewhere, the first run's error names the path to add. The\ntests check representative allowed and denied paths, including a hero\ncheckpoint.\n\nApplying this needs a CoreWeave console API token, like the existing\nbucket policies. Preview it before applying, since the console's policy\nvalidator is the authority on the resource syntax. The key for this user\nis created in the console and stored as\n`BELAY_CW_KEY_ID`/`BELAY_CW_KEY_SECRET` for the Loom profile in #10824.\n\nPart of #9451\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "538ba9aa83ba701014276c1d29c3406dce48737e",
+      "url": "https://github.com/marin-community/marin/commit/538ba9aa83ba701014276c1d29c3406dce48737e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-04T22:03:51Z",
+      "committed_at": "2026-11-04T22:03:51Z",
+      "message": "[rl] Penalize malformed reasoning (thoughtcrime) spans by default (#10626)\n\nEnables token-level penalty for `double-(end)-think` and other\n`thoughtcrime` in the `quick-rl-loop`.\n\n#### Test plan\n* [x] [Test on old RLVR\nrecipe](https://github.com/marin-community/marin/pull/10626#issuecomment-6641290647)\n  * Hard reject improves\n* I didn't fully test the soft-penalty, but let's defer this to future\nwork.\n* [x] [Test in\nquick-loop](https://github.com/marin-community/marin/pull/10626#issuecomment-6641291209)\n  * No deltas detected in any of the conditions\n\nPart of #10520.",
+      "sha": "12c336d1691674b7f1756971ab7c25186eba232b",
+      "url": "https://github.com/marin-community/marin/commit/12c336d1691674b7f1756971ab7c25186eba232b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-04T21:59:43Z",
+      "committed_at": "2026-11-04T21:59:43Z",
+      "message": "[dedup] Retire legacy exact dedup, including paragraph-level (#10886)\n\nRemove the old exact-dedup module\n(`marin.processing.classification.deduplication.exact`) entirely.\nWhole-document exact dedup already lives in datakit's\n`global_exact_deduplicate`, and paragraph-level dedup is retired, as\nagreed in [review\ndiscussion](https://github.com/marin-community/marin/pull/10886#issuecomment-6619134507).\n\nThe module offered two modes. The document mode had no callers once\ndatakit took over production exact dedup. The paragraph mode cut\nrepeated lines out of later documents and was used only by two tests.\nDatakit has no paragraph equivalent, and reviewers preferred removing\nthe feature to porting it; it can come back if needed.\n\nDeleting it also removes `dedup_commons.py`: its only other user,\n`fuzzy_dups`, needed just a parquet batch reader, and now uses zephyr's\n`iter_parquet_row_groups` instead.\n\nConsolidate's `remove_spans` filter stays as a general span-removal\nfilter. `test_consolidate` now writes the span attribute file by hand\ninstead of running dedup to produce it, and still checks that the first\ncopy is unchanged, later copies lose the attributed text, and unique\ndocuments are intact. The test now writes its input shards sorted by id,\nbecause consolidate merge-joins input and attributes on sorted ids; the\nshared fixture's unsorted shard had silently skipped one attributed\ndocument.\n\nThe integration pipeline now drops exact-duplicate documents instead of\ncutting out duplicate paragraphs. It runs `global_exact_deduplicate` on\nthe normalized output and feeds a `remove_docs` filter on its `dup_doc`\nattribute into the cleaned step. This is valid because normalize sets\neach record ID to a hash of its text, so equal IDs mean identical\ndocuments.\n\nFollows up #10880.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "8eaa7ab9a49629565430df92ed16ac1dcedab8fb",
+      "url": "https://github.com/marin-community/marin/commit/8eaa7ab9a49629565430df92ed16ac1dcedab8fb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-04T21:31:05Z",
+      "committed_at": "2026-11-04T21:31:05Z",
+      "message": "[Snowball Atlas] Add the identity SFT candidates (#10922)",
+      "sha": "8d1ef419bb6005c7a0e26dad26947643ab20e354",
+      "url": "https://github.com/marin-community/marin/commit/8d1ef419bb6005c7a0e26dad26947643ab20e354",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-04T20:29:25Z",
+      "committed_at": "2026-11-04T20:29:25Z",
+      "message": "[iris] Use default grace when worker omits metadata (#10911)\n\nUse Iris's 10-second default termination grace when an older worker does\nnot supply `IRIS_TERMINATION_GRACE_MS`. The November 4 TPU canary\nlauncher crashed on that missing key before it could submit a training\nchild. Workers that provide the metadata still use and validate their\nsupplied duration.\n\nThe focused Iris tests passed. The diff-selected test run reached its\n600-second limit after 2,983 passes with no failures reported.\n\nFixes #10900\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "8d7899147709c0d314aa7042b01025384149cc82",
+      "url": "https://github.com/marin-community/marin/commit/8d7899147709c0d314aa7042b01025384149cc82",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T19:50:44Z",
+      "committed_at": "2026-11-04T19:50:44Z",
+      "message": "[data] Declare Smartie campaign release cohorts in the catalog (#10891)\n\nThe RL Data Atlas reads only the published curation catalog, and none of\nthe Snowball Smartie campaign's published cohorts appear there. This\ndeclares the five release cohorts as inventory-only sources, each pinned\nto an exact Hugging Face revision: CalibForge admitted (2,205), repaired\nCalibForge shared v2 (324), SWE-Smith admitted (8,045), and staged\nSWE-Smith Stage 1 (1,699) and Stage 3 (778). Campaign admission, splits\nand qualification evidence already live in each release, so the entries\nare pointers; a conversion recipe would invent a second provenance.\nNotes carry each release's own admission facts: the admitted entries\nstate their oracle evidence, the CalibForge admitted entry records its\nmanifest's not-published status and points to the shared v2 release as\nusable, and the staged archives carry the qualification-is-not-admission\nwarning and the host-local Docker image limitation.\n\nPublishing these rows requires a catalog campaign, which the driver fix\nunblocks. Iris authorizes an elevated worker container profile only when\nthe launching parent task carries the same profile; the coordinator job\nthe driver created carried none, so the coordinator's worker launch\nfailed the admin-only `set_container_profile` check. Coordinator\nresources now propagate the worker profile end to end.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "e09e38188706e0fc756746d1d739fff6b64210d4",
+      "url": "https://github.com/marin-community/marin/commit/e09e38188706e0fc756746d1d739fff6b64210d4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T19:03:14Z",
+      "committed_at": "2026-11-04T19:03:14Z",
+      "message": "[rl] Align selected-token scores with compact Megatron logits (#10592)\n\nMegatron removes masked padding before its forward pass. Map\nteacher-selected response tokens through that compacted layout before\ncomputing their log probabilities; slicing by the original padded\nresponse width can select the wrong positions or fail on short\nresponses.\n\nCPU regressions compare selected-token values and gradients with an\nindependent padded reference across unequal prompt and response lengths.\nTensor-parallel selected-ID scoring remains unsupported by this path.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "a3cdd8d44bd04757430ba327f625937d1a7343ed",
+      "url": "https://github.com/marin-community/marin/commit/a3cdd8d44bd04757430ba327f625937d1a7343ed",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T18:28:25Z",
+      "committed_at": "2026-11-04T18:28:25Z",
+      "message": "[rl] Export the selected checkpoint after evaluation (#10593)\n\nExport the selected saved checkpoint to HF format. Best selection uses\nthe native checkpoint recorded by evaluation; latest selection remains\nthe default. The selected step is used for the export request, terminal\nconversion, and output path.\n\nBest selection runs at train end, after final evaluation. Latest-step\ninterval exports keep their cadence. If the best result still points to\nthe HF initializer, the terminal export fails explicitly. A checkpoint\nsave waits for a pending shard upload before evaluation can save a new\nbest result.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "ca853e84ddfc0b44132bef54fe84ca7d6498670f",
+      "url": "https://github.com/marin-community/marin/commit/ca853e84ddfc0b44132bef54fe84ca7d6498670f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-04T17:14:19Z",
+      "committed_at": "2026-11-04T17:14:19Z",
+      "message": "[levanter] Use a 4096 vocab block for the CE backward on AMD GPUs (#10341)\n\nOn AMD Instinct GPUs, run the cross-entropy backward with vocab blocks\nof at least 4096 instead of 1024 when the vocab has at least 65536\nentries. That reduces June Snowball step time by 0.7% to 2.1%, depending\non the setup.\n\nThe batched_xla cross-entropy kernel splits the vocabulary into blocks.\nThe backward pass used the same block size as the autotuned forward,\nwhich picks 1024 on MI350X. With June's 128256-token vocab, that is 126\nblocks. Each block adds its share of the input gradient into a float32\n[B, H] accumulator (B tokens, H hidden size), so every block reads and\nwrites the whole accumulator once. On MI350X those passes cost 34 ms per\nJune Snowball step. With 4096-wide blocks there are 32 passes instead of\n126.\n\nThe forward pass and its autotuning are unchanged, and NVIDIA GPUs keep\ntheir current block sizes.\n\nOn a one-GPU MI350X stand-in for one EP8 rank of June Snowball, step\ntime goes from 2.414 to 2.363 s (-2.1%). On 8-GPU MI355X nodes, batch\n128 per node, this change alone gives:\n\n| Nodes | PGLE | Before (s/step) | After (s/step) | Change |\n| --- | --- | --- | --- | --- |\n| 1 | no | 2.531 | 2.479 | -2.0% |\n| 1 | yes | 2.392 | 2.362 | -1.3% |\n| 2 | no | 3.286 | 3.234 | -1.6% |\n| 2 | yes | 3.109 | 3.087 | -0.7% |\n\nCombined with the ring_dedup slot-weight gradient gather (#10343), batch\n128 per node, with PGLE:\n\n| Setup | Before (s/step) | After (s/step) | Change |\n| --- | --- | --- | --- |\n| One 8x MI350X node | 2.906 | 2.805 | -3.5% |\n| One 8x MI355X node | 2.523 | 2.448 | -3.0% |\n| Two 8x MI355X nodes (EP8 x DP2, batch 256) | 3.198 | 3.106 | -2.9% |\n\nLarger blocks round slightly more. Each block's input-gradient matmul\nreturns bfloat16 before it is added to the float32 accumulator, so a\n4096-wide block rounds a partial sum over 4x more vocab entries. At the\nJune lm-head shape (8192 tokens, H=2560, V=128256) on MI350X, the\nrelative L2 error of the input gradient against a float32 reference is\n1.75e-3 with 4096-wide blocks and 1.68e-3 with 1024-wide blocks. The\nweight gradient's error is 8.95e-4 in both cases.\n\nThree CE kernel tests fail on MI350X, and they fail on main as well.\n\nPart of #9812.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "0b1dc4bb6ed0a3f5d91c72e4c0e5af147cd09894",
+      "url": "https://github.com/marin-community/marin/commit/0b1dc4bb6ed0a3f5d91c72e4c0e5af147cd09894",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T15:18:21Z",
+      "committed_at": "2026-11-04T15:18:21Z",
+      "message": "[rl] Allow experiment entrypoints to spawn worker processes (#10591)\n\nDefer experiment module-name resolution until the RL command runs.\nSpawned workers import the main module before multiprocessing finishes\nregistering it; resolving the module while applying the decorator can\nfail during that import.\n\nA regression executes an importable RL entrypoint in a subprocess,\nstarts a spawned worker, and verifies its returned result.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "006d38cdc9b6ba7fad8d42143ab9c1040ebe92fb",
+      "url": "https://github.com/marin-community/marin/commit/006d38cdc9b6ba7fad8d42143ab9c1040ebe92fb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T15:16:39Z",
+      "committed_at": "2026-11-04T15:16:39Z",
+      "message": "[rl] Honor explicit Megatron learning-rate decay horizons (#10594)\n\nHonor an explicit lr_decay_steps value in the Megatron scheduler and\nexpose the optional setting for policy and critic optimizers. Previously\nthe local horizon variable was assigned only when the setting was\nabsent, so supplying it could raise UnboundLocalError.\n\nAn omitted horizon still uses the planned training-step count. A local\nbuilder probe covered omitted and explicit horizons; GPU scheduler\nexecution was not run for this change.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "d90ef37f58d7536c84f50a0f3fbee7f911723b8a",
+      "url": "https://github.com/marin-community/marin/commit/d90ef37f58d7536c84f50a0f3fbee7f911723b8a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T11:59:47Z",
+      "committed_at": "2026-11-04T11:59:47Z",
+      "message": "Preserve final-answer boundaries in NUPA scoring (#10876)\n\nAccept typed numeric answers in dollar-math or bold wrappers. Preserve\nthinking markers in the September 25 policy campaign's Grug/Snowball\ngeneration configs so the NUPA grader can exclude reasoning text. Reject\nambiguous period-separated numbers and concatenated repeats, and record\nthe exact answer used for scoring.\n\nThe campaign's `nupa_loose_replay.regrade` workflow records a SHA-256\ndigest of the scorer source, refuses to mix scorer revisions within an\noutput prefix, and preserves original document IDs. Promotion rereads\nthe source run settings and leaves Grug/Snowball cells unchanged unless\n`skip_special_tokens` was explicitly `\"false\"`. Unverified Grug/Snowball\narchives require fresh generations. The promotion summary names those\nskipped models in `regenerate`.\n\nPart of #10197.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "e4705c6d1147fc5a2df95851021930e542abd561",
+      "url": "https://github.com/marin-community/marin/commit/e4705c6d1147fc5a2df95851021930e542abd561",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T11:31:43Z",
+      "committed_at": "2026-11-04T11:31:43Z",
+      "message": "[verifyit] Preserve math variables and reject malformed answers (#10525)\n\nPreserve trailing variables in the default last-answer grading profile\nwhen math-verify mistakes them for units. Answers such as `p < s` and `x\n- s` currently become invalid references after normalization strips the\nfinal letter. Retry without unit stripping when the normalized answer\nends in an operator; genuine units such as `5 \\text{ m}` retain their\nexisting behavior.\n\nScore candidate expressions that SymPy cannot construct as incorrect. A\ngenerated 70,000-digit integer currently raises a parser exception in\nthe default last-answer grading profile. Reference parsing and verifier\ndeadlines continue to fail visibly.\n\nChained relations and unequality references are addressed separately in\n#10572.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "53d04c17eb178a6da06707148feca456a4407ce0",
+      "url": "https://github.com/marin-community/marin/commit/53d04c17eb178a6da06707148feca456a4407ce0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T11:15:46Z",
+      "committed_at": "2026-11-04T11:15:46Z",
+      "message": "[sft] Preserve training templates and separate run tracking (#10490)\n\nKeep the SFT training template in the exported Hugging Face tokenizer,\nso inference uses the same message format as training. Pass the template\nthrough the training and adapter export configuration to the checkpoint\nwriter, including merged LoRA exports.\n\nIn the shared SFT launcher, set the HF export interval beyond the run\nlength. The current interval fires on the last update, then the\ntrainer's forced final hook exports that checkpoint again. Derive the\nWeights & Biases run ID from the full artifact name and version so\ndistinct artifacts do not merge tracking histories.\n\nThe OPD experiment's Axolotl launcher and recipes are archived in the\n[OPD source\nsnapshot](https://github.com/marin-community/marin/tree/694d45bf6fddf0c9d4cb1d01049f06ec7e8853fd).\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "e8f84b81ec96f6b262aa5418c5499b3669dbcedf",
+      "url": "https://github.com/marin-community/marin/commit/e8f84b81ec96f6b262aa5418c5499b3669dbcedf",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T10:54:02Z",
+      "committed_at": "2026-11-04T10:54:02Z",
+      "message": "[skyrl] Allow static preference training without rollout engines (#10513)\n\nAllow zero inference engines in a separate-role SkyRL topology. The\nexisting static-preference training path reads chosen/rejected\ncompletions and can evaluate through the training runner, so it needs no\nrollout engines. Marin's artifact wrapper currently rejects that role\nplan before launch.\n\nAllocate only the policy and any separate reference nodes, and preserve\nzero engines in the launch configuration. Reject colocation of rollout\nand policy roles when there are no rollout engines.\n\nThe OPD experiment matrix, recipes, cloud-teacher staging, and template\noverrides are archived in the [OPD source\nsnapshot](https://github.com/marin-community/marin/tree/694d45bf6fddf0c9d4cb1d01049f06ec7e8853fd),\nwith experiment entry points under `experiments/post_training/phase1a/`.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "1129906640ebe3e953611eb1d4215b683b9eb547",
+      "url": "https://github.com/marin-community/marin/commit/1129906640ebe3e953611eb1d4215b683b9eb547",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-04T04:22:47Z",
+      "committed_at": "2026-11-04T04:22:47Z",
+      "message": "[iris/grug] Save completed steps on preemption (#10774)\n\nGrug training ranks now agree on the completed step after SIGTERM and\ncommit that step's model, optimizer, and data-position checkpoint before\nexiting. A pending asynchronous save completes first; background pruning\ndoes not delay shutdown. The `moe_pipeline` and `moe_hero_pipeline`\nentry points use the same stop decision, while `recovery` writes its\nfinal local snapshot. A preempted trainer exits with SIGTERM status\nafter the save so Iris can retry instead of recording partial training\nas complete.\n\nThe shutdown budget is a typed `termination_grace` duration on\n`IrisClient.submit` and Fray's `JobRequest`, with `--termination-grace`\non `iris job run`. The controller resolves a 10-second default,\nvalidates the 1-110-second range, and persists the duration through\nretries and federation. Grug explicitly requests 60 seconds. The\nsupervisor receives that budget; workers and Pods permit five additional\nseconds for teardown. Container discovery preserves the budget when a\nworker adopts a running task. Iris generates the supervisor's internal\nmetadata; application environment variables cannot set the\ninfrastructure budget.\n\nAt `6279f37`, a [two-H100 Grug base\nprobe](https://github.com/marin-community/marin/pull/10774#issuecomment-6501275454)\nran separate preemption trials during a step and during a pending async\nsave. Both committed step 3, restored the model, optimizer, and example\nposition, and matched uninterrupted step-6 state and batch hashes under\ndeterministic GPU settings. Supervisor exit took 8.75 seconds during a\nstep and 10.22 seconds during the async save; a stalled commit was\nforce-killed after 61.12 seconds. The probe used about 0.94 MiB of\ncheckpoint state. Production-size timing, automatic Iris retry, and live\nworker/Pod shutdown remain unvalidated; workers/controllers were not\nredeployed.\n\nPart of #10761\n\n---------\n\nCo-authored-by: David Hall <9633+dlwh@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: David Hall <david.hall@openathena.ai>\nCo-authored-by: Karan Sagar <ksagar1030@gmail.com>",
+      "sha": "b1d64c1c4fcc86ded15023b13c55ba42af9a4c01",
+      "url": "https://github.com/marin-community/marin/commit/b1d64c1c4fcc86ded15023b13c55ba42af9a4c01",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-04T04:13:22Z",
+      "committed_at": "2026-11-04T04:13:22Z",
+      "message": "[grug] Keep hero permanent checkpoints every 500 steps over the final 5000 (#10896)\n\nKeep a permanent hero checkpoint every 500 steps over the final 5000\nsteps of the 390251-step run (385500 through 390000, plus the final step\n390251), instead of every 6000. That gives a dense series of end-of-run\ncheckpoints for analysis and averaging.\n\nThe keep policy gains one range: the 6000 cadence holds through step\n385251 (`num_steps − 5000`), and every 500 steps after that. Earlier\nranges, including the pinned 55000, are unchanged. The test checks the\nkept steps with Levanter's own interval lookup: 48000, 54000, 55000,\n60000 near the pin, and 378000, 384000, then 385500…390000.\n\nCost: about 9 more permanent checkpoints than the 6000 cadence (384000\nand 390000 were already kept), at several TB each, under the\ndelete-protected `marin/grug/hero-*` prefix. Check storage headroom\nbefore deploying.\n\nDeploying: the running hero (`hero-ctx65k-step372k`, at step 382505 on\n2026-11-04) picks up a new keep policy only on relaunch with the same\nrun id from its newest checkpoint. Training is unchanged. 385500 is\nabout 3000 steps (13 hours) away, so the relaunch has to land before\nthen for the first dense checkpoint to be kept.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "71013122ca6241c159d0483de4bdd77c33b8c5ed",
+      "url": "https://github.com/marin-community/marin/commit/71013122ca6241c159d0483de4bdd77c33b8c5ed",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-04T02:40:58Z",
+      "committed_at": "2026-11-04T02:40:58Z",
+      "message": "[evals] Curate Evalchemy benchmarks as canonical tasks (#10757)\n\nCurate Evalchemy benchmarks as canonical TaskSpec rows tagged `eval`,\nwith pinned\nsource inputs and typed execution and summary metadata. The catalog\ncontains 96\ndeclarations for 31 benchmark names, including subject and protocol\nvariants.\nPublication retains source order, duplicate positions and the full\nsource\npopulation. Default training curation excludes evaluation sources.\n\n```mermaid\nflowchart TD\n  E[\"Experiment: acquire pinned source; bind EvalDataset recipe + protocol\"] --> C[\"TaskCompendium: convert, publish\"]\n  C --> T[\"TaskSpec Parquet: context, grader, resources, tags, labels\"]\n  C --> P[\"Protocol + per-row operation inputs + immutable manifest\"]\n  T --> D[\"Marin evaluation application: select cohorts, expand trials, resume\"]\n  P --> D\n  CLI[\"Experiment entrypoint: endpoint, tokenizer, secrets, privileged Iris CPU worker\"] --> D\n  D --> R[\"RolloutEngine: one generation attempt or likelihood transport\"]\n  R --> M[\"Model endpoint\"]\n  R -->|generation grading| G[\"Verifyit + source graders; executable graders through Shellbox\"]\n  G --> B[\"Bubblewrap grading machines\"]\n  R --> D\n  D --> F[\"FineStore: individual results, attempts, selection ledger, evidence\"]\n  F -.-> X[\"Evaldash raw import and summary computation: separate migration\"]\n```\n\n| Code | Responsibility |\n| --- | --- |\n| `experiments/post_training/task_curation/datasets/evalchemy/` | Source\npins, environments, sampling, trials and dataset-specific cohort/budget\ndeclarations |\n| `taskcompendium.importers.evalchemy` | Reusable source conversion,\nprompts and source grading programs |\n| `taskcompendium.evaluation` | Protocol/item schema, verified corpus\nreader and generic selection |\n| `marin.rollouts.evaluation` | Mixed-corpus scheduling, raw FineStore\npersistence and retry/resume |\n| `experiments.evaluation.task_driver` | CLI and deployment bindings |\n| `rolloutengine`, `verifyit`, `shellbox` | Attempt/model\ninfrastructure, shared grading, and machine isolation |\n\nTaskSpec owns the canonical prompt and grader. Its tags and\nstring-valued labels\nare projected into normalized Parquet for queries without decoding task\npayloads.\nProtocols describe ordered label/tag groups and token budgets: MRCR\ndeclares its\nbin/needle cohorts in experiments, and GraphWalks declares a\nreference-dependent\noutput budget. The generic selector contains no dataset dispatch.\nSidecars hold\nadditional inputs such as likelihood continuations and prompt variants.\n\nFor example, curate MATH500 through its registered recipe:\n\n```bash\nCURATION_REPORT_ROOT=\"s3://YOUR_BUCKET/eval-curation/math500\"\nuv run --package marin-core --group test python \\\n  -m experiments.post_training.task_curation.driver \\\n  --mode quick --source evalchemy-math500 \\\n  --output-root \"$CURATION_REPORT_ROOT\" --run\n```\n\nCuration downloads the pinned source, converts all 500 rows, and\npublishes the\nTaskSpec shards, operation sidecars, protocol and completion manifest.\nSet\n`CORPUS_ROOT` to `sources[0].path` in\n`$CURATION_REPORT_ROOT/campaign.json`.\nStart a model server separately and put its OpenAI-compatible base URL\nin\n`endpoint.txt`; supply its credential through `OPENAI_API_KEY`. With an\n\n[`EvaluationRunConfig`](https://github.com/marin-community/marin/blob/weaver/evals-as-data-migration/docs/references/evaluation-tasks.md#curate-and-run)\nthat\nrecords the served model, tokenizer, context window and token budget:\n\n```bash\nCORPUS_ROOT=\"s3://YOUR_BUCKET/COMPLETED_CORPUS_PATH\"\nRESULT_ROOT=\"s3://YOUR_BUCKET/eval-results/math500-run-1\"\nuv run --package marin-core --group test python \\\n  -m experiments.evaluation.task_driver \\\n  --dataset \"$CORPUS_ROOT\" --config run-config.json \\\n  --endpoint-file endpoint.txt --cluster cw-us-east-02a \\\n  --output \"$RESULT_ROOT\"\n```\n\nRemote corpus and result roots must be shared storage near the selected\ncluster.\nThe default worker is a privileged Iris CPU container using Shellbox\nbubblewrap,\nwith concurrency 64. Repeat `--dataset` to include multiple corpora, and\nrepeat\nthe command with the same `--output` root to resume. Completed grades,\nincluding zeros, remain recorded. Infrastructure errors retry without\nbecoming\nincorrect grades. A verifier or judge failure after a complete model\nresponse\nreuses that response; a model request failure sends a new request. The\nrun config\nrecords endpoint options such as `skip_special_tokens: false`, which\nretains the\n`<|end_think|>` boundary that NUPA uses to exclude reasoning from\nanswers when\nGrug or Snowball has no reasoning parser. Resume rejects mismatched\ncorpus or\nprotocol hashes, execution revision, run settings, or solver, tokenizer\nand\njudge identities. Credentials stay outside persisted metadata.\n\nThe driver writes raw observations; dataset summary metadata describes\nconsumer\nreductions. Migrating the legacy Evalchemy launchers and checkpoint\ncallers,\nadding their missing protocol variants, and connecting Evaldash's raw\nimporter\nremain follow-up work before deleting `vendor/evalchemy`. Harbor\nmigration is\nalso separate. NUPA scoring follows #10876's extraction rules, and GSM8K\nscoring\nfollows #10808's final-answer rules. Other grader corrections are\ntracked in\n#10828. The updated TaskSpec and protocol schemas require newly curated\ncorpora\nand result roots.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "39a7c26b15b0479bc04dfd81cb02c79643258ca6",
+      "url": "https://github.com/marin-community/marin/commit/39a7c26b15b0479bc04dfd81cb02c79643258ca6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-04T02:26:39Z",
+      "committed_at": "2026-11-04T02:26:39Z",
+      "message": "[ci] Run the Loom infrastructure tests in the iac leg (#10892)\n\n* `infra/loom/tests` never ran in CI, because no selector scope owned\n`infra/loom`; follow-up to #10889, whose regression test lives there\n* add `infra/loom` as a source root and an `iac` test directory, as\n`experiments` is for `marin`\n* a python change selects dependent tests through the import graph; a\nchange to `Pulumi.marin-loom.yaml`, a profile, or another non-python\ninput runs the whole `iac` scope, because the tests read those files\n* the Loom program imports `iac` and needs the pulumi providers in\n`marin-iac[deploy]`, so its tests run in that leg\n* the Loom tests also read five workflow and action files under\n`.github/`; a change to one of them now runs the whole `iac` scope,\nthrough `EXTERNAL_TEST_INPUTS` [^1]\n* a selector test fails when a Loom test reads a `.github/` file that\nthe table does not list\n* the `iac` leg command in a fresh `marin-iac` environment passes all\n135 tests, including the 39 Loom tests\n\n[^1]: `test_github_credentials.py`, `test_package_release.py`, and the\niris `test_bundle.py` also read `.github/` files and have the same gap\non main; left for a follow-up\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "560f5de1137c7445390c5e4f020d564fbc307d7f",
+      "url": "https://github.com/marin-community/marin/commit/560f5de1137c7445390c5e4f020d564fbc307d7f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-04T02:05:23Z",
+      "committed_at": "2026-11-04T02:05:23Z",
+      "message": "[echo] Add work-log commands and the echo-log skill (#10756)\n\nAdd `work-log recent`, `projects`, `show`, and `add` to the Echo CLI,\nand an `echo-log` skill that tells agents to read the work log at the\nstart of shared work and add one entry per milestone. The commands call\nthe existing `/work_log` API, so the server records the author and\ncallers need no database grant.\n\nThe API now stores project slugs trimmed and in lowercase, and the\nproject filter ignores case. Live entries used both `marinskyrl:` and\n`MarinSkyRL:` as prefixes for one area; migration `m0003` rewrites\nexisting rows so they match. `GET /work_log/projects` (MCP\n`list_work_log_projects`) lists each slug with its entry count and\nlatest entry time, over 30 days by default, so an agent can reuse an\nexisting slug. Slugs with different names, such as\n`hero-learner-bottlenecks` and `hero-learner-bottlenecks-01a13c0f`, stay\nseparate. These server changes take effect at the next Echo release,\nwhich runs the migration.\n\nWhen Echo refuses a write because of access (no credentials, 401, or\n403), `add` prints a warning and exits 0. Other errors still fail the\ncommand. The skill tells an agent to stop using the work log for the\nsession after the first refusal, and not to retry or debug access.\n\nThe closed #7531 had a script that wrote directly to the `context`\ndatabase on `marin-metadata`. Echo now serves its work log from Marina's\ndatabase, so entries written through that script are not visible to the\nteam.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "bbe449bcb76195a1e9111cd411437ea98e3aa350",
+      "url": "https://github.com/marin-community/marin/commit/bbe449bcb76195a1e9111cd411437ea98e3aa350",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-04T01:49:04Z",
+      "committed_at": "2026-11-04T01:49:04Z",
+      "message": "[finestore] Retry archive initialization after an in-flight conflict (#10895)\n\nRetry archive marker creation when a conditional write conflicts with\nanother writer's create that is still in flight. `initialize_archive`\nreread the marker once after the conflict and asserted that it existed,\nso concurrent `DataStore.open` calls on a new root could fail. #10413\nfixed the same race in `write_schema`; both now use one bounded\ncreate-or-read retry.\n\nThe race failed\n`test_concurrent_writers_publish_every_row_through_conflicts` in [CI on\n#10892](https://github.com/marin-community/marin/actions/runs/41749958390/job/126312514990).\nThe simulated-S3 in-flight test now also covers the archive marker. It\nfailed on every run before this change and passes after it.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "bb62a3fcbf0ddb973d8266a144435262bedc6a50",
+      "url": "https://github.com/marin-community/marin/commit/bb62a3fcbf0ddb973d8266a144435262bedc6a50",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-04T01:43:55Z",
+      "committed_at": "2026-11-04T01:43:55Z",
+      "message": "Export and upload Hero checkpoints on CPU (#10890)\n\nStream native Hero checkpoints to BF16 safetensors on one CPU host and\nupload them to checkpoint branches in an existing private Hugging Face\nrepository. The uploader checks repository visibility before writing.\nRead authoritative weights in stored layer chunks and reuse the device\nexporter's inference mapping, shard format, and verified resume\nreceipts. Hub uploads bind each branch to its export, card, license and\ntokenizer, then publish a completion marker that pins the verified\nweights commit. Both exporters write an explicit BF16 dtype. Memory,\nconcurrency and mesh settings are recorded separately from artifact\nidentity, so interrupted exports can resume with lower execution limits\nwhile preserving verified shards.\n\nThe CPU reader has a 96 GiB cache budget and a separate 32 GiB budget\nshared by both shard writers; the documented worker size is 256 GiB to\nallow for decoding and runtime buffers. A CW02 check on step 378000\nconverted all ordinary weights and one six-layer expert chunk: 55\nshards, 70.8 GB, 487.6 seconds, and 95.6 GiB peak RSS with zero GPUs.\nEvery shard's SHA-256 matched the existing GPU export. The measured\nsource revision is `2767265c133c37eb5666658e8c0f13d095b3764c`; report\nand reproduction harness are retained under\n`s3://marin-us-east-02a/marin/exports/mochi/benchmarks/cpu-streaming-20261103/`.\nFull-model CPU export time and serving numerical parity remain\nunmeasured.\n\nEnable two concurrent writers. In a separate CW check, two writers\nreduced mean writer-stage wall time from 210 to 183 seconds across\norder-reversed rounds of four 7.25 GB shards, with identical output.\nThis component measurement excludes source restore and device gathers.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "fbb8ce1de26fc06732404b6d8c2800dcb3e097a9",
+      "url": "https://github.com/marin-community/marin/commit/fbb8ce1de26fc06732404b6d8c2800dcb3e097a9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-04T01:05:43Z",
+      "committed_at": "2026-11-04T01:05:43Z",
+      "message": "[tpu-inference] Launch multi-host TPU serving within one Iris slice (#10535)\n\nAllow `marin-serve iris` and the evaluation launcher to serve one model\nacross a multi-host TPU slice. A `v4-32` request now submits four\nreplicas coscheduled by `tpu-name`, starts a Ray head on rank zero and\nworkers on the other hosts, and publishes the serving endpoint only from\nrank zero. Single-host serving keeps its existing path; multi-host\nserving requires the isolated TPU vLLM backend, one serving instance\nspanning the host replicas, and streaming weights shared by all hosts.\n\nRay runs inside the same isolated environment as vLLM. Iris supplies the\nGCS, Ray Client, dashboard and dashboard-agent ports; worker ports are\nkernel-selected. Ray log deduplication is disabled on every host.\nStartup reports the Ray process log on failure, and shutdown stops only\nthe job's own processes. Explicit multi-host evaluation overrides use\ndirect serving rather than the single-host request broker; automatic\nhardware selection is unchanged.\n\nThe [four-host smoke\ntest](https://github.com/marin-community/marin/issues/10270#issuecomment-6350331747)\nestablished the launch recipe on v4-32 with\n`open-athena/Grug-67B-A2B-Antidoom-RLVR1-Step12-2026.10.02` in BF16,\nTP16/PP1: generation succeeded and one 5,279-token teacher-forced item\nmatched the H100 reference at mean absolute logprob difference 0.0153.\nThat test used the task-local launcher, not this refactoring. The pinned\nTPU runtime still needs a job-local v4 attention-tile patch; this PR\ndoes not add that patch or change runtime pins. Full MATH500 parity\nusing this launcher is follow-up work.\n\nVerify without allocation: `uv run marin-serve iris org/model --tpu\nv4-32 --tensor-parallel-size 16 --dry-run` prints four replicas,\n`CoschedulingConfig(group_by='tpu-name')`, and the allocated port names.\n`host-test-budget uv run --frozen --no-sync pytest tests/inference\ntests/evaluation/test_model_config.py\ntests/evals/test_inference_proxy.py -q`: 290 passed. Repository\nformatting and type checks passed with `./infra/pre-commit.py\n--changed-files --fix`.\n\nPart of #10270.\n\n---------\n\nCo-authored-by: Karan Sagar <1545121+karansag@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "79ecbccde83c7fd30f86a3a0d9e8c2da7fb9516d",
+      "url": "https://github.com/marin-community/marin/commit/79ecbccde83c7fd30f86a3a0d9e8c2da7fb9516d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-04T01:05:42Z",
+      "committed_at": "2026-11-04T01:05:42Z",
+      "message": "[snowball-tpu] [inference] Adopt the TPU stack with native Snowball layer types (#10854)\n\n## tl;dr \n\nPrevious TPU inference on vLLM didn't handle sliding window / global\nattention properly. See\nhttps://github.com/marin-community/tpu-inference/pull/34\n\nThis pins merged fork main `2f327d385a90347681a7de86472b4bace6e940b2`,\nincluding the native v4 attention-tile fix.\n\n## Detail\n\nAdopt merged fork-main tpu-inference commit\n`2f327d385a90347681a7de86472b4bace6e940b2`, paired with unchanged vLLM\n`fb02daf1d7139d2adaeb0588448649591657d1e3`, and remove the Snowball\nreference configurations’ `layer_types` overrides. The fork includes the\nnative layer-schedule fix from [tpu-inference\n#34](https://github.com/marin-community/tpu-inference/pull/34) and the\nv4 attention-tile fix from\n[#35](https://github.com/marin-community/tpu-inference/pull/35).\n\nThe TPU plugin registers its own GrugMoE config. Without native layer\ntypes, vLLM applies the 2048-token cache window to global layers too.\nThe fixed config derives the training schedule, leaving seven of\nSnowball’s 26 layers global. The config registration and JAX model\nwindowing are unchanged.\n\nThe earlier `509d688fa` / `fb02daf` pair served Step12 BF16 on v6e-8 TP8\nwithout `--hf-overrides` in `/karan/rsi244-patched-v6e8`. The backend\ntrace showed seven unwindowed global layers, 19 local layers at 2048,\nand four KV cache groups. Across ten teacher-forced inputs and 35,801\nscored tokens, pooled mean absolute logprob difference from the eager\nH100 oracle was 0.01598, with 0.0119–0.0182 in every position bin and\n0.846% top-1 disagreement. Per-token results matched the earlier\nschedule-override control exactly. [Verification and artifact\npaths](https://github.com/marin-community/tpu-inference/pull/34).\n\nThe separate full MATH500 override experiment improved Step12 TPU\naccuracy from 0.878/0.882 to 0.940, against H100 0.944; it is supporting\nevidence for the schedule correction, not a full MATH500 run on this\ncommit. The merged v4 tile fix passed 283/283 kernel tests on actual v4,\nwith 84 exact Step12 tile-selector matches to the previous job-local\npatch. The post-merge v6e regression passed 67/67 tests on actual TPU\nhardware; the earlier schedule qualification is supporting evidence\nrather than a new end-to-end Marin run on this pin.\n\nThe earlier pin `509d688fa` was a branch, not fork main. Besides the\n[#35](https://github.com/marin-community/tpu-inference/pull/35) kernel\nchange, fork main differs from it in eight source files: MoE routing\n(`fused_moe_gmm.py`, `interface/moe.py`), weight cleanup\n(`cleanup_sharding.py`), fp8 and unquantized weight handling,\n`models/jax/grugmoe.py`, `attention_interface.py` and\n`kv_cache_manager.py`. The logprob check and MATH500 results above ran\non older code, not on this pin. No Step12 serving run has used this pin\nyet; only the kernel tests have.\n\nReplaces #10606, which GitHub marked merged into its old stack base\nduring a restack; that merge never reached `main`. This PR targets\n`main` directly. Stack order: this PR, then #10535 (multi-host TPU\nlauncher), then #10607 (H100 vs v4-32 score check), then #10860 (nightly\nscore check).\n\nRefs #10270 and #10250.",
+      "sha": "7d8a02dcda862400c20c0c8915590ce40ad05e23",
+      "url": "https://github.com/marin-community/marin/commit/7d8a02dcda862400c20c0c8915590ce40ad05e23",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-04T00:45:09Z",
+      "committed_at": "2026-11-04T00:45:09Z",
+      "message": "[skyrl] Keep offloaded optimizer moments on CPU during restore (#10480)\n\nLoad CPU-offloaded optimizer moments through the CPU parameter mappings.\nMCore's existing restore hook leaves FP32 parameter shards on CUDA while\nPyTorch loads their state, which temporarily moves the offloaded moments\nonto CUDA. After loading, restore the public parameter references and\nrebuild the sub-optimizers around the loaded checkpoint state.\n\nThe GPU regression checks peak CUDA allocation and exact continuation\nafter restore for FP32 and BF16 parameters. It has not been run locally;\nGPU validation remains pending. Mechanical lint passed; the\naffected-test selector delegates these files to the SkyRL CI suite.\n\nThe experiment-specific checkpoint schedules, FP32 exports, and\ndiagnostics are preserved in the [OPD source\nsnapshot](https://github.com/marin-community/marin/tree/694d45bf6fddf0c9d4cb1d01049f06ec7e8853fd)\nand the local replay bundle at\n`/Users/benfeuer/Documents/experiments/active/opd-sft-proper-controls/artifacts/pr-slimdown/20261031T004421Z/repro/`.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "aad5097a453bc74e117de0cd42722d765f3100d6",
+      "url": "https://github.com/marin-community/marin/commit/aad5097a453bc74e117de0cd42722d765f3100d6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-04T00:28:12Z",
+      "committed_at": "2026-11-04T00:28:12Z",
+      "message": "[loom] Fix macOS activation and previews of an unchanged Loom commit (#10889)\n\n* fix two failures from the 2026-11-03 `marin-loom` rollout of Loom\n`3764ca10`\n* `activate.sh` no longer needs GNU `timeout` on the operator host;\nmacOS doesn't ship it, so activation exited 127 before it reached the\nVM, after Pulumi had already written the new image to VM metadata\n* the VM bounds the startup-script restart with its own `timeout`;\n`gcloud` bounds SSH key propagation at 60s, and\n`ServerAliveInterval`/`ServerAliveCountMax` drop a connection that stops\nresponding\n* preview no longer raises in `_validated_image_reference` when the Loom\ncommit is unchanged [^1]\n* in a preview, the bare `:latest` ref becomes `pulumi.UNKNOWN`, so the\nVM image shows as unknown; `up` still requires the pushed digest\n* regression test for the preview failure; a preview of `marin-loom`\nfrom this branch completes and plans the image rebuild, the VM metadata\nupdate, and the activation [^2]\n\n[^1]: `pull=True` makes docker-build rebuild the image on every update.\nWhen preview skips that build and no image input changed, the provider\nreports the bare tag as the ref. Every `pulumi up` previews first, so a\nrollout of marin-only configuration failed.\n[^2]: CI does not select `infra/loom/tests`, because\n`infra/ci/select_tests.py` has no source root for `infra/loom`. All 39\ntests pass locally.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "5179b28d72df0ede6df0308557f6706527d90941",
+      "url": "https://github.com/marin-community/marin/commit/5179b28d72df0ede6df0308557f6706527d90941",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-05T00:00:00Z",
+    "start": "2026-11-04T00:00:00Z"
+  }
+}

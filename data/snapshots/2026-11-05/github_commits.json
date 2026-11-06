@@ -1,0 +1,340 @@
+{
+  "commit_count": 30,
+  "commits": [
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-05T23:09:49Z",
+      "committed_at": "2026-11-05T23:09:49Z",
+      "message": "[zephyr] Keep stage counters separate from same-name pipeline counters (#10982)\n\nA stage counter and a pipeline counter with the same name are now\nseparate counters. Before, `pipeline.update_counter(\"metric\", 1)`\nfollowed by `stage(\"stg\").update_counter(\"metric\", 2)` on one worker\nproduced a single entry: pipeline scope read 3 and the stage read\nnothing, so `get_counters(stage=\"stg\")` and stage stats missed the\nvalue.\n\nWorkers stored counters in a dict keyed by name, with the stage as a\nfield on the entry, and every snapshot, heartbeat merge and subprocess\ncounter file kept that shape. Counters are now keyed by\n`CounterKey(stage, name)` from the worker through the snapshots the\ncoordinator receives, and `CounterEntry` no longer carries a stage.\nOutput that leaves this path stays keyed by name: worker and stage\nstats, `get_counters()`, the execution result and published telemetry.\nWith no stage filter, those views still fold a name's scopes into one\nvalue, as before. One helper, `counters_by_name`, does that folding\neverywhere.\n\nAggregation modes stay per counter name, as `set_aggregation` documents,\nand are kept in their own map. `set_aggregation` no longer creates a\nzero-valued placeholder entry, which was always created under pipeline\nscope.\n\nThe test that #10883 marked as an expected failure now passes, and a new\ntest sends one worker's snapshot through the coordinator. The Zephyr\nsuite passes locally except nine `test_runners.py` tests that need the\nembedded Finelog server extension, which is not built in this checkout;\nCI runs those and the affected Levanter and Marin suites.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "3a03f44627bb31916ecea5599fc5fb0a8619458a",
+      "url": "https://github.com/marin-community/marin/commit/3a03f44627bb31916ecea5599fc5fb0a8619458a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-05T22:42:18Z",
+      "committed_at": "2026-11-05T22:42:18Z",
+      "message": "[grafana] Show capacity-skipped canary runs as skipped (#10977)\n\nThe Grafana nightly matrix now shows a canary run that Iris cancelled\nfor lack of capacity as \"⊘ Skipped\", not as passed or failed. This\nfollows the review discussion on #10909.\n\nSuch a run finishes green, so the matrix got it wrong in two ways. Hero\nGB200 and Grug multislice have no duration baseline, so a skipped day\nshowed as ✓ Passed. The datakit lanes expect at least 65 minutes, so a\nshort skipped run tripped the too-short check and showed as × Failed.\n\nEach nightly lane now names the workflow step that runs only when the\ncanary skipped, or none if the lane never skips. That step is \"Note a\nskipped day\" for the five canaries that can skip. For a successful run\non such a lane, the bridge reads the run's jobs from GitHub and marks\nthe run skipped if that step succeeded. GitHub lists a step whose `if`\nwas false with conclusion \"skipped\", so only a successful step counts. A\nre-run keeps its run id but gets a new attempt number, and a completed\nattempt never changes, so the bridge caches the answer per run attempt\nand makes one extra request per attempt. The panel shows skipped cells\nin slate grey, counts them in the \"Today\" summary and lists them in the\nlegend.\n\nHero GB200 already has this step on main, so its skips show correctly as\nsoon as this merges. The other four lanes get the step from #10975 and\nshow skips once that PR merges too. The two PRs can merge in either\norder.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "779e33afc4ae2f4e60e92a24886c7fad1d3fd067",
+      "url": "https://github.com/marin-community/marin/commit/779e33afc4ae2f4e60e92a24886c7fad1d3fd067",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-05T22:42:08Z",
+      "committed_at": "2026-11-05T22:42:08Z",
+      "message": "[ci] Post a Slack notice when a canary skips for lack of capacity (#10975)\n\nScheduled canaries now post a neutral Slack message when Iris cancels\nthem for lack of capacity, so a skipped day is visible without being\nreported as a failure. This follows the review discussion on #10909.\n\nFive canaries cancel themselves when they cannot get capacity: hero\nGB200, Grug multislice, and datakit tiers 1 to 3. Such a run ends green,\nso the existing failure alert stays quiet and nothing is posted at all.\nA lane could go several days without running and nobody would hear about\nit.\n\nEach of these workflows now exports the `resource_exhausted` output that\n`iris_monitor.py wait` already writes, and a new `notify-skipped` job\nposts \":white_circle: <canary> skipped: no capacity, so it did not run.\nThis is not a failure.\" with the run link. Like the existing alerts, it\nfires only for scheduled runs. The four canaries other than hero also\ngain hero's \"Note a skipped day\" step, which adds a notice and a\nstep-summary line to the run.\n\nThis is independent of #10909, which makes the hero canary's queue\ntimeout fire while a Kueue-held gang still reports RUNNING; with both\nmerged, a day with no free GB200 rack produces this message instead of a\nfailure alert. #10977 makes the Grafana nightly matrix show these runs\nas skipped; it reads the \"Note a skipped day\" step this PR adds.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "695977580852d98848c5c22ce2ee4a7dfd9aa3c0",
+      "url": "https://github.com/marin-community/marin/commit/695977580852d98848c5c22ce2ee4a7dfd9aa3c0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-05T22:41:48Z",
+      "committed_at": "2026-11-05T22:41:48Z",
+      "message": "[ci] Keep the queue timeout until a child task runs (#10909)\n\n`iris_monitor.py wait --child-wait-timeout` now keeps its queue deadline\nuntil one of the child's tasks is RUNNING. Before, it dropped the\ndeadline as soon as the child job reported RUNNING, but Iris reports a\njob RUNNING before any task starts.\n\nOn the GB200 cluster, a Kueue-gated 16-node gang sits as a RUNNING job\nwith every task BUILDING. The hero canary therefore waited past its\nfive-hour window until the Actions step timed out at 340 minutes, so a\nday without a rack became a \"canary failed\" Slack alert and a Loom\ntriage session instead of a skip. That happened on both the first manual\nrun and the first scheduled run.\n\nThe check is wrong beyond GB200: of 200 RUNNING jobs on the marin\ncontroller, 67 had no running task (40 all PENDING, 27 all BUILDING).\nNone reported RUNNING without task counts, so canaries that do start\nkeep dropping the deadline as before.\n\nFixes #10897",
+      "sha": "b616689b8cb36eb6f537e04f0b63023df19fb43c",
+      "url": "https://github.com/marin-community/marin/commit/b616689b8cb36eb6f537e04f0b63023df19fb43c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-05T22:41:08Z",
+      "committed_at": "2026-11-05T22:41:08Z",
+      "message": "[grug] Get ring_filtered's routing-weight gradient from the down projection (#10345)\n\nCompute ring_filtered's routing-weight gradient from tensors that the\ndown projection's backward pass already holds, so the expert outputs no\nlonger have to be kept for the backward pass. On one EP8 rank of June\nSnowball this cuts peak memory by 16.5 GiB and step time by 2.9%, and\nthe production per-GPU batch now fits in memory.\n\nOn the expert side, ring_filtered scales each expert output row y [A, H]\nby its routing weight w, then sums the rows back into tokens. A is the\nnumber of (token, expert) assignments a rank receives and H is the\nhidden size. The gradient of w is the dot product <dout, y>, where dout\nis the gradient flowing into the combined output. To compute it,\n`save_moe` kept y in memory for the backward pass, and `recompute_all`\nran the down projection a second time.\n\ny is not needed. Write the down projection as y = hidden W2. Its\nbackward pass already computes dy = w * dout and dhidden = dy W2^T. So\n<hidden, dhidden> = w <hidden W2, dout> = w <y, dout>, and the\nrouting-weight gradient is <hidden, dhidden> / w. A zero weight gets a\nzero gradient. One custom VJP, `_down_project_combine`, now covers both\nthe down projection and the combine, and computes the gradient this way.\n\nThe forward pass and the gradients of x, w13 and w2 are unchanged. The\nrouting-weight gradient matches the old one up to bfloat16 rounding.\n\nMeasured on one MI350X running one EP8 rank of June Snowball with\n`save_moe`:\n\n| Batch per GPU | Step before (s) | Step after (s) | Peak memory before\n(GiB) | Peak memory after (GiB) |\n| --- | --- | --- | --- | --- |\n| 8 | 1.427 | 1.385 (-2.9%) | 207.0 | 190.5 |\n| 16 | out of memory (XLA requests 270) | — | out of memory | 235.5 |\n\nBatch 16 per GPU is each rank's share of the production batch of 128 on\n8 GPUs. The ring_filtered tests pass on CPU and on MI350X.\n\nThis applies directly to main now that #9880 has merged. It edits code\nnext to #10343's change in `ep_ring_filtered.py`, so whichever of the\ntwo merges second needs a rebase that keeps both custom VJPs. Part of\n#9812.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>\nCo-authored-by: Claude Opus 5.5 <noreply@anthropic.com>",
+      "sha": "ce4094cdd4a6b3afe5e60a5bec77fa8cb6bfc485",
+      "url": "https://github.com/marin-community/marin/commit/ce4094cdd4a6b3afe5e60a5bec77fa8cb6bfc485",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-05T22:15:34Z",
+      "committed_at": "2026-11-05T22:15:34Z",
+      "message": "[finelog] Open indexed files as execution demands them (#10936)\n\nObject-backed queries now build plans from captured catalog metadata and\nprepare indexes and Parquet files when execution opens each file.\nFiltered unordered LIMIT queries can stop preparing the remaining files\nonce DataFusion has enough exact matches. Global sorts and aggregates\nretain their complete scan semantics.\n\nCompose the existing DataFusion file opener and Parquet decoder with\nper-file index pruning, shared footer metadata, and unified object range\nreads. Index failures and projection failures before the projection's\nfirst row fall back to the source. A required source missing when\nreached fails the query.\n\nUse the snapshotted table's maximum query lifetime as an absolute read\ndeadline starting at snapshot capture, so planning consumes that\nlifetime. Cancel warming admitted by forwarding reads when the read\nfails or is cancelled. Keep concurrency permits held until cache I/O and\nindex parsing workers finish, including after query cancellation.\nCache-fill writes use an independent worker pool; remote range reads\nfollow the per-query execution window. Read diagnostics retain phase\ntimings, opened/pruned files, range requests, and index decline reasons\non failure or cancellation.\n\n[Reviewed\ndesign](https://loom.oa.dev/s/48pzusj4/artifacts/finelog-demand-driven-execution).\n[Incident record](https://marina.oa.dev/echo/wiki/926).\n\nOn the same 128-file indexed corpus, five alternating fresh-process runs\ngave median range-backed early LIMIT times of 84→35 ms and full\naggregate times of 70→44 ms; global sort rose from 51→81 ms. The copied\nproduction-sample LIMIT remained about 35 ms. The corrected release\n`3c759c7555` returned 100 valid inference matches on the Marin hub in\n0.659 seconds, with repeats at 0.183–0.563 seconds. [Performance and\nrollout\nevidence](https://loom.oa.dev/s/48pzusj4/artifacts/finelog-demand-performance-rollout).\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "92a0a247ef67f8ec59f9523354b33e18a9e5be9a",
+      "url": "https://github.com/marin-community/marin/commit/92a0a247ef67f8ec59f9523354b33e18a9e5be9a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "hrl20",
+      "author_name": "Louisa H",
+      "authored_at": "2026-11-05T21:40:12Z",
+      "committed_at": "2026-11-05T21:40:12Z",
+      "message": "[ops] Run the egress-report log scan in us-central2 with DuckDB httpfs (#10800)\n\nThe egress report now reads Iris task logs from the object catalog of\nthe finelog `log` table. Since 2026-09-03, the report read a retired\npath and found no log lines.\n\n`cross_region.py` pins the `log` catalog and selects the segments that\nfinelog created after `window.start - lookback`.\n`ObjectQueryClient.pin_catalog()` now gives the size, the row count and\nthe creation time of each segment. One DuckDB query reads the selected\nsegments in place from GCS through httpfs. The query uses an OAuth\nbearer token from the Google credentials of the job. DuckDB uses the CPU\ncount of the Iris task and 80% of its memory request. The DuckDB\ndefaults use the size of the host, and a job with an 8 GB request had an\nout-of-memory failure.\n\n`egress_report.py` runs the analysis as an Iris CPU job in us-central2,\nnear the log segments. Before this change, the GitHub runner downloaded\nthe logs from outside the region. The job writes the summary, the report\nand the appendix to\n`gs://marin-us-central2/tmp/ttl=1d/egress-report/<run-id>/`, because\nIris does not return the value of a callable. The runner copies these\nthree files. Then it creates the gist and the Discord message. The scan\nstops with `QueryTimeoutError` at the catalog pin deadline, so an\nexpired pin cannot produce a partial report. The report files and gist\nformat do not change.\n\nOn 2026-10-28, a dry run with no write operations used 16 CPUs and 16\nGB. It read 67 segments (16.2 GiB) for a 24-hour window in 58 s. It\nfound 988,575 `gs://` log lines and 9,491 cross-region mentions. That\nrun predates the hub-row cluster filter and the pin deadline. A run that\ndownloaded one segment at a time took 125 s. That run used a different\n24-hour window and found 998,353 lines and the same 9,491 cross-region\nmentions.\n\nThis change does not use two alternatives:\n\n- DuckDB with gcsfs. Each read goes through Python, and the speed stayed\nat approximately 210 MiB/s from 8 to 32 threads. httpfs read the same\nfiles at 0.83 to 1.9 GiB/s with 16 to 32 threads.\n- Analysis in DuckDB SQL. On 16 GiB of segments, it gave the same\nsummary in 25 s. The Python analysis took 63 s. The SQL version replaces\nmost of `analyze()`, so a different PR can add it with a test that\ncompares the full reports.\n\nThe catalog selection is from `rw/cross-region-catalog`. The report now\nposts to #gcs-egress instead of #internal-discuss, and the `0 14 * * *`\nschedule returns. The message states the share of `gs://` lines with a\nknown worker region and limits its \"no offenders\" line to that share,\nbecause the controller loses the region of pruned workers. A window with\nno `gs://` lines fails instead of posting. More data is in\nhttps://marina.oa.dev/echo/wiki/903.\n\nPart of #10716\n\n---------\n\nCo-authored-by: Ryan Williams <ryan.williams@openathena.ai>\nCo-authored-by: louisa <louisa@louisas-MacBook-Pro.local>\nCo-authored-by: Copilot Autofix powered by AI <175728472+Copilot@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: louisa <HRL9000@users.noreply.github.com>",
+      "sha": "9632a60ae05ec1f0775341a4ad4055a26b1686a6",
+      "url": "https://github.com/marin-community/marin/commit/9632a60ae05ec1f0775341a4ad4055a26b1686a6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-05T20:21:11Z",
+      "committed_at": "2026-11-05T20:21:11Z",
+      "message": "[ci] Deal unit-test shards round-robin instead of in contiguous chunks (#10979)\n\nSpreads the marin and levanter unit tests more evenly across their\nparallel CI runners, so one overloaded runner no longer sets how long\nthe \"Marin - Unit\" check takes.\n\nThe test selector splits a large suite into shards, one per runner, by\ncutting the sorted list of test files into contiguous chunks. Expensive\ntests cluster by directory, so a whole cluster lands on one shard. On a\nfull run, marin shard 1/3 gets all 94 `experiments/` files, including\nthe 20-43 s `moe_hero_pipeline` and grug model tests, and shard 3/3 gets\nnone. In sampled CI runs from Oct 27 to Nov 5, marin 1/3 had a median of\n360-380 s, while marin 2/3 and 3/3 took 190-250 s. The sharded marin leg\nwas the last job to finish in roughly 40% of runs.\n\nThe shards now take files round-robin from the sorted list: file 1 to\nshard 1, file 2 to shard 2, and so on. Each shard keeps the same number\nof files, and each directory is spread across all shards. In a full run,\nthe `experiments/` files split as follows.\n\n| Leg | Before | After |\n|---|---|---|\n| marin 1/3 | 94 | 34 |\n| marin 2/3 | 8 | 34 |\n| marin 3/3 | 0 | 34 |\n\nThe per-shard run times after this change have not been measured yet;\nthis PR's own CI gives the first data point. Round robin balances file\ncounts only, so two slow files can still share a shard. On levanter, for\nexample, `test_grugformer_moe.py` and `test_train_lm.py` now land on the\nsame shard. A follow-up will balance shards by measured per-file run\ntime once the nightly run records those times.\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "5407224d4e9b4e14aa10444877cb69140edfa96c",
+      "url": "https://github.com/marin-community/marin/commit/5407224d4e9b4e14aa10444877cb69140edfa96c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-11-05T19:55:02Z",
+      "committed_at": "2026-11-05T19:55:02Z",
+      "message": "[rolloutengine] Allow uncapped turns and output, and expose prepare_machine (#10921)\n\nRolloutEngine accepts three settings that Taskforge needs and that do\nnot change what existing callers get:\n\n- `RolloutLimits.max_turns` accepts `None`, and the recorder then ends\nan attempt only on its token budget, deadlines or a length stop.\n- `ChatModel.max_tokens` accepts `None`, and the request then omits the\noutput limit.\n- A `ChatModel.context_window`, when set, turns a `tool_calls` reply\nwhose prompt and completion tokens fill the window into a `length` stop.\n\n`prepare_machine` is factored out of `task_machine`: it installs\nresources and runs setup on a machine given only its requirements and\nresources.\n\nTaskforge runs its validation trials and build agents with no turn\nbudget and no output cap, so a session ends on its deadlines or when the\ncontext fills, not at an arbitrary count. A full context then has to\nread as a length stop, not as a pending tool call. Its build steps also\nprepare machines for programs that are not yet `TaskSpec`s.\n\nCompatibility, by change:\n\n- `RolloutLimits.max_turns`: still required, still `gt=0`. An integer\nlimit validates and stops a rollout as before. Only Taskforge produces\n`None` (`taskforge/spec/draft.py:237`,\n`capability_driven_envs/generate_tasks_agentic.py:78`).\n- Every other reader is in `vendor/skyrl`:\n`skyrl_gym/nemotron_tasks.py:121`, `sql_tasks.py:256`,\n`task_sessions.py:120`, `:164` and `:283`, and\n`skyrl_train/rollouts/harbor_tasks.py:155`. They only ever see integers.\n- The trainer lowers a canonical `TaskSpec` with its own session config\n(`skyrl_train/dataset/tasks.py:186-201`), whose `max_turns` must be a\npositive integer (`cloud/iris/rl_config_translation.py:243`), or takes\n`int(...)` from a source row (`tasks.py:163-167`).\n- The stored `TaskRolloutSpec` rows it reads back were written by that\nsame lowering (`tasks.py:49`, `:211`). `TaskSpec` carries no limits, so\nnothing Taskforge hands on has this field.\n- `ChatModel.max_tokens`, `context_window`: the only non-Taskforge\nconstructors are `experiments/evaluation/task_driver.py:85` and\n`tests/evaluation/test_task_rollouts.py:835`, `:981`. All three pass an\ninteger `max_tokens` and no `context_window`, which defaults to `None`,\nso their requests and stop reasons are unchanged. Nothing in\n`vendor/skyrl` uses `ChatModel`.\n- `prepare_machine`: new. `task_machine` delegates to it with the same\nrequirements, resources, runtime and cleanup deadline. Its only callers\nare RolloutEngine's own tests.\n\nThe widened `max_turns` also needs two lines in\n`lib/taskforge/tests/agentic/test_agent.py`: an `assert LIMITS.max_turns\nis not None` before each of the two `range(LIMITS.max_turns)` calls,\nwhich pyrefly otherwise rejects. These are the asserts Mark's 03d0e09b61\nadded on the Taskforge stack, moved here with the type change. Nothing\nelse under `agentic/` or `tests/agentic/` changes.\n\nNothing under `vendor/skyrl` changes here. Split out of #10298 at\nforklady42's request, so the shared library's changes get one review.\n#10298 depends on this PR and will carry it through `main`. Net lines:\n+73 (+37 in source, +36 in tests).\n\n---------\n\nCo-authored-by: Betsy Cannon <betsy@openathena.ai>",
+      "sha": "aaefe8202693605fc550b0de83e89da815152cd7",
+      "url": "https://github.com/marin-community/marin/commit/aaefe8202693605fc550b0de83e89da815152cd7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-05T18:36:26Z",
+      "committed_at": "2026-11-05T18:36:26Z",
+      "message": "[loom] Add a Google Doc session profile and its doc tool (#10918)\n\n* first step toward a Google Doc interface for Loom: a session works\nthrough a doc that people edit and comment on\n* new `gdoc` profile (`profiles/gdoc/AGENTS.md`): the doc is the record\nof the work, with progress, gates, the `Agent status` chip,\none-section-at-a-time edits and comment rules; it runs Claude, as the\nlurker prototype did\n* `python3 -m infra.loom.gdoc` is the agent's tool: `read`, `length`,\n`prepend`, `append`, `replace-section`, `comments`, `comment`, `reply`,\n`agent-status`, plus the Markdown-to-Docs writer, ported from lurker\n* standard library and `gcloud` only, so it runs on the session image's\nsystem Python 3.11\n* no key: `loom-vm` impersonates itself for the Docs and Drive scopes\nand to sign diagram URLs, as `pm` already does for Docs [^1]\n* diagram PNGs go to\n`gs://marin-us-central1/tmp/ttl=1d/loom-gdoc/diagrams/`; `npx` installs\na pinned `@mermaid-js/mermaid-cli@12.0.0` on first use\n* declare `docs.googleapis.com` and `drive.googleapis.com` in\n`_enable_apis`; both are already enabled in `hai-gcp-models`\n* doc changes do not reach a session on their own yet; until a Loom\ntrigger delivers them, the agent reads the doc and its comments at fixed\npoints\n* in the Loom control-plane container, `gcloud` reported `loom-vm`, got\na Docs and Drive token, and signed a URL under the diagram prefix; with\na personal login on Python 3.11, every text command ran against a copy\nof the doc template; diagrams have not run end to end\n\n[^1]: every session runs as `loom-vm`, so any session can reach any doc\nshared with that account; the README says so.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "fec8b74093e9319893a04d8196e46af1b07f87c3",
+      "url": "https://github.com/marin-community/marin/commit/fec8b74093e9319893a04d8196e46af1b07f87c3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-05T18:25:30Z",
+      "committed_at": "2026-11-05T18:25:30Z",
+      "message": "[grug] Take ring_filtered's slot-weight gradient through a gather (#10343)\n\nReplace a slow scatter-add in the backward pass of the ring_filtered MoE\nbackend (#9880) with a gather. Together with #10341, this cuts June\nSnowball step time by 3.0% on one 8x MI355X node and by 2.9% on two.\n\nBefore ring_filtered sends tokens to the expert shards, it fills a send\nbuffer with one row per (token, destination shard) pair that fits under\nthat shard's capacity. Each row carries the token's top-k combine\nweights, with the weights for experts on other shards set to zero. It\nreads each row's weights with `combine_weights_local[safe_source]`. JAX\ndifferentiates that indexed read as a scatter-add: every row adds its\ngradient back into the [tokens, top-k] weight array. A bfloat16\nscatter-add on AMD GPUs uses atomic adds, which slow down sharply as\nmore writes hit the same memory. In MI350X profiles it took 31 ms per\nstep at 65536 tokens per GPU, but only 7 ms at half as many tokens.\n\nThe scatter is unnecessary because each kept (token, assignment) pair\nhas exactly one nonzero cell in the send buffer: its own column in the\nrow that goes to its expert's shard. A custom VJP uses the reverse map\nfrom each pair to that row and gathers the pair's gradient from that\ncell. Pairs without a row, which are padding tokens and pairs the sender\ndrops for capacity, point at a sentinel row and keep a zero gradient, as\nbefore.\n\nThe diagram below shows this on a toy example. `g(row,k)` is the\nincoming gradient for send-buffer cell (row, k).\n\n```\nToy example: 3 tokens, top-2 routing, experts E0,E1 on shard 0 and E2,E3 on shard 1,\n2 send rows per shard.   t0 -> E0,E2    t1 -> E1,E0    t2 -> E3,E1\n\nFORWARD (unchanged): copy each token's weight row into its send rows, then zero\nthe columns whose expert is on the other shard.\n\ncombine_weights [T x K]   slot_weights [S x K]\n         k0    k1                                 k0    k1\n   t0  [ w00 | w01 ]      row 0 (t0 -> shard 0) [ w00 |  0  ]\n   t1  [ w10 | w11 ]      row 1 (t1 -> shard 0) [ w10 | w11 ]\n   t2  [ w20 | w21 ]      row 2 (t0 -> shard 1) [  0  | w01 ]\n                          row 3 (t2 -> shard 1) [ w20 |  0  ]\n\n   w21 is dropped: shard 0's two rows already hold t0 and t1.\n\nBACKWARD BEFORE (autodiff scatter-add): every cotangent cell g(row,k) adds into\nits row's token, zeros included. t0 has two rows, so it gets two adds per cell.\n\n   cotangent              d combine_weights\n   row 0 [ g00 |  0  ] --+\n   row 2 [  0  | g21 ] --+--> t0 [ g00+0 | 0+g21 ]  <- 2 atomic adds per cell\n   row 1 [ g10 | g11 ] -----> t1 [  g10  |  g11  ]\n   row 3 [ g30 |  0  ] -----> t2 [  g30  |   0   ]\n\n   8 atomic adds, 4 of them on t0, 3 of them adding zeros.\n\nBACKWARD AFTER (custom VJP gather): each weight reads the one cell that holds\nits kept copy. assignment_slot[t,k] is that row; dropped pairs get sentinel row 4.\n\n   assignment_slot   flat = row*K + k     d combine_weights\n   t0 [ 0, 2 ]       [ 0, 5 ]       ->    t0 [ g00 | g21 ]\n   t1 [ 1, 1 ]       [ 2, 3 ]       ->    t1 [ g10 | g11 ]\n   t2 [ 3, 4 ]       [ 6, 9 ]       ->    t2 [ g30 |  0  ]   (9 >= 8: fill 0)\n\n   6 plain reads, no atomics, same result.\n```\n\nStep times on June Snowball on MI355X (EP8, batch 128 per node,\nsave_moe, PGLE). These numbers combine this change with the AMD\ncross-entropy backward block (#10341):\n\n| Setup | Before (s/step) | After (s/step) | Step time change |\n| --- | --- | --- | --- |\n| One 8x MI355X node | 2.523 | 2.448 | -3.0% |\n| Two 8x MI355X nodes (EP8 x DP2, batch 256) | 3.198 | 3.106 | -2.9% |\n\nThe same pair of changes also helps on one 8x MI350X node (2.906 to\n2.805 s/step, -3.5%). Measured alone on a one-GPU MI350X stand-in for\none EP8 rank, this change reduces step time by 1.3%. Losses are\nunchanged, and the ring_filtered tests pass on MI350X.\n\nThis applies directly to main now that #9880 has merged. It edits code\nnext to #10345's change in `ep_ring_filtered.py`, so whichever of the\ntwo merges second needs a rebase that keeps both custom VJPs. Part of\n#9812.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "41a3bba7b20c02912c680f66cab508508daa2f82",
+      "url": "https://github.com/marin-community/marin/commit/41a3bba7b20c02912c680f66cab508508daa2f82",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-05T16:54:31Z",
+      "committed_at": "2026-11-05T16:54:31Z",
+      "message": "[rl] Recover installed agents from context overflow (#10844)\n\nAn installed agent can recover when a request exceeds the model's\ncontext limit. SkyRL returns a context-length error so the agent can\nshorten its conversation and try again. RolloutEngine omits the rejected\nrequest from the record and keeps the turn and time limits in force.\nNative harnesses still stop at the length limit.\n\nThe installed-agent endpoint completes a streamed model request before\nsending response headers. A context rejection therefore reaches OpenCode\nas HTTP 400 JSON; successful responses still use SSE. In an OpenCode\n1.18.2 probe, the previous SSE error became `UnknownError` and ended the\nrun. HTTP 400 became `ContextOverflowError`, followed by compaction and\nanother model request.\n\nWhen SkyRL resumes from sampled tokens, vLLM checks the prompt tokens it\nwill actually serve. Reconstructing the chat can use more tokens than\nthe sampled prompt. That longer reconstruction no longer blocks a prompt\nthat fits. vLLM still rejects an oversized prompt.\n\n---------\n\nCo-authored-by: Benjamin Feuer <penfever@gmail.com>\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "baaf5d805702b2736065ab62f73b9ae6f332bffa",
+      "url": "https://github.com/marin-community/marin/commit/baaf5d805702b2736065ab62f73b9ae6f332bffa",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-05T15:07:49Z",
+      "committed_at": "2026-11-05T15:07:49Z",
+      "message": "[zephyr] Authenticate Polars Parquet scans with file-delivered keys (#10899)\n\nZephyr Parquet reads through Polars now work inside Iris task pods,\nwhere #10474 delivers storage keys as mounted files instead of\nenvironment variables.\n\nPolars' Rust object_store client reads credentials from the environment\nalone. Task pods carry the submitted CoreWeave pair only as named files\nand an `AWS_SHARED_CREDENTIALS_FILE` profile, which that client ignores,\nso its chain fell through to instance metadata and CoreWeave answered\n404. FULL curation campaigns on cw-us-east-02a failed at the scatter\nmerge (`pl.merge_sorted`) with that error while every fsspec-based read\nand write succeeded.\n\nRigging resolves the bucket's declared store file-first and hands the\nstatic key pair to Polars as storage options; undeclared buckets, non-S3\npaths, and credential-less stores keep the ambient chain. The existing\nvirtual-host endpoint qualification still applies and merges with the\ncredentials.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "270960ab607bbc990db0df98f185c9a063d71595",
+      "url": "https://github.com/marin-community/marin/commit/270960ab607bbc990db0df98f185c9a063d71595",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-05T13:49:08Z",
+      "committed_at": "2026-11-05T13:49:08Z",
+      "message": "[marina] Copy rolloutengine into the Marina image (#10966)\n\nCopy `lib/rolloutengine` into the Marina image. `marin-core` has\ndepended on `marin-rolloutengine`\nsince #10757, but the Dockerfile and its build-context allowlist never\nincluded that workspace member.\nAny rebuild of the image fails at `uv sync --frozen --package\nmarin-marina` with\n`Distribution not found at: file:///app/lib/rolloutengine`. Rollouts\nonly succeeded while the image\nbuild was cached. The production deploy of #10964 failed this way\n\n([run](https://github.com/marin-community/marin/actions/runs/42030365408)),\nso Marina still runs the\nprevious image. The image's build stage builds locally with this change.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "e6a37b5ee03b6d6ff22ac4ec9976de64fb47c568",
+      "url": "https://github.com/marin-community/marin/commit/e6a37b5ee03b6d6ff22ac4ec9976de64fb47c568",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-05T12:49:09Z",
+      "committed_at": "2026-11-05T12:49:09Z",
+      "message": "[marina] Serve applet routes whose last segment contains a dot (#10964)\n\nServe an applet's `index.html` for a missing path whose last segment\ncontains a dot when the request\nasks for `text/html`. Client routes with dotted IDs load again, such as\nEvalDash's `/runs/<run_id>` and\n`/models/<model>` for `Marin-Snowball-67B-A2B-v0.1` or\n`Qwen3.6-35B-A3B`. Previously these returned\n`{\"detail\":\"application file not found\"}` because any dotted final\nsegment was treated as a static\nasset. Of the 37 models in the eval-policy cohort, 21 have dotted names.\n\nRequests that accept any type (`*/*`, as script and chunk loads do) keep\nthe old rule: a dotted path\nis an asset, so a missing chunk still 404s and the server continues to\nsearch older applet versions\nfor hashed chunks.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "34e48d8da2fae3feae1fc40d294cc58d803571ff",
+      "url": "https://github.com/marin-community/marin/commit/34e48d8da2fae3feae1fc40d294cc58d803571ff",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-05T08:17:19Z",
+      "committed_at": "2026-11-05T08:17:19Z",
+      "message": "[rl] Keep a recipe's overlong settings when the context budget sets the window (#10738)\n\nConfigs with context budget dropped the recipe's `penalty_scale` and\nused the base default--that's no bueno.",
+      "sha": "1ca7f3f4bdd37a8075aaf16a75908014c9be2798",
+      "url": "https://github.com/marin-community/marin/commit/1ca7f3f4bdd37a8075aaf16a75908014c9be2798",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-05T04:55:26Z",
+      "committed_at": "2026-11-05T04:55:26Z",
+      "message": "[security] Update PyPI publishing and pyasn1 (#10949)\n\nUpdate `pypa/gh-action-pypi-publish` to 1.14.3 to address its Sigstore\ncertificate advisory. Raise the workspace's pyasn1 minimum and locked\nversion to 0.6.5 to fix four decoder denial-of-service advisories.",
+      "sha": "eac658e3423c984926f3335179d3fccf6d926beb",
+      "url": "https://github.com/marin-community/marin/commit/eac658e3423c984926f3335179d3fccf6d926beb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dependabot[bot]",
+      "author_name": "dependabot[bot]",
+      "authored_at": "2026-11-05T04:41:31Z",
+      "committed_at": "2026-11-05T04:41:31Z",
+      "message": "Bump the npm-security group across 6 directories with 1 update (#10816)\n\nBumps the npm-security group with 1 update in the\n/lib/marin/src/marin/inference/dashboard directory:\n[minimatch](https://github.com/isaacs/minimatch).\nBumps the npm-security group with 1 update in the /lib/iris/dashboard\ndirectory: [minimatch](https://github.com/isaacs/minimatch).\nBumps the npm-security group with 1 update in the /lib/finelog/dashboard\ndirectory: [minimatch](https://github.com/isaacs/minimatch).\nBumps the npm-security group with 1 update in the /lib/ducky/dashboard\ndirectory: [minimatch](https://github.com/isaacs/minimatch).\nBumps the npm-security group with 1 update in the\n/infra/marina/apps/tasktrove/web directory:\n[minimatch](https://github.com/isaacs/minimatch).\nBumps the npm-security group with 1 update in the\n/infra/marina/apps/evaldash/web directory:\n[minimatch](https://github.com/isaacs/minimatch).\n\nRemoves `minimatch`\n\nRemoves `minimatch`\n\nRemoves `minimatch`\n\nRemoves `minimatch`\n\nRemoves `minimatch`\n\nRemoves `minimatch`\n\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore <dependency name> major version` will close this\ngroup update PR and stop Dependabot creating any more for the specific\ndependency's major version (unless you unignore this specific\ndependency's major version or upgrade to it yourself)\n- `@dependabot ignore <dependency name> minor version` will close this\ngroup update PR and stop Dependabot creating any more for the specific\ndependency's minor version (unless you unignore this specific\ndependency's minor version or upgrade to it yourself)\n- `@dependabot ignore <dependency name>` will close this group update PR\nand stop Dependabot creating any more for the specific dependency\n(unless you unignore this specific dependency or upgrade to it yourself)\n- `@dependabot unignore <dependency name>` will remove all of the ignore\nconditions of the specified dependency\n- `@dependabot unignore <dependency name> <ignore condition>` will\nremove the ignore condition of the specified dependency and ignore\nconditions\nYou can disable automated security fix PRs for this repo from the\n[Security Alerts\npage](https://github.com/marin-community/marin/network/alerts).\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+      "sha": "388a2a26ebf8bbcfa02afe3b4593a328cacd66a2",
+      "url": "https://github.com/marin-community/marin/commit/388a2a26ebf8bbcfa02afe3b4593a328cacd66a2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-05T04:30:48Z",
+      "committed_at": "2026-11-05T04:30:48Z",
+      "message": "[evaluation] Ignore Dependabot updates for the Tau3 sandbox (#10947)\n\nIgnore all npm dependency updates for\n`experiments/evaluation/images/tau3`. These pinned packages are embedded\nin the Tau3 evaluation sandbox, where their security warnings are\naccepted risk.\n\nDocument the exception and the policy for dismissing associated security\nalerts as tolerable risk. The configuration suppresses update PRs; new\nsecurity advisories can still produce alerts.",
+      "sha": "d6a5ea54cf932e8036427673a147442aaba27a2f",
+      "url": "https://github.com/marin-community/marin/commit/d6a5ea54cf932e8036427673a147442aaba27a2f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-05T04:05:51Z",
+      "committed_at": "2026-11-05T04:05:51Z",
+      "message": "[harbor] Route task and verifier execution through Shellbox (#10628)\n\nRun Harbor task commands and grading scripts through Shellbox. Replace\nHarbor's independent environment-provider backends and custom\nenvironment imports with adapters for local bubblewrap (the default),\nDaytona, QEMU and ShellSim. Marin invokes Harbor as an isolated binary;\nShellbox has no Harbor dependency.\n\nTranslate a validated Compose subset into Shellbox tasks with prepared,\ndigest-pinned images. Local tasks keep agent and runtime containers\nalive on private loopback with external traffic denied. Tau3 retains its\nruntime, candidate agent and grading script. Reject unsupported Compose\nfields, host mounts, runtime sockets and privileged operations before\nexecution. Resolve task environment and working-directory settings once\nand retain the imported plan through startup.\n\n```mermaid\nsequenceDiagram\n    participant D as Trusted Marin/Harbor driver\n    participant A as Agent container\n    participant R as Tau3 runtime container\n    participant P as Model provider\n    participant F as FineStore\n    D->>A: Create Shellbox task and loopback HTTP helpers\n    A->>D: Candidate request on port 8788 via process pipes\n    D->>P: Forward to configured candidate model with host credentials\n    P-->>D: Complete response\n    D-->>A: Bounded response over process pipes\n    A->>R: Task-local MCP runtime request\n    R->>A: User-model request on loopback port 8787\n    A->>D: Request over persistent process pipes\n    D->>P: Forward to configured judge model with host credentials\n    P-->>D: Complete response\n    D-->>A: Bounded response over process pipes\n    A-->>R: HTTP response\n    D->>R: Collect runtime logs after agent finishes\n    D->>A: Run grading script, then close task containers\n    D->>F: Commit native result and trajectory presence atomically\n```\n\nCapture host credentials once at each executable entry point and pass\nthem outside serialized configuration. Normalize model endpoints,\nexplicit credential sources and guest aliases in Harbor's\nhost-capability module. Candidate authentication uses a private driver\nchannel, preserving policy judge credentials. A hosted judge replaces\npolicy judge authority and maps both OpenAI URL aliases and all model\nroles to its relay. Guest templates resolve only declared inputs; cloud,\nstorage, controller credentials and known host secrets are rejected at\nguest boundaries. Host-side agents use captured authentication.\nInstalled local and Daytona agents call fixed loopback relays, which\nexpose bounded chat, text Responses and tokenization routes. Streaming\nchat is buffered. Verifier-only judge access opens during grading; Tau3\nand Sotopia allow judge-model requests during agent execution. Marin\npreflight rejects Codex and Claude Code because their required protocols\nexceed that relay contract. Saved configuration redacts Iris bearer\nURLs. Harbor retains storage authority for uploads; #10819 tracks\nremoving it.\n\nDiscover local cgroup delegation within the worker's own cgroup or its\nempty systemd unit above `DelegateSubgroup`. Command cancellation reaps\ndescendants while preserving files, earlier successful services and\nruntime peers. CPU and memory declarations are numeric limits applied\nindependently where controllers permit, with warnings when enforcement\nis unavailable. Local Harbor rejects `ignore` resource policies and\nstill requires working recursive process containment. Before\nverifier-only judge access, it stops remaining agent command groups.\nGrading without verifier-only judge access preserves successful\nservices. Terminus interrupts its foreground terminal job on\ncancellation, treats zombie-only groups as stopped, and releases tmux at\nteardown.\n\nA trial owns required relay tasks through setup, execution, collection,\ngrading and teardown. Relay, log collection and teardown failures are\nnamed, retryable infrastructure errors and remain unscored. Publish\nfinal native results after teardown and required artifact writes. Commit\nnative attempt results, available ATIF trajectories and presence\nmetadata atomically; normalize selected results into FineStore samples,\nsteps and rollouts. Incomplete attempts retain evidence and can recover\nthrough resume or a successful retry. An incomplete selected attempt or\nmissing declared trajectory prevents sealing. Candidate and judge\nserving routes may change while their recorded model identities remain\nunchanged. Evaluator identity uses Rigging launch provenance and Marin\nartifacts. Any change to the tracked Marin tree invalidates cache and\nresume reuse; missing provenance fails before reuse. No separate\nsource-file hashing is added.\n\nPi and Pi/ACP use image-provided binaries; setup stages configuration\nwithout package downloads. Standalone Pi requires a declared,\ndigest-pinned prepared main image before model allocation; Daytona's\ntask image must match. BixBench and BFCL standalone Pi campaign policies\nnow fail preflight until their tasks are prepared, and verified-cohort\nuse requires updating their approved source digests. Marin no longer\ninstalls Pi 0.87.0 during setup: the image supplies its version, checked\nwhen explicitly requested. The Tau3 image supplies Pi 0.80.5 for\nstandalone and ACP use. Pi's MCP configuration is a packaged JavaScript\nasset. Tau3's bridge excludes conversation-control tools from the\ncandidate while retaining domain tools, and checks canonical runtime\nstatus before advancing the conversation. Runtime MCP failures retain\ninfrastructure classification; candidate process failures retain agent\nclassification. The `tau3_image()` helper reuses or builds images keyed\nby their Dockerfile, dependency locks and build settings in\n`ghcr.io/marin-community/rollout-images`. Task preparation pins runtime\nimages containing each task's server and configuration. Sandbox\nexecutables belong on the trusted evaluator host; the Iris task\nDockerfile supplies them separately from rollout guest dependencies.\n\nUse the Shellbox execution contract from #10640. Native Iris task groups\nremain in separate draft #10822; no controller rollout is required.\nDaytona policies require an explicit `DAYTONA_TARGET` before model\nallocation. Launches using `eval-policy-2026-09-24-verified` use carried\nevaluator identity instead of requiring the historical Harbor source\npin. Compose groups currently use local bubblewrap; Daytona supports\nsingle-machine execution and hosted grading. Confirmed cleanup of\ndetached command descendants is a local guarantee. Daytona cannot\nexclude an independently surviving candidate process during grading.\nRuntime model access is reachable by peers sharing the task network.\nPrivate verifier access combined with a live agent-started service\nrequires separate isolation. Bubblewrap shares the host kernel and\nrequires namespace permissions and delegated containment; installing its\nexecutables alone is insufficient. Prepared local images require root\n`USER`. A companion exiting closes the entire local task, including its\nagent, so grading cannot continue in that task. Disk quotas and\naccelerator allocation remain unsupported. Existing resume roots without\nevaluator identity require a new root.\n\nTau3 ACP trials retain raw ACPX exports and produce scored FineStore\nsamples. They do not declare an ATIF trajectory: ACPX exports are not\nconverted to ATIF, so these trials have no derived step or rollout rows.\nPresence metadata records the expected absence.\n\n---------\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>\nCo-authored-by: William Held <9847335+Helw150@users.noreply.github.com>\nCo-authored-by: William Held <Wbh230@nyu.edu>",
+      "sha": "9a5afd6fd24f18e941ebc0d03499c1526f356634",
+      "url": "https://github.com/marin-community/marin/commit/9a5afd6fd24f18e941ebc0d03499c1526f356634",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-05T02:59:13Z",
+      "committed_at": "2026-11-05T02:59:13Z",
+      "message": "Belay admin: an approval can carry instructions for the session (#10943)\n\nApprove, on both a pending idea and a live #9514 comment, gets a text\nbox for the approver's instructions on how to run the idea: which track,\nsettings, what to compare. The app stores them as the maintainer note\n`Maintainer <login>: <text>`. The Belay tooling already prints that note\nright after the idea text as \"MAINTAINER NOTE (follow it; it settles the\nchecks it addresses)\", so sessions follow it ahead of the comment's\nwording with no tooling change. An approval without instructions leaves\nthe note as it was.\n\nRe-queue uses the same text box, prefilled with the suggested note,\ninstead of a `window.prompt`. The instructions stay private: the public\nStatus page shows an idea's note only when it was declined.\n\nThe admin page also drops its 10-second refresh. It refreshes after each\naction, on returning to the tab, and on Reload, which now reloads the\nstate as well as the #9514 list. Drafts in every row's controls survive\na refresh, with focus and cursor restored. The public Status page keeps\nits 10-second poll.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "48e2e41624cc1fbdef8624b0682ddb71d06446be",
+      "url": "https://github.com/marin-community/marin/commit/48e2e41624cc1fbdef8624b0682ddb71d06446be",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-05T02:37:38Z",
+      "committed_at": "2026-11-05T02:37:38Z",
+      "message": "Remove the Belay intake workflow (#9514 → #9451 copy) (#10940)\n\n`ops-belay-intake.yaml` still runs every 5 minutes. On a marin-devs 👍,\nit copies the #9514 comment into #9451 and marks it with 🚀 as\n\"transferred\". Belay's sessions no longer read #9451, approval now\nhappens on the Belay admin page (#10829), and the recipe-branch tooling\nmarks a reviewed #9514 suggestion with 👀. This removes the workflow,\n`scripts/ci/belay_intake.py` and its test.\n\nThe `BELAY_INTAKE_TOKEN` repository secret, declared in\n`infra/pulumi/github`, has no other user once this merges. It should be\nremoved and the marin-belay-bot token revoked, in a separate change by\nwhoever holds that account.\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "6321513a9d6139a8f79c530648fd9931c78db35d",
+      "url": "https://github.com/marin-community/marin/commit/6321513a9d6139a8f79c530648fd9931c78db35d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-05T02:37:12Z",
+      "committed_at": "2026-11-05T02:37:12Z",
+      "message": "Belay admin: undecided #9514 comments first; decline one with a reason (#10939)\n\nThe admin page's live #9514 list now puts comments still waiting for a\ndecision first, newest first within each group. Each waiting comment\ngets a Decline control: a reason field, and a button that stays disabled\nuntil a reason is entered.\n\nDeclining goes through a new `POST /admin/intake/decline`. It records\nthe comment as an intake idea, using the same checks as approval (the\ncomment's URL, the visible text the page showed, and not already in the\nregistry), then closes it with `decline_idea`. The note reads `Declined\nby <login>: <reason>`, and the list shows it in place of the actions. A\ndeclined comment is never queued, and a later Approve on it is refused.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "902db8e03a29cce5ba587cb02a211f6950bed972",
+      "url": "https://github.com/marin-community/marin/commit/902db8e03a29cce5ba587cb02a211f6950bed972",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-05T01:57:04Z",
+      "committed_at": "2026-11-05T01:57:04Z",
+      "message": "Belay: sync the page every watch pass; mark registered #9514 comments as done (#10937)\n\nThe production Belay app (#10829) had no registry, runs or storage data.\nIn the local demo a watcher process uploaded them every tick, and\nnothing did that in production. The admin page's live #9514 list matched\ncomments only against the app's ideas table, so on the fresh app every\nalready-run comment offered Approve.\n\nThe Loom watch now runs `python -m experiments.belay sync` before each\nqueue check. The command (on `marin_belay_v1_recipe`, `a887a72741`) is\nthe demo watcher's single pass: registry results when the registry\nbranch moved, Iris runs with W&B progress, hourly storage, then the\napp's heartbeat. If `sync` fails, the watch still runs the check.\n\nAdmin state now carries `registered_comments`, mapping each #9514\ncomment id to its registry id from the uploaded registry. The live list\nshows those comments as done and links their Status row, even before\nthey're in the ideas table.\n\nOne sync has already run against production from an approver's login:\n223 registry ideas, 41 runs, no events queued. The admin page change\ntakes effect on the next release of the app.\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "25ec30b4cf3bee49fa5f75ff732a638b50609326",
+      "url": "https://github.com/marin-community/marin/commit/25ec30b4cf3bee49fa5f75ff732a638b50609326",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-05T01:15:27Z",
+      "committed_at": "2026-11-05T01:15:27Z",
+      "message": "loom: enable the Marin Belay watch (#10934)\n\nThis enables the `belay` watch added in #10824. Its prerequisites are in\nplace: the Belay app (#10829) is released publicly, the\n`BELAY_WANDB_API_KEY`, `BELAY_CW_KEY_ID` and `BELAY_CW_KEY_SECRET`\nsecrets exist, and #10931 scopes the CoreWeave key, as a live check\nconfirmed.\n\nSessions claim work only while dispatch is on in the app's admin page,\nso dispatch remains the pause switch. Takes effect on the next\n`marin-deploy loom rollout`.\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "4fd18a462e4fab454ca1776513a59a046944691d",
+      "url": "https://github.com/marin-community/marin/commit/4fd18a462e4fab454ca1776513a59a046944691d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-05T01:04:47Z",
+      "committed_at": "2026-11-05T01:04:47Z",
+      "message": "loom: add a belay profile and a disabled belay watch for Marin Belay sessions (#10824)\n\nAdds a `belay` Loom profile and a disabled `belay` watch, so Marin Belay\nsessions can run on Loom instead of a maintainer's laptop. A session\nreads `experiments/belay/RUNBOOK.md` on `marin_belay_v1_recipe` and runs\nonly `uv run python -m experiments.belay <command>`.\n\nProfile:\n\n- One session at a time (`maxConcurrent: 1`), `envClear`, strict\nautomation, `marin-community/marin` only.\n- Env: `IRIS_USER=loom` and the shared Claude token, like the other\nClaude automation profiles, plus three secrets:\n- `WANDB_API_KEY` from `BELAY_WANDB_API_KEY`, a `marin-community` W&B\nservice-account key. The fast_track launcher refuses to submit without\nit and passes it to each job.\n- `CW_KEY_ID` and `CW_KEY_SECRET` from `BELAY_CW_KEY_ID` and\n`BELAY_CW_KEY_SECRET`, a CoreWeave access key for Belay. Since #10475\nevery CoreWeave job carries its submitter's keys, so this key's access\npolicy is what bounds Belay runs: read the training and eval data, read\nand write `tmp/ttl=*/belay/*`, read profiles under `tmp/ttl=*/xprof/*`,\nnothing else.\n- Replies on the intake issue (#9514) use Loom's GitHub App token; no\nbot token is needed.\n\nTrigger: an agent watch, `every: 10m`, `runTimeoutSeconds: 14400`,\n`enabled: false`, with the prompt in `watches/belay.md`. Each run starts\nwith `start --check-only`, which reads the Belay app's public state and\nends the session at once unless events are queued and no session is\nactive. If there is work, the session claims the events (`claim`),\nfollows the runbook and its drain loop (`wait`) until nothing short is\nleft, and reports back with `finish`. A zero-token script watch could\nalso start the session (script watches with the `launch` capability call\n`/runs/create`). But a script watch's program has to be a file already\non the Loom server, while this agent watch is declared entirely in this\nstack.\n\nBefore enabling the watch:\n\n- A CoreWeave org admin creates the Belay access key and policy, and its\ntwo halves are uploaded as `BELAY_CW_KEY_ID` and `BELAY_CW_KEY_SECRET`.\nPreview fails until both secrets exist.\n- The Belay Marina app (#10829) has to be released. Its agent endpoints\naccept `loom-vm@hai-gcp-models.iam.gserviceaccount.com`.\n- The Belay client (`experiments/belay/page.py`) still sends only a\nservice token, so it needs to present the session's identity to Marina\nthrough IAP.\n\n`claim`, `finish` and `start --check-only` are on the Belay tooling\nbranches; they are not part of this PR.\n\nPart of #9451\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "c1e63a0e6a8b3f1aa8e2601e583069718063e21e",
+      "url": "https://github.com/marin-community/marin/commit/c1e63a0e6a8b3f1aa8e2601e583069718063e21e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-05T00:44:29Z",
+      "committed_at": "2026-11-05T00:44:29Z",
+      "message": "[iac] Bound the Belay CoreWeave user with bucket-policy denies (#10931)\n\n#10833's `marin-belay` organization access policy only adds grants.\nChecked live with the Belay key, the user could still write outside its\nrun prefix, read hero checkpoints in `marin-us-east-02a`, and list and\nread `hero-checkpoints`. The console-managed org access policy\n`admin-use-bucket-go-fast` grants every principal (`*`) full S3 access\nand the `cwobject:` control-plane actions.\n\nEvery CoreWeave bucket policy now explicitly denies the Belay principal\n(`arn:aws:iam::208261:coreweave/unAfPLe6TaiRmJsewaUog`) any action other\nthan object reads and writes (and listing on 02a and 08a), writes\noutside its run and temp-checkpoint prefixes, and reads outside its\ndata, eval, profile and run prefixes. An explicit deny overrides any\nallow. Both these denies and the org policy's grants are built from one\n`BelayGrants`.\n\nBucket policies can't deny `cwobject:` actions, and CoreWeave evaluates\nbucket-policy changes against org policies only, so `marin-belay` also\ndenies Belay bucket management (including policy changes), access-key\nmanagement, org access policy edits and audit-log toggles. Rotating the\nBelay key needs that deny lifted temporarily. Other principals' access\nis unchanged.\n\nThe targeted apply of `policy-marin-rno2a` and `policy-belay` is live.\nWith the Belay key, `marin-rno2a` list, read and write and tagging its\nown object are refused, while writes under its 02a run prefix still\nwork. Applying the remaining four bucket policies also applies #9395's\npending removal of the hero delete deny on `hero-checkpoints` and\n`marin-us-west-04a`; the 02a deny covering the live hero run stays.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "b3db2227da816626f3d992bb1baae14935340dc5",
+      "url": "https://github.com/marin-community/marin/commit/b3db2227da816626f3d992bb1baae14935340dc5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-05T00:21:57Z",
+      "committed_at": "2026-11-05T00:21:57Z",
+      "message": "[grug] Add optional log scaling of hero global queries (#10923)\n\nAdd an optional `log_scaling_n_floor` to the hero model for the 262K\nquery temperature comparison. Only `launch_diagnostics.py\n--log-scaling-n-floor` sets it. The hero configuration leaves it off.\n\n- On global layers, the model multiplies a query that sees `n` keys in\nits document by `1 + 0.1 * ln(max(n / floor, 1))`. This factor applies\non top of `qk_mult` and `qk_mult_long_scale`.\n- The form comes from\n[Inkling](https://github.com/huggingface/transformers/blob/main/src/transformers/models/inkling/modeling_inkling.py).\nInkling uses absolute position as `n`. This change counts keys in the\ndocument, because a packed row holds several documents. Inkling also\nscales a relative-position bias, which the hero model does not have.\n- At the end of a 262K document with `qk_mult` 1.66, a floor of 65536\ngives an effective 1.890. A floor of 128000 gives 1.779.\n- The change adds no parameters and does not change kernels,\ncheckpoints, or optimizer state.\n- With the field unset, jaxprs and logits match the base commit at CP1\nand CP4 on CPU. The advisory artifact fingerprint changes, but the\nartifact path does not.\n- In a one-off run on one GB200 node, real FA4 zigzag ran forward and\nbackward at bf16. The run used a 4096-token model and a floor of 256.\nThe mean CP4 versus CP1 logit gap was 0.00045 with scaling on and\n0.00042 with scaling off. The on-versus-off effect was 0.0055.\n- We did not measure the real 262K shape, training quality, or step\ntime. No evidence yet shows an improvement.\n- The vLLM fork and SkyRL apply a fixed scale per layer, so they would\nuse the wrong temperature past the floor. `to_hf_config` now raises an\nerror for this field, which stops the Hero exports and the upload.\nLong-context evals through vLLM cannot measure these arms, so they use\nnative evaluation.\n- `launch_diagnostics.py` refuses a floor at or above the sequence\nlength, because that run would scale no query.",
+      "sha": "6b954cfe8a273a10bddf3c7e03e89ff065d38fe7",
+      "url": "https://github.com/marin-community/marin/commit/6b954cfe8a273a10bddf3c7e03e89ff065d38fe7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-05T00:21:55Z",
+      "committed_at": "2026-11-05T00:21:55Z",
+      "message": "[finelog] Bound query reads and remove cache visibility contention (#10929)\n\nApply the default ten-second read budget before admission so queueing,\nvisibility waits, provider construction, execution, and encoding share\none\ndeadline. Bound optional cache downloads by that deadline and enforce\nthe\n256 MiB allowance without admitting an oversized final object.\n\nPin cached files per read so eviction skips active inputs without\nqueuing a\nglobal visibility writer. Object compaction updates its accounting view\nwithout\nwaiting for readers. Preserve visibility protection for legacy file\nreplacement\nand table deletion.\n\nRoute object-backed Parquet, index, projection, and maintenance reads\nthrough\nthe cache-aware object-store range interface, preserving coalesced\nrequests,\nfooter caching, and scan-byte counters. Read index headers and required\nsections\nfrom cache or GCS/S3 without downloading whole bundles. Concurrent\nsegment\npruning shares a 500 ms index-I/O budget and checks key sections first;\nunavailable indexes retain the source scan. Preserve same-column\nsubstring\nalternatives during trigram pruning and support string equality\npredicates.\n\nThe November 4 hub incident recorded 256 GB of query cache fills over 51\nminutes\nwhile unrelated reads waited on visibility:\nhttps://marina.oa.dev/echo/wiki/926.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "a00fd12bbba43d813c28b2196c9fd4f791137b8f",
+      "url": "https://github.com/marin-community/marin/commit/a00fd12bbba43d813c28b2196c9fd4f791137b8f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-05T00:02:37Z",
+      "committed_at": "2026-11-05T00:02:37Z",
+      "message": "[snowball-tpu] [eval] Check Snowball TPU and H100 logprob parity (#10607)\n\nCheck Snowball's frozen next-token probabilities through H100 and\nmulti-host TPU vLLM instead of comparing benchmark accuracy. Both arms\nuse the same 64 exact token-ID prompts across 256–32768-token buckets,\nrequire coverage of the frozen top-25 tokens, apply the existing\nexplained-winner rule and 0.125 probability bound, and require exact\nsame-process recomputation of the long-prompt sentinel.\n\nExtract the endpoint-scoring loop from the existing H100 check and reuse\nit for v4-32 at TP16. Keep the coordinator on CPU while isolated TPU\nchildren enable both TPU and CPU JAX backends. Launch the Ray supervisor\nwith Python safe-path mode so its sibling `types.py` cannot shadow the\nstandard library. Remove the accuracy evaluator and comparator.\n\nEach job has a one-hour runtime, bounded queue, zero retries and fresh\nresult paths. The TPU arm reads the verified regional mirror of the\nexact June d819 export.\n\nVerification: 24 focused HTTP-contract, probability, entrypoint and Ray\nregression tests pass; required lint/type checks and advisory review are\nclean. Task #336 measured two fresh processes per arm: maximum\nprobability errors were 0.074066 on H100, 0.093186 on v5p-8 and 0.073077\non v4-32, all below 0.125. Live H100 and v4-32 checks also pass all 64\nprompts and exact same-process repeatability, with maximum probability\nerrors of 0.074066 and 0.059369 respectively.",
+      "sha": "6ef791ef61235fb3a9bb6019729e18cfc9be56c8",
+      "url": "https://github.com/marin-community/marin/commit/6ef791ef61235fb3a9bb6019729e18cfc9be56c8",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-06T00:00:00Z",
+    "start": "2026-11-05T00:00:00Z"
+  }
+}

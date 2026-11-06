@@ -13,7 +13,7 @@
     "progress_pct": 14.867354599988214,
     "tokens_trained": 2676123827997.8784,
     "recipe_regime_id": "hero-4k-harrier-18t-v1",
-    "mixture_stage": null
+    "mixture_stage": 0
   },
   "recipe": {
     "learning_rate_schedule": "linear",

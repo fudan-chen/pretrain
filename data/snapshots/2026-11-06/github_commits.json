@@ -1,0 +1,285 @@
+{
+  "commit_count": 25,
+  "commits": [
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-06T23:43:20Z",
+      "committed_at": "2026-11-06T23:43:20Z",
+      "message": "[zephyr] Keep one idle worker for final-shard retries (#10976)\n\nKeep one idle worker available while a dedicated Zephyr pipeline has\nunfinished final-stage shards. Extra idle workers still exit, and the\nretained worker exits when the stage completes. This lets it run a shard\nrequeued after another worker's heartbeat expires.\n\nThe November 5 Datakit smoke run stopped at 105/106 quality shards: Iris\nretried a worker, its replacement received `SHUTDOWN` while the old\nattempt still owned the last shard, and the shard requeued after the\nworker job ended. A local coordinator regression reproduced that\nordering before the change and completed the retry afterward. With 106\nworker states, the final-stage drain predicate took 4.6 µs per pull\nversus 0.6 µs before; the retained worker can occupy one slot for the\nremainder of the stage.\n\nThe affected coordinator suite passed 81 tests, and the advisory lint\nreview found no issues. The repository test selector reached 2,167\npasses before its 600-second cap; five evaluation-driver tests failed\nbecause this host's Python lacks `os.pidfd_open`. A live ferry has not\nrun on this branch.\n\nFixes #10974\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "c7cbddcce2406d2967eebb78c3d9357985245cd5",
+      "url": "https://github.com/marin-community/marin/commit/c7cbddcce2406d2967eebb78c3d9357985245cd5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-06T21:12:31Z",
+      "committed_at": "2026-11-06T21:12:31Z",
+      "message": "[eval] Exclude tags with no scored tokens from eval macros (#11054)\n\nEval macros and per-tag logs now skip tags with no scored tokens, with a\nwarning for each unscored leaf tag. At 262K, `ptb` and `wikitext_103`\nare shorter than one sequence, so they logged a loss of 0 and\n`eval_dropless/macro_loss` averaged those zeros in.\n`eval_dropless/paloma/macro_loss` already excluded them. A parent tag\nwhose children are all unscored is also skipped, where `np.average`\npreviously raised `ZeroDivisionError`.\n\nThe macros are computed from the host arrays after the eval loop, so\n`accum_for_batch`, training and compiled programs are unchanged. The\nmacro's two eager `jnp.mean` calls are gone and no device operation\nreplaces them.\n\nOn a run with no empty tag, the macro stays a float32 average and only\nthe summation order changes: over 2000 random trials at 8 to 100 tags it\nmoved by at most 7.2e-7. At 262K, `eval_dropless/macro_loss` rises by\n16/14 to about 2.05, so the canary's eval row compares against a\nbaseline that mixes both values until earlier runs age out. That row\nonly feeds the 2.5 ceiling; the Slack regression post uses step time.\n\nTaken from #10711. Its padded final windows, which would score these two\nsets, remain separate, so these tags stay unlogged until that lands.\nPart of #8435.",
+      "sha": "e0bc917ee549f15dd30e3c97ce3ff8d690b43440",
+      "url": "https://github.com/marin-community/marin/commit/e0bc917ee549f15dd30e3c97ce3ff8d690b43440",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-06T20:37:09Z",
+      "committed_at": "2026-11-06T20:37:09Z",
+      "message": "[grug] Train the hero at 262K from the merged step-390251 checkpoint (#11041)\n\nThe hero trains at 262,144-token context from a merged checkpoint at step 390251, with CP4 x EP16 and batch 176 on 11 racks. It stops at step 393491, 3,240 steps and 149.5B tokens past the schedule. The learning rate moves from 5% to 1% of peak.\n\n- Start: [`hero-ctx65k-merge-hb-avg11/step-390251`](https://filer.marina.oa.dev/#s3%3A%2F%2Fmarin-us-east-02a%2Fmarin%2Fgrug%2Fhero-ctx65k-merge-hb-avg11%2Fcheckpoints%2Fstep-390251) is an equal-weight hyperball average of the parent's last 11 permanent checkpoints. `hero_checkpoint_paths` reads the parent from the W&B fork, because a merged path names no run.\n- Recipe: global 1.84, from `qk_mult` 1.66 and `qk_mult_long_scale` 1.108. Global layers only, because the no-training sweep at step-390251 had lower real-text loss at the same value: 0.0024 lower than all-layers 1.84 at 262K, on all 19 subsets, with recovery 0.933 against 0.938 (intervals overlap). See the [notebook](https://github.com/marin-community/marin-logbooks/blob/e1f35f7dcbd0f1a5da4f9dac3ccc2c425af06cf4/logbooks/37-hero-262k/notebook.md) and [issue](https://github.com/marin-community/marin-logbooks/issues/37).\n- Finalists: first of two. The second depends on #10986, starts from the same checkpoint on a branch, and merges next Monday only if it wins.\n- Data: the hero reads the long-context mix. The train loader queues 64 batches instead of 512. #10994 prevents the eval memory failure at 262K.\n- Saves: seven permanent checkpoints, about 30 TB.\n\nEvidence limits:\n\n- No training run tested global 1.84, and no rehearsal ran. This head has not trained on GPU.\n- The arms, such as [global 1.88](https://wandb.ai/marin-community/marin_moe/runs/hero-lce11-merged-global188), ran interim code. This head adds #10556, which reading `api.py:92` and a CPU check with stand-in kernels show is inert for hero training. Nobody checked GB200 compiled code.\n- We inferred memory from a [queue-64 run](https://wandb.ai/marin-community/marin_moe/runs/hero-lce11-q64-log65536sq) of another recipe. All six queue-512 recipes read 182.22 GiB. The hero's first reading tests 180.44 GiB.\n- The `eval_regressed` alert should fire on the first two evals, from partial windows that #10711 fixes. We inferred this from the [alert rule](https://github.com/marin-community/marin/blob/main/docs/ops/hero-run-health-alerts.md). No run showed it.\n\nThis merges after #10917.\n\nPart of #8435.",
+      "sha": "cac11d381a14d80ff94c8b314a4ded81a9e614ba",
+      "url": "https://github.com/marin-community/marin/commit/cac11d381a14d80ff94c8b314a4ded81a9e614ba",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-06T20:33:30Z",
+      "committed_at": "2026-11-06T20:33:30Z",
+      "message": "[inference] Restore dashboard tools with the public ShellSim catalog (#11031)\n\nRequire ShellSim 0.1.39 and update its lockfile entry so dashboard\nPython tools and shell workspaces fetch their runtime from the public R2\ncatalog. The previously locked 0.1.38 uses shellsim.rjp.io, which\nreturns HTTP 502 during runtime preparation and causes tool calls to\nreturn 503.\n\nCold-cache requests through the real dashboard routes returned the\nexpected word statistics, NumPy multiplication, and shell output.\nExisting serving processes need a relaunch to pick up the updated\ndependency and catalog.\n\nThe focused inference and launcher run passed 210 tests. Five evaluation\nsandbox failures from the broad run also reproduce on 0.1.38 because\nBubblewrap cannot run on this host.\n\n[Incident record](https://marina.oa.dev/echo/wiki/941).\n\nCo-authored-by: William Held <9847335+Helw150@users.noreply.github.com>",
+      "sha": "e670d114cc1b81eba5dfce30c889c7eb70647c86",
+      "url": "https://github.com/marin-community/marin/commit/e670d114cc1b81eba5dfce30c889c7eb70647c86",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-06T20:18:25Z",
+      "committed_at": "2026-11-06T20:18:25Z",
+      "message": "[grug] Let the hero train past its schedule (#10917)\n\nThe hero can train past its 390251-step schedule through a checked-in `HERO_SCHEDULE_EXTENSION`.\n\n- The value is `None`, so the live run stops at 390251. A deploy PR sets `ScheduleExtension(steps=N, final_lr_ratio=R)`.\n- `num_train_steps` stays 390251. A larger value changes learning rates, epsilon, weight-decay anneal, and context-phase replay.\n- Past 390251, both optimizer groups move linearly from 5% of peak to `R` of peak over `N` steps. The config rejects `R` outside 0 to 5%.\n- Rates through 390251 are bitwise identical. Weight decay stays 0, data stays on cooldown weights, and permanent checkpoints continue every 500 steps.\n- A stop past the schedule without a sufficient extension raises at config build. It was silently capped. A restore past the stop step raises.\n- The final checkpoint comes before the forced end-of-run callbacks, so a failed final eval cannot lose it.\n- A retry that restores a permanent stop-step checkpoint logs `ZERO-STEP SUCCESS`, skips callbacks and save, and succeeds. A missing final eval must run offline. Without the skip, each retry repeats the eval and adds several TB to OCDBT.\n- Restoring a temporary stop-step checkpoint saves and runs callbacks.\n- Periodic evals, including one at the stop step, run before their step's checkpoint.\n- A rehearsal needs a branch that sets `HERO_SCHEDULE_EXTENSION` and runs at the rack's own rates.\n- CPU loop tests use SGD; another checkpoints the real optimizer into the extension.\n- GPU rehearsals used 3544ec8e04, which also had `--extension-*`, `--optimizer-racks`, and an earlier stop-step save. This PR lacks them. Those runs trained 262K from 390251 to 390351. A retry left step-390351 byte-identical. A 5-step resume wrote step-390356. They show no 262K eval.\n- Not fixed: the final save does not wait for pruning, so a temporary checkpoint can stay partly deleted. Restore takes the newer permanent checkpoint.",
+      "sha": "7903eda6d13cffb1f418ac192b5f4b7515751cde",
+      "url": "https://github.com/marin-community/marin/commit/7903eda6d13cffb1f418ac192b5f4b7515751cde",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "hrl20",
+      "author_name": "Louisa H",
+      "authored_at": "2026-11-06T20:18:08Z",
+      "committed_at": "2026-11-06T20:18:08Z",
+      "message": "[ci] Install only Playwright's headless shell for the Iris smoke test (#11013)\n\nInstall only Playwright's Chromium headless shell in iris-e2e-smoke,\nwithout `--with-deps`. Every library Chromium needs is already on the\nubuntu-24.04 image, so `--with-deps` only apt-installed Playwright's\nfont packages (21.1 MB). On some runners the Azure Ubuntu mirror serves\nthose at about 48 kB/s, so the install takes 7 to 9 minutes and the job\nhits its 10-minute timeout while the smoke tests run:\n\n| Run | Install step | Result |\n|---|---|---|\n| [42113791909, attempt\n2](https://github.com/marin-community/marin/actions/runs/42113791909/job/127566704645)\n| 7 min 52 s | cancelled at timeout |\n|\n[42148823852](https://github.com/marin-community/marin/actions/runs/42148823852/job/127667012083)\n| 7 min 38 s | cancelled at timeout, tests 78% done and passing |\n|\n[42154488182](https://github.com/marin-community/marin/actions/runs/42154488182/job/127685543355)\n| 8 min 50 s | cancelled at timeout |\n\n<img width=\"1074\" height=\"448\" alt=\"Screenshot 2026-11-05 at 10 22\n21 PM\"\nsrc=\"https://github.com/user-attachments/assets/d3f8d4e9-8a61-416f-aaa7-597e2d82c368\"\n/>\n\n\nOn a fast mirror the same step takes 18 s ([42113791909, attempt\n3](https://github.com/marin-community/marin/actions/runs/42113791909/job/127584546739)).\nThe tests launch Chromium headless, which uses the headless shell, and\nthey compare no screenshots, so the fonts only change how non-Latin\nglyphs look in the uploaded screenshots.\n\n`--only-shell` alone doesn't help: `--with-deps` always adds\nPlaywright's tools group, and on Ubuntu 24.04 that group is the font\npackages.\n\nAlso add `unified-unit.yaml` to the suite's triggers, as the other\nisolated suites have, so a change to the job runs it. That includes this\nPR.",
+      "sha": "96e9a7489791d8d5de71b7ae1975cb14e72dec42",
+      "url": "https://github.com/marin-community/marin/commit/96e9a7489791d8d5de71b7ae1975cb14e72dec42",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-06T19:30:23Z",
+      "committed_at": "2026-11-06T19:30:23Z",
+      "message": "[ci] Reduce checkout downloads in six workflows (#11018)\n\nReduce Git downloads in six CI jobs. Four jobs use blobless checkouts:\nthey keep commit history and fetch file contents as needed. The two\ndependency updaters use shallow checkouts because they need only the\nlatest source files.\n\nLocal measurements at `26b6d560d4e9`:\n\n| Checkout | Git directory | Fetch and checkout |\n|---|---:|---:|\n| Full history and file contents | 1,036 MB | 42.9 s |\n| Blobless history | 80 MB | 11.1 s |\n| Latest commit only | 30 MB | 3.9 s |\n\nHistorical source reads brought the blobless checkout to 91 MB. The\nshallow checkout stayed at 30 MB after refreshing `main`.\n\nFull and optimized checkouts produced matching job selections, release\nplans, reports and historical source files. Updater checks in disposable\nrepositories confirmed that stale pushes cannot overwrite concurrent\nupdates. A job submission dry run also produced matching inputs. All 87\nfocused tests passed; PR CI finished with 26 passing and 25 skipped\nchecks.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "3b1c0481fbfcca3ccd1bbdb8eb6c1dc6d0e10bc7",
+      "url": "https://github.com/marin-community/marin/commit/3b1c0481fbfcca3ccd1bbdb8eb6c1dc6d0e10bc7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-06T19:12:30Z",
+      "committed_at": "2026-11-06T19:12:30Z",
+      "message": "[ci] Clone without historical file contents in the unit test selector (#11004)\n\nMakes the first job of the \"Marin - Unit\" check download about 75 MB\ninstead of about 1 GB, so every unit-test run starts its tests roughly\n25 seconds sooner.\n\nEvery job in the unit-test workflow waits for the `select` job, which\ndecides which tests to run from the PR's diff. That job cloned the full\nrepository history including every past version of every file, about 1\nGB. In sampled runs from Oct 13 to Nov 5, its checkout step took a\nmedian of 32 s, 47 s at p90, and up to 316 s.\n\nThe selector needs every commit to find the merge base and list the\nchanged files, but file contents only for the checked-out tree. The\ncheckout now uses a partial clone (`filter: blob:none`), which downloads\ncommits and directory listings but no historical file contents. Git\nfetches any other file the selector reads, such as the base `uv.lock`\nfor the TPU dependency check, on demand.\n\nOn a GitHub runner, \"before\" is the median of 478 sampled runs from Oct\n13 to Nov 5 and \"after\" is this change's CI run\n([job](https://github.com/marin-community/marin/actions/runs/42137901055)):\n\n| `select` job on GitHub `ubuntu-latest` | Before (p50) | After | Change\n|\n|---|---|---|---|\n| Checkout step | 32 s | 7 s | -25 s |\n| Whole job | 38 s | 11 s | -27 s |\n\nFrom a development machine, a full clone took 54 s and 983 MB of `.git`;\nthe partial clone took 9 s and 74 MB. The selector ran unchanged on the\npartial clone, including the TPU dependency check that reads the base\n`uv.lock`.\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "9a0cd1350f2c0440fccf2101b9eb634417355022",
+      "url": "https://github.com/marin-community/marin/commit/9a0cd1350f2c0440fccf2101b9eb634417355022",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-06T19:07:23Z",
+      "committed_at": "2026-11-06T19:07:23Z",
+      "message": "[snowball-tpu] [test] Run shared backend-parity cluster tests nightly (#10860)\n\nExtend the existing Snowball backend-parity cluster test with v4-32 TP16\nand run its vLLM arms nightly. A workflow matrix submits one CPU root\nper cluster: H100 pp1/pp2 on CoreWeave and TPU v4 on Marin. Iris\nfederates whole roots, so each test's accelerator children stay with\ntheir parent. The Levanter arm remains unchanged and runnable manually.\nDelete the separate serving-parity launcher and runner; retain their\nlive-code contract tests beside the existing cluster tests.\n\nThe TPU request uses four coscheduled hosts, forwards the requested\nper-host CPU allocation to Ray, and keeps the existing probability bound\nand exact same-process repeatability checks. The verified June d819\nexport is now durable at\n`gs://marin-us-central2/models/snowball/june-67b-a2b-step-42150/d819cbc63780bd866a942e47f9283cbd7932bbb237b52df527edd750c65be8f0/`.\nRequire the pinned manifest digest and export identity before loading.\nThe server-side copy verified 44 data/config objects (39 shards,\n134,175,089,690 bytes), preserving the original streamed source hashes;\nits manifest is published last.\n\nReuse the ferry's authentication and shared Iris monitor with both\nshutdown policies. Each leg exposes its own final result and\nresource-exhaustion flag and marks resource exhaustion as failure in its\nlast step. Slack skips only when every failing leg is a capacity\noutcome; mixed and unknown failures still alert. Remove the three-night\ncounter. The monitor grants a fresh queue deadline to later children\nwithout changing single-child behavior.\n\nPreserve the existing GPU test production priority and failure retry\npolicy; the TPU arm uses the same policy. CPU parents run at production\npriority so their task tokens can launch these children. Root\nsubmissions have no automatic retries.\n\nVerification: 51 focused tests pass, including request serialization,\nbundled source files, per-leg collection, task identity, manifest\nintegrity, subprocess startup and single/sequential-child monitoring.\nEight cases check the actual Slack condition. Required lint/type checks\nand advisory review are clean. Live pytest-parent validation:\n\n| Arm | Source | Cases | Max probability error | Same-process repeat |\nPytest wall |\n|---|---|---:|---:|---|---:|\n| H100 pp1 | `4505cc225e` |64/64|0.074066|pass|298.08s|\n| v4-32 TP16 | `5de9734cee` |64/64|0.061427|pass|1270.37s|\n\nErrors are rounded from child logs. Both tests passed without skips;\neach accelerator task succeeded on its first attempt. The TPU source\npredates the priority/retry-policy restoration and test formatting;\nmodel/scorer/data are unchanged. H100 pp2 remains selected by the\nnightly and was not rerun in this validation.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "ef5f33a16c6ccb112439dc34d84828f57581d939",
+      "url": "https://github.com/marin-community/marin/commit/ef5f33a16c6ccb112439dc34d84828f57581d939",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-06T18:25:55Z",
+      "committed_at": "2026-11-06T18:25:55Z",
+      "message": "[ducky] Isolate query runner test spills (#11024)\n\nGive each query-runner test instance its own temporary spill directory,\nwhile preserving explicit overrides. Runner startup deletes its\nconfigured spill directory, so sharing the default permits interference\nbetween parallel tests.",
+      "sha": "6b9428b21b916b97e55fc3851d09e3fce079c84c",
+      "url": "https://github.com/marin-community/marin/commit/6b9428b21b916b97e55fc3851d09e3fce079c84c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-06T17:16:19Z",
+      "committed_at": "2026-11-06T17:16:19Z",
+      "message": "[harbor] Wait for terminal writes in lifecycle test (#11023)\n\nWait for each scripted file write before closing the Terminus-2 tmux\nsession in the lifecycle test. The 0.1-second keystroke duration delays\ncapture but does not acknowledge shell completion, so cleanup can\nterminate the write before the test checks `first.txt`.\n\nThe lifecycle test passed 12 consecutive local runs. The Harbor unit\nsuite had 2,377 passes and one skip; a separate local backend test\nfailed because this Python build does not expose `os.pidfd_open`.\n\nFixes #11022\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "687fc7eb852e8c5cfd1e9cc0fe0eab04278e7d72",
+      "url": "https://github.com/marin-community/marin/commit/687fc7eb852e8c5cfd1e9cc0fe0eab04278e7d72",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-06T16:52:04Z",
+      "committed_at": "2026-11-06T16:52:04Z",
+      "message": "[levanter] Split the slowest grug MoE tests into their own files (#11035)\n\nMoves the three slowest grug MoE tests into two new test files, so CI\ncan run them on different levanter runners and the slowest levanter\nshard of the \"Marin - Unit\" check finishes sooner.\n\nCI splits the levanter unit tests across four parallel runners\n(\"shards\") by dealing whole test files out round-robin.\n`lib/levanter/tests/grug/test_grugformer_moe.py` held 241 s of test time\nin the last full CI run, about a fifth of the suite, so its shard was\nthe slowest levanter shard: 336 s and 352-359 s in recent full runs,\nagainst 120-170 s for the lightest.\n\nThe three slowest tests move without changes, apart from dropping one\nline that assigned a variable to itself:\n\n- `test_ring_filtered_matches_ring_and_dense_with_drops` (105 s) into\nthe new `test_grugformer_moe_ring_filtered.py`;\n-\n`test_portable_ep_backends_match_dense_cross_shard_value_and_gradients`\nand `test_ring_gather_combine_matches_scatter_combine_with_drops` (79 s\ntogether) into the new `test_grugformer_moe_cross_shard.py`.\n\npytest collects the same 127 tests before and after. The three files\nsort next to each other, so round robin puts each on a different shard.\n\nMeasured levanter shard times on GitHub `ubuntu-latest` runners, from\nfull runs of every unit suite. Before is three runs with main's file\nlayout\n([1](https://github.com/marin-community/marin/actions/runs/42134417720),\n[2](https://github.com/marin-community/marin/actions/runs/42091642957),\n[3](https://github.com/marin-community/marin/actions/runs/42130118550));\nafter is one manual run of this branch\n([run](https://github.com/marin-community/marin/actions/runs/42249602483)).\n\n| Levanter shard | Before | After | Change in slowest |\n|---|---|---|---|\n| 1/4 | 189 / 266 / 257 s | 128 s | |\n| 2/4 | 336 / 352 / 359 s | 288 s | |\n| 3/4 | 176 / 219 / 162 s | 308 s | |\n| 4/4 | 170 / 138 / 120 s | 272 s | |\n| Slowest shard | 336-359 s | 308 s | -28 to -51 s |\n\nShard times vary by about 40 s between identical runs: marin's shards,\nwhich this change does not touch, took 279 / 373 / 310 s in the same\nafter-run. A single after-run therefore shows a real but modest gain.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "37b7923fd9c7803e9bfb509bb3b01fe51aa36991",
+      "url": "https://github.com/marin-community/marin/commit/37b7923fd9c7803e9bfb509bb3b01fe51aa36991",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-06T16:30:44Z",
+      "committed_at": "2026-11-06T16:30:44Z",
+      "message": "[rl] Point the quick loop at the schema 0.30 Snowball selection (#10991)\n\n#10757 raised `TaskSpec` to schema 0.30 and rejects other versions. The\nprevious default, `snowball-100k/2026.10.23.2`, is serialized at schema\n0.28,\nso every quick-loop run from main fails while the trainer loads its\nfirst\ntask: `Unsupported TaskSpec schema: 0.28`.\n\nPoint the quick RL loop's default task selection and the checked-in\n`snowball-100k` recipe at `snowball-100k/2026.11.04`.",
+      "sha": "2edae7ec8b6c20d82fe4d73bbb2f6b7b71cfdb03",
+      "url": "https://github.com/marin-community/marin/commit/2edae7ec8b6c20d82fe4d73bbb2f6b7b71cfdb03",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-06T16:17:07Z",
+      "committed_at": "2026-11-06T16:17:07Z",
+      "message": "[rl] Publish assessments with a small share of unavailable judgments (#10919)\n\nFULL campaigns on the structure-closure validation cohort could not pass\ngrading: GLM serialized `evidence_ids` as the array's bare body\n(brackets and edge quotes dropped) on adversarial packets, and a\nreviewer answered an ID-mismatch trap. Two of 105 judgments were\nunparseable, and any unavailable judgment failed the campaign, the\ncatalog publish, and the Atlas load alike.\n\nJudgment parsing now repairs stringified `evidence_ids` arrays and\nrecords the coercion on the grade row. Refusals and irreparable answers\nstay recorded as unavailable judgments with their raw text; campaign,\npublish, and load fail only when the unavailable share exceeds\n`MAX_UNAVAILABLE_JUDGMENT_SHARE` (2%).\n\nTransport and request schemas are unchanged, so cached completions\nrevalidate under the repaired parser without new inference.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "c1ad365371d822146706f7e58e155f6435ed852b",
+      "url": "https://github.com/marin-community/marin/commit/c1ad365371d822146706f7e58e155f6435ed852b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-06T07:07:08Z",
+      "committed_at": "2026-11-06T07:07:08Z",
+      "message": "[hero] Skip short-conv weight gradients for frozen weights (#10556)\n\nUse an activation-only backward for frozen short-convolution weights,\navoiding saved primal activations and unused weight-gradient buffers.\nRecognize GB200 in Fray resource configurations and map its FLOPs\nestimates to the existing B200/GB200 table.\n\nThe averaging and SFT reproduction work is preserved in [logbooks\n#2](https://github.com/marin-community/marin-logbooks/issues/2).\nSupersedes #10539.\n\nPart of #10428.",
+      "sha": "6f62a629e157b91cb170d6733e959f48b5d88906",
+      "url": "https://github.com/marin-community/marin/commit/6f62a629e157b91cb170d6733e959f48b5d88906",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-06T07:02:01Z",
+      "committed_at": "2026-11-06T07:02:01Z",
+      "message": "[rl] Preserve explicit OpenAI request sampling (#10714)\n\nHonor explicit sampling parameters on OpenAI-compatible training and\nevaluation requests, including greedy `temperature=0`, and use the\ngenerator's configured sampling defaults for missing or null fields.\nReject requests for rollout logprobs when their temperature differs from\nthe configured training temperature or their sampling filters change the\nprobability distribution used by the trainer. Report sampling validation\nfailures as client errors with code 400 in both regular responses and\nstreaming error events.",
+      "sha": "32bd62234797d8b02bb48d6df200950b752e170a",
+      "url": "https://github.com/marin-community/marin/commit/32bd62234797d8b02bb48d6df200950b752e170a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-06T06:34:44Z",
+      "committed_at": "2026-11-06T06:34:44Z",
+      "message": "[rl] Validate Megatron dense and expert grids separately (#10958)\n\nValidate Megatron role capacity against both TP × PP × CP and ETP × EP ×\nPP. Context-parallel ranks participate in the expert grid, so requiring\nEP to divide dense data parallelism rejects valid layouts and misses\nincompatible expert tensor parallelism.\n\nPart of [the Hero RL contribution\nextraction](https://github.com/marin-community/marin-logbooks/issues/30).",
+      "sha": "c1cb217e747424823abc9f1b9156abac31cc491d",
+      "url": "https://github.com/marin-community/marin/commit/c1cb217e747424823abc9f1b9156abac31cc491d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-06T06:34:40Z",
+      "committed_at": "2026-11-06T06:34:40Z",
+      "message": "[rl] Write large mismatch archives and parallelize probe generation (#10960)\n\nWrite each group of mismatch archive rows with FineStore's existing\nunbounded transaction API. This allows route captures above FineStore's\ndefault 100 MiB transaction limit without custom batch splitting. Reject\nincomplete archives explicitly before decoding their tables.\n\nGenerate probe samples concurrently within the existing runner and\nserving limits. Preserve sample order, seeds and trajectory identities,\nand drain cancelled requests before closing the evaluation session.\n\nPart of [the Hero RL contribution\nextraction](https://github.com/marin-community/marin-logbooks/issues/30).\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "a82bd7b1e6f7ff33f1a45ba55c17277cd2b0ed4a",
+      "url": "https://github.com/marin-community/marin/commit/a82bd7b1e6f7ff33f1a45ba55c17277cd2b0ed4a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-06T04:21:01Z",
+      "committed_at": "2026-11-06T04:21:01Z",
+      "message": "[shellbox] Retry transient snapshot metadata reads (#11003)\n\nAllow at most three total snapshot metadata GET attempts on transient\nHTTP 502/503/504, with one- and two-second backoff inside the existing\nstartup deadline. Apply the bounded read retry to initial lookup, the\nlookup after a concurrent-create conflict and pending-snapshot polling.\nPreserve typed nonretryable errors, cancellation, snapshot creation and\nsandbox lifecycle behavior.\n\nA full fixed 100-task evaluation previously attempted all 100 tasks but\nproduced only 99 valid grades when Daytona returned HTTP 502 during\nsnapshot lookup. The coverage check correctly rejected that pass. The\nexisting snapshot preparation, failure and startup-timeout regressions\npass: 13 focused cases. The retry does not repeat creation POSTs,\ngrading commands or failed tasks.\n\nThe same retry behavior was included in the later four-process\nqualification that independently graded 400 results with exact\ntask-level agreement. That evidence used a separate pinned source stack;\nit does not qualify every current-main integration path. This change\nreplaces the lookup patch attachment referenced by #10760 with\nmaintained source.",
+      "sha": "70da6250be4bbc6ed2212ab4f17734883e5a02d3",
+      "url": "https://github.com/marin-community/marin/commit/70da6250be4bbc6ed2212ab4f17734883e5a02d3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-06T04:01:43Z",
+      "committed_at": "2026-11-06T04:01:43Z",
+      "message": "[grug] Read Hero length buckets from existing token caches (#10980)\n\nThe Hero's 262K extension can train on documents above 65,536 tokens at\n4× the sampling weight of shorter documents. The loader reads the\nHarrier token caches and writes no token data. A second store split by\ndocument length uses too much CoreWeave space.\n\nSelection:\n\n- `launch_scaling_ladder.py` selects the mix from context length: a Hero\nabove `LONG_CONTEXT_THRESHOLD` reads it.\n- `launch_diagnostics.py --long-context-start-step N` selects the mix\nfor diagnostic arms. An `N` above 0 requires `--restore-from`.\n- At the 65,536 tokens on `main`, the Hero reads Harrier. Its built\nconfig matches `main` except for a null `data.mixture_start_step` field.\n\nSampling:\n\n- Each cooldown cell becomes one short stream and one long stream. Each\nstream holds its tokens once and has its own shuffle. The two weights of\na cell sum to its cooldown weight.\n- At 4×, the weights give long documents 43.9% of tokens, against 22.2%\nat 1×. The 8× treatment in #8813 gave 43.4%, against 14.9% at 1×.\n- `MixtureDataset` truncates block counts, which gives 43.7%. The\nremainder, 199 of 49,152 sequences, goes to `c30q4/short`.\n`c00q0/short`, `c13q0/short` and 43 long buckets get no sequences. These\nlong buckets hold 7.4B of 5.36T long tokens.\n- Over 200B tokens, long documents get 0.016 passes overall. The worst\nbucket, `c12q1/long`, gets 0.16 passes.\n\nStart position:\n\n- `LmDataConfig.mixture_start_step` makes a selected step read the first\nsequence of the mixture. A later restore continues in place. A restore\nbefore the start raises an error.\n\nLength statistics:\n\n- A Zephyr step reads document offsets and writes one 17 MB file.\n- The loader uses the file to set sampling weights and to find\ndocuments. The skew is not an input to the scan.\n- Its totals match the ledgers and `available_tokens` for all 200 cells.\n\nOther changes:\n\n- Every Grug trainer calls `LmDataConfig.train_mixture`, because\n`train_sets` returns one source for each bucket.\n- `MixtureDataset` raises an error when a source with positive weight is\nmissing.\n- `DataLoader` reads its example from the first readable index of the\ndataset, so a mixture can start past index 0.\n\nTraining runs:\n\n- The one-rack semifinal and the 11-rack test ran this mix at 8×.\n- A one-rack keep166 arm at 4× (commit 61a2a9e674 on `hero-semifinal`)\nis about to run. No GPU result exists at 4× yet.\n\nRemaining work:\n\n- The deploy PR must set the 262K context and append the 65,536-token\nphase that ends at step 390251 to `HERO_CONTEXT_PHASES`.\n\nSupersedes #10930. Part of #8435.\n\n---------\n\nCo-authored-by: Matt Wittmann <matt.wittmann@openathena.ai>\nCo-authored-by: William Held <9847335+Helw150@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "25ff04e3fda02b63f5f4110ff27b5c3ec087001f",
+      "url": "https://github.com/marin-community/marin/commit/25ff04e3fda02b63f5f4110ff27b5c3ec087001f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-06T03:40:57Z",
+      "committed_at": "2026-11-06T03:40:57Z",
+      "message": "[rl] Stage model weights separately from pinned tokenizers (#10959)\n\nAllow immutable model artifacts to contain weights and model metadata\nwhile using the separately pinned policy tokenizer. Validate that\ntokenizer by loading its staged files locally before runtime startup, so\nmissing or malformed metadata fails at the staging boundary.\n\nPart of [the Hero RL contribution\nextraction](https://github.com/marin-community/marin-logbooks/issues/30).",
+      "sha": "26b6d560d4e98a8572d6a89588d2fa882ae13562",
+      "url": "https://github.com/marin-community/marin/commit/26b6d560d4e98a8572d6a89588d2fa882ae13562",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-06T03:24:57Z",
+      "committed_at": "2026-11-06T03:24:57Z",
+      "message": "[grug] Keep weights on their devices on the dropless eval move (#10994)\n\nKeep each weight shard on its device when the hero moves weights to the\ndropless eval mesh. At training `data` size 1, the move renames each\nPartitionSpec: `expert` becomes `data`, and training `data` drops out.\nAt a larger training `data`, the move does not change.\n\n- Cause: the unrenamed expert specs described a different layout on the\neval mesh, so the move ran a collective on a new 16-rank NCCL\ncommunicator. The communicator's buffers stay outside the allocator pool\nfor the life of the process.\n- Failure: at 262K, CP4 x EP16, capacity factor 1.5 on one rack, the\nmove raised rank 0 non-pool memory from 47.50 to 53.37 GiB. NCCL logged\n5.63 GiB of new buffers during the move. The next train step was 1.62\nGiB short and failed to allocate its 95.42 GiB arena.\n- Earlier work: #10709 had this rename. #10877 replaced #10709,\nreordered the mesh and left out the rename as unnecessary. Its 262K A/B\ndid not hit this OOM. This change adds the rename to the #10877 mesh.\n- One-rack proof: `eval-oom-fix2` (ac8f0703aa, same move code as this\nhead) ran two eval-then-train cycles and a final eval. Rank 0 non-pool\nmemory stayed at 47.50 GiB. `eval-oom-fix1` (07f72869c6, same rename)\nran three cycles and logged no new communicator after the first train\nstep.\n- Remaining copy: on multi-process runs, the move may still copy the\nweights. Rack runs used 35 GiB more pool memory during each eval, then\nfreed it.\n- 11-rack proof: `eval-oom-11rackp` (e8e58b910d, same move code) ran 100\nsteps with two handoffs, saves and a final eval. The move added no\nnon-pool memory on any of the 704 devices. The first eval forward made a\nnew 176-rank communicator, which used about 1.03 GiB on each device.\nLater evals added none. The tightest device kept 2.08 GiB free.",
+      "sha": "9d9f9af5797484eea0d2d58aa9477d31f381db28",
+      "url": "https://github.com/marin-community/marin/commit/9d9f9af5797484eea0d2d58aa9477d31f381db28",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-06T01:51:01Z",
+      "committed_at": "2026-11-06T01:51:01Z",
+      "message": "[filer] Improve storage browsing and file previews (#11009)\n\nFiler records successful location changes in browser history, including\npasted storage URLs. It copies stable Filer links and saves favorites\nper verified Marina user. Folder listings offer list and grid views with\nlazy image thumbnails. Selecting a text, Markdown, JSON, or code file\nkeeps the folder visible and opens a bounded source preview beside it,\nwith actions to copy either link or open the full file view.\n\nImage and media previews render again. The Vue template previously tried\nto construct `URLSearchParams`, which failed at runtime. The Parquet\nschema view shows footer statistics and supports a direct row jump\nwithout reading earlier row groups.\n\nAgent guidance pairs storage URLs with Filer links for browser readers.\nThe favorites migration adds one table to Filer's app schema. Thumbnails\nare limited to 1 MiB per object; media previews remain limited to 10\nMiB.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "f5e8a9cfe9d9d50b79fd03e4ed0ed0087edf627d",
+      "url": "https://github.com/marin-community/marin/commit/f5e8a9cfe9d9d50b79fd03e4ed0ed0087edf627d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-06T01:07:18Z",
+      "committed_at": "2026-11-06T01:07:18Z",
+      "message": "[iris] Delete duplicate controller and constraint tests (#10992)\n\nRemove Iris tests that repeated another test's setup and assertions. The\ndirect-provider section of test_transitions.py duplicated\ntest_direct_controller.py: its pending-drain and redrive tests are\ndeleted, and its retry, worker-failure, cancel and sibling-kill tests\nmove into test_direct_controller.py, with its two overlapping\npromotion-cap tests folded into one. The shared submit_direct_job helper\ngains retry-limit arguments so the moved tests need no private submit\nhelper. Single duplicates are also removed from the bundle store,\nservice, auth, demand routing, dashboard, attempt count, CLI job, pod\nmanifest and worker reconcile tests, along with the constraint merge and\nplacement tests in test_types.py that test_constraints.py already runs.\n\nEvery assertion from a removed test is still checked by a surviving\ntest, for example test_drain_redrives_assigned_null_worker and\ntest_drain_executing_goes_to_running_tasks for the redrive test,\ntest_endpoint_token_carries_audience and test_cidr_only_outcomes for the\nauth tests, and test_merge_canonical_key_child_overrides_parent for the\nmerge-override tests. Where a duplicate had one extra check, it moved\ninto the surviving test: the attempt row's ASSIGNED state, the task's\nRUNNING state, the exit code and finish time after success, and the\nvalues kept when merging non-canonical keys. test_constraints.py gains\ncanonical-override rows for region, preemptible and zone and an EQ zone\nrow in its placement table.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "c0d96396f7a38f45573c89815670702fe61b5178",
+      "url": "https://github.com/marin-community/marin/commit/c0d96396f7a38f45573c89815670702fe61b5178",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-06T01:03:46Z",
+      "committed_at": "2026-11-06T01:03:46Z",
+      "message": "[ci] Run only the affected area's tests for experiment config changes (#10995)\n\nStops edits to experiment READMEs, launch configs and other non-Python\nfiles under `experiments/` from running the whole marin unit-test suite,\nso those PRs only run the tests that can read the changed file.\n\nThe CI test selector picks tests from a PR's diff by following Python\nimports. A non-Python file cannot be traced that way, so the selector\ntreats any non-Python file in a test directory as a possible test\nfixture and runs that package's full suite. Since all of `experiments/`\nbecame a marin test directory (#9091), a README, YAML launch config,\nshell script or prompt JSON there runs all 282 marin test files on three\nrunners. Between Oct 13 and Nov 5 this happened on 44 commits to main,\nabout 1 in 9, and on about a third of a sample of 35 recent PRs.\n\nA non-Python file under `experiments/<area>/` now selects three groups\nof tests:\n\n- every test under that same top-level area;\n- tests anywhere that import one of the area's Python modules (for\nexample `tests/datakit/test_hero_data.py`, which checks\n`experiments/datakit/hero_data_paths.json` through\n`experiments.datakit.hero_data`);\n- tests whose source names the area as `experiments/<area>` or\n`\"experiments\" / \"<area>\"` (for example\n`tests/evaluation/test_evaluation.py`, which reads configs from\n`experiments/evaluation/configs/`).\n\nThe area is the narrowest unit that covers how existing tests read such\nfiles: a `fixtures/` folder beside the test, `../datasets`, and campaign\nconfigs several folders below the test. An experiment `README.md`\nselects no tests, since no test reads one. Files directly in\n`experiments/`, `conftest.py`, test helpers and deleted modules keep the\nfull-suite rule.\n\nTo check the effect, the old and new selector were run on all 44\ncommits. Run times are estimates: each runner costs about 50 s of setup\nplus about 2.5 s per test file, which matches the 285 s that a 94-file\nmarin runner took in the CI run of #10979. Test files vary widely in\ncost, so treat the times as rough.\n\n| Per affected commit | Before (p50) | After (p50) | After (p90) |\n|---|---|---|---|\n| Marin test files selected | 282 | 32 | 221 |\n| Slowest marin runner | ~285 s (4.8 min) | ~99 s (1.6 min) | ~235 s\n(3.9 min) |\n| Total marin runner time | ~855 s (14.3 min) | ~180 s (3.0 min) | ~700\ns (11.7 min) |\n\nThe slowest runner sets how long a PR waits only when marin finishes\nlast; evaluation-area changes still wait for the 6-8 minute Evalchemy\njob. The same commits, grouped by how many tests they now select:\n\n| Selection with this change | Commits | Marin test files (median) |\nRunners | Est. runner time per commit | Est. slowest runner |\n|---|---|---|---|---|---|\n| Before this change (all 44) | 44 | 282 | 3 | ~14 min | ~4.8 min |\n| No tests (README only) | 3 | 0 | 0 | 0 | 0 |\n| 1-15 files | 10 | 6 | 1 | ~1 min | ~1 min |\n| 16-60 files | 14 | 32 | 1-3 | ~3 min | ~1.6 min |\n| 61-223 files | 13 | 67 | 3 | ~5.3 min | ~1.8 min |\n| Full suite, unchanged | 4 | 282 | 3 | ~14 min | ~4.8 min |\n\nIn total, the 44 commits drop from about 627 to about 205 estimated\nrunner-minutes (-67%). The 4 commits that still run the full suite also\nchange a `conftest.py`, a test helper or a deleted module. Grug-area\nchanges will take longer than the table suggests, because grug tests\ntake 20-43 s each.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "f7bfd73ef0c3ab77370a71e124b2d3aa07b3af51",
+      "url": "https://github.com/marin-community/marin/commit/f7bfd73ef0c3ab77370a71e124b2d3aa07b3af51",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-07T00:00:00Z",
+    "start": "2026-11-06T00:00:00Z"
+  }
+}

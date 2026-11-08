@@ -1,0 +1,164 @@
+{
+  "commit_count": 14,
+  "commits": [
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-07T18:16:10Z",
+      "committed_at": "2026-11-07T18:16:10Z",
+      "message": "[eval] Keep policy records where EvalDash catalogs them (#10965)\n\nReject a policy launch (one with `--policy-finalization-config`) whose\nremote records prefix is not\nexactly `gs://marin-eval-metadata/evals` or\n`s3://marin-us-east-02a/marin/evals`, the roots EvalDash\ncatalogs, or whose `--resume-results-path` is not a\n`<root>/<run_id>/results` directory under them.\nEvalDash discovers only `<root>/<run_id>/record.json`, so records in\nanother bucket or under a nested\nprefix such as `evals/ablations/<replay>/` never appear on the\ndashboard. A local path is still\naccepted for dry runs and tests. The Snowball v0.1 sampling\nre-evaluation wrote 26 policy runs to\n`s3://marin-rno2a/marin/evals`, which EvalDash does not scan, so none\nappeared until they were copied.\n\nThe campaign README now says to launch policy evaluations from the\nrevisions pinned in #10197, not\nfrom `main`, and that nested replay outputs are not EvalDash runs. The\ndirectory on `main` differs\nfrom the policy; for example, its SWE-bench budget is 32,768 tokens and\nthe policy runs 131,072.\nThe guard reaches the policy launcher only once a later policy pins a\nrevision that contains it.\nGrader-replay promotion tools are unchanged and can still link nested\nreplay outputs in a tracker.\n\nPart of #10197\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "53d0fde61f04ab1c67f603101b145fd1a868c48d",
+      "url": "https://github.com/marin-community/marin/commit/53d0fde61f04ab1c67f603101b145fd1a868c48d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-07T15:59:38Z",
+      "committed_at": "2026-11-07T15:59:38Z",
+      "message": "[eval] Grade first valid CruxEval answer span (#10970)\n\nCruxEval now grades the first `[ANSWER]...[/ANSWER]` span that holds a\ncandidate answer, not the first span. For input prediction the span must\ncontain an `f(...)` call; for output prediction the extracted literal\nmust parse as a Python expression. If no span qualifies, the first span\nis graded as before.\n\nModels served without a reasoning parser emit their reasoning as\ncontent. That reasoning often restates the prompt's instruction to use\n\"[ANSWER] and [/ANSWER] tags\", so the old grader extracted the literal\n`and`. The item then failed with a `NameError`, even when a correct\nassertion followed. Taking the last span instead was worse: models often\nappend further example assertions, and on Snowball v0.1 that rule\nregressed 50 items.\n\nOn the saved Snowball v0.1 CruxEval responses (T=0.6 re-evaluation), 78\ninput-prediction items extracted `and`. Under the fix, 75 of them select\na later answer and 62 of those now pass. Input accuracy rises from 0.714\nto 0.791; output prediction (0.790) is unchanged, and no previously\npassing item changes. Models served with reasoning parsers, such as\nQwen3.6 and Gemma 4, had no `and` extractions.\n\nThe same selection now applies in the canonical TaskCompendium CruxEval\ngrader, so #10957 can remove vendor/evalchemy without losing the\ncorrection.\n\nExisting policy #10197 cells are not regraded. This changes grading for\nfuture runs only.\n\nPart of #10197\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "33748734802cbb9839a99731260bcc1977e1530e",
+      "url": "https://github.com/marin-community/marin/commit/33748734802cbb9839a99731260bcc1977e1530e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-07T15:55:25Z",
+      "committed_at": "2026-11-07T15:55:25Z",
+      "message": "[harbor] Preserve Pi reasoning, tool errors, and final metrics (#11072)\n\nPreserve Pi assistant thinking in ATIF reasoning_content while leaving\nthe visible answer unchanged. Record each tool result's isError flag in\nobservation metadata so failed calls remain distinguishable.\n\nUse the scenario's collected prompt, completion, cached-token, and cost\ntotals for ATIF final metrics. The emitted step count remains the ATIF\nstep count. The session conversion test compares these values with\nsource events.\n\nFixes #11071\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "39ca3fac7a26b3b416103618729b6882036b56e9",
+      "url": "https://github.com/marin-community/marin/commit/39ca3fac7a26b3b416103618729b6882036b56e9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-07T15:54:21Z",
+      "committed_at": "2026-11-07T15:54:21Z",
+      "message": "[levanter] Preserve reference generation settings during HF export (#10798)\n\nPreserve the pinned reference model's `generation_config.json` during HF\ncheckpoint export unless the caller supplies an explicit override.\nPreviously, exports could silently omit secondary EOS tokens and other\ngeneration defaults, changing stopping behavior at evaluation time. Copy\nthe complete file for local, object-store, and Hub references; tolerate\na missing optional file, while propagating authentication and other read\nerrors.\n\nThe offline integration fixture supplies its local tokenizer's EOS token\nexplicitly, so its export does not require an uncached Hub file.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "3c0762fc5ff65e708c2e81e38fd7977d384e6e23",
+      "url": "https://github.com/marin-community/marin/commit/3c0762fc5ff65e708c2e81e38fd7977d384e6e23",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-07T15:32:46Z",
+      "committed_at": "2026-11-07T15:32:46Z",
+      "message": "[harbor] Convert Pi session logs to ATIF trajectories (#10972)\n\n[harbor] Convert Pi session logs to ATIF trajectories\n\nPi wrote only its raw session JSONL (pi.txt), so Harbor archived no\ntrajectory for Pi policies and EvalDash showed no episode viewer for\nBFCL and BixBench runs. populate_context_post_run now converts the\npi.txt event stream into the standard ATIF trajectory.json beside it,\nwhich Harbor's archive step already persists and EvalDash already\nrenders. message_end events map to ATIF steps: assistant turns carry\ntheir tool calls and usage metrics, tool results attach to the\npreceding step as observation results, and user and system turns\nbecome steps. Streaming deltas and duplicate tool-execution events\nare skipped. A malformed or truncated stream yields a partial\ntrajectory or none and never fails the trial.\n\nExisting runs stay trace-less; only new Pi runs produce trajectories.\nNew BFCL and BixBench Pi runs will show episode trajectories in\nEvalDash. The tau3 ACP runner keeps its own event format and is\nunaffected.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom-oa-dev[bot] <298838646+loom-oa-dev[bot]@users.noreply.github.com>",
+      "sha": "a685ee2c1ae968d49e96860a75b98a15c6beba47",
+      "url": "https://github.com/marin-community/marin/commit/a685ee2c1ae968d49e96860a75b98a15c6beba47",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-07T07:18:35Z",
+      "committed_at": "2026-11-07T07:18:35Z",
+      "message": "Strengthen holistic reviews of design and contract boundaries (#11011)\n\nStrengthen holistic review of responsibility, cohesion, abstraction, and\nshared contracts. A change can pass local tests while scattering one\nbehavior across unrelated modules, duplicating existing concepts, or\nletting producers and consumers interpret the same data differently.\nRequire structural findings to explain the consequence and give a\nconcrete replacement supported by code or a reproduction.\n\nCheck whether fakes bypass the contract under review and whether tests\nand documentation answer callers' actual questions. The Loom launch\nprompt and profile invoke these design questions within the existing\nreview. Posting, finding numbers, telemetry, and re-review behavior are\nunchanged.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "31f2fc2439318492e34608b745de3d6d12db7e5b",
+      "url": "https://github.com/marin-community/marin/commit/31f2fc2439318492e34608b745de3d6d12db7e5b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-07T06:48:36Z",
+      "committed_at": "2026-11-07T06:48:36Z",
+      "message": "[levanter] Apply shared safety guards to standalone tests (#11043)\n\nGive standalone Levanter tests the repository's per-test timeout,\nsession budget and infrastructure marker exclusions, while retaining its\nTorch exclusion. Move the unchanged hard-timeout guard out of the Marin\npackage so both configurations can load it from the checkout without\nadding Marin as a Levanter test dependency.\n\nThe end-to-end training/export test has an explicit 240-second\nexception: a [recorded main TPU\nrun](https://github.com/marin-community/marin/actions/runs/41875619577/job/126735727879)\ntook 127.50 seconds. The 60-second default and 600-second session budget\nremain unchanged.\n\nTwelve subprocess cases passed for safe selection, timeout exceptions,\nsuppressed timeout signals and session exhaustion from repository and\npackage working directories. The offline lock check and official\nselected-file checks passed; all 612 locked package versions and source\npins remain unchanged.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "59499137e1c11feaaf2b748c5d7bffe9838f4360",
+      "url": "https://github.com/marin-community/marin/commit/59499137e1c11feaaf2b748c5d7bffe9838f4360",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-07T05:39:16Z",
+      "committed_at": "2026-11-07T05:39:16Z",
+      "message": "[haliax] Use plgpu.dot in the Pallas-Triton ragged_dot kernels (#11051)\n\nCall `plgpu.dot` instead of `pl.dot` in haliax's Pallas-Triton\n`ragged_dot` kernels, so they still compile on JAX 0.12, which removed\n`pl.dot`.\n\nOn JAX 0.12, any call into these kernels fails while tracing with\n`AttributeError: pl.dot was deprecated in JAX v0.11.0, and removed in\nJAX v0.12.0`. Grug's ragged all-to-all MoE path on AMD GPUs uses them,\nso that path stops working before it launches any kernel.\n\n`plgpu.dot` (`jax.experimental.pallas.triton.dot`) has the same\nsignature as `pl.dot` (`a, b, trans_a, trans_b, allow_tf32, precision`)\non both 0.11.1 and 0.12.0. On the Triton backend, `pl.dot` already\ndispatched to it, so nothing changes on JAX 0.11. Grug's AMD Pallas\nflash kernel already calls `plgpu.dot`.\n\nOn 8x MI355X with jax 0.12.0, the ragged all-to-all MoE forward pass and\nits gradients matched a dense JAX reference within 7e-7 relative error\nin 3 of 3 runs. This branch is independent of #11046, which allows JAX\n0.12, and can merge first.\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "24026d8c57d18a8385d324754c0118c4f3ecd4e8",
+      "url": "https://github.com/marin-community/marin/commit/24026d8c57d18a8385d324754c0118c4f3ecd4e8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-07T01:11:39Z",
+      "committed_at": "2026-11-07T01:11:39Z",
+      "message": "[skyrl] Strip a non-EOS end-of-turn token from chat replies (#11050)",
+      "sha": "65046c3a6fdcbfd756eccd92eab7d0bba5fe273c",
+      "url": "https://github.com/marin-community/marin/commit/65046c3a6fdcbfd756eccd92eab7d0bba5fe273c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-07T01:06:33Z",
+      "committed_at": "2026-11-07T01:06:33Z",
+      "message": "[verifyit] Add the reasoning_markup grading mode (#10894)\n\n👨‍🎨 This PR adds a `verifyit` grader for `reasoning_markup`. \n\nI use it to construct a little dataset of responses from `snowball` that\nhave thinking-related-format-issues.\n[`thoughtcrime`](https://huggingface.co/datasets/open-athena/Marin-Thoughtcrime),\nit should help ensure our models are following reasonable reasoning\nformat.\n\nOn it, I'm stacking:\n* Register the\n[eval](https://github.com/marin-community/marin/pull/10907) for\nconsumption\n\nHere is [the\nrecipe](https://github.com/marin-community/marin-logbooks/issues/25) for\nconstructing it.",
+      "sha": "126fc463aa42ae917e6a10fa7e280a384ccd6724",
+      "url": "https://github.com/marin-community/marin/commit/126fc463aa42ae917e6a10fa7e280a384ccd6724",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-07T00:42:18Z",
+      "committed_at": "2026-11-07T00:42:18Z",
+      "message": "[levanter] Keep fused cross entropy correct with tensor parallelism (#11028)\n\nCompute fused cross entropy with complete vocabulary and contraction\ndimensions while retaining per-example sharding. The local kernel\nreceives global target IDs, so partitioning its vocabulary made losses\nand gradients incorrect. In a four-H100 run with a 16,384-token\nvocabulary, every scored target at or above the local width of 4,096\nproduced an infinite loss.\n\nMulti-device regressions compare per-position and reduced losses,\ngradients of hidden activations and language-model-head weights, z-loss,\nsoft caps, shifted targets, and global argmax against an independent\nfull-vocabulary reference. The fix replicates the vocabulary and\ncontraction axes at the local loss-kernel boundary. Its performance cost\nrelative to a correct vocabulary-parallel implementation remains\nunmeasured.",
+      "sha": "4d77b1f00036b2713c058036f67872c14c25281a",
+      "url": "https://github.com/marin-community/marin/commit/4d77b1f00036b2713c058036f67872c14c25281a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-07T00:41:09Z",
+      "committed_at": "2026-11-07T00:41:09Z",
+      "message": "[levanter] Include serving dependencies in tests (#11025)\n\nInclude the existing serve requirements in Levanter’s test group so\nstandalone test environments can collect the inference-server tests\ninstead of skipping the module for missing serving imports.\n\nThe lock update adds only test dependency references; all 612 package\nversions and source pins remain unchanged. All 13 inference-server tests\npassed on CPU. The offline lock check, required formatting checks and\npost-commit lint review passed.",
+      "sha": "6b05677e9d37ded5bd853c979153e9f68cd8e4d8",
+      "url": "https://github.com/marin-community/marin/commit/6b05677e9d37ded5bd853c979153e9f68cd8e4d8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-07T00:37:39Z",
+      "committed_at": "2026-11-07T00:37:39Z",
+      "message": "Require patched OAuthLib and Transformers releases (#11040)\n\nRequire OAuthLib 4.0.1 across the root, Grafana, Evalchemy, Harbor, and\nSkyRL environments to address\n[GHSA-3jp2-3mrg-2vxc](https://github.com/advisories/GHSA-3jp2-3mrg-2vxc).\nOAuthLib is the only resolved package upgraded.\n\nRaise Levanter's Transformers minimum to 5.10.0 to exclude\n[GHSA-xrqw-3rrv-vx5w](https://github.com/advisories/GHSA-xrqw-3rrv-vx5w)\nand\n[GHSA-x9r9-c232-4q39](https://github.com/advisories/GHSA-x9r9-c232-4q39).\nThe previous 5.5.3 minimum already excluded\n[GHSA-fgcw-684q-jj6r](https://github.com/advisories/GHSA-fgcw-684q-jj6r)\nand\n[GHSA-29pf-2h5f-8g72](https://github.com/advisories/GHSA-29pf-2h5f-8g72);\nthe lock stays at 5.12.1.\n\nDatasets already requires the patched 5.0.1 release; [its\nalert](https://github.com/marin-community/marin/security/dependabot/796)\nstill records the older `>=3.1.0,<5.0` requirement. The infrastructure\nprobes project was removed in #8473, so [its OAuthLib\nalert](https://github.com/marin-community/marin/security/dependabot/988)\nrefers to a deleted lockfile.",
+      "sha": "ae6d26185d4a7fccfc9776b8370fea0f35258402",
+      "url": "https://github.com/marin-community/marin/commit/ae6d26185d4a7fccfc9776b8370fea0f35258402",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-07T00:14:14Z",
+      "committed_at": "2026-11-07T00:14:14Z",
+      "message": "[zephyr] Retry a shared pool's failed start (#11012)\n\nA shared Zephyr pool now retries a failed start on a fresh coordinator,\nwith the same `max_execution_retries` budget and backoff as a dedicated\npipeline. Before, a shared pool started once, outside any retry loop, so\none coordinator that missed the 900-second readiness limit failed every\nstep that used the pool.\n\nOn 2026-11-02, the Datakit tier 1 canary hit this in\nhttps://github.com/marin-community/marin/actions/runs/41481663945. The\nnormalize pipeline's dedicated coordinator and the shared pool's\ncoordinator both missed the limit while installing dependencies. The\ndedicated pipeline passed on a retry; the shared pool failed the run.\n\nA retry does not help if coordinator setup regularly takes longer than\n15 minutes. In that case the readiness limit itself has to go up. This\nreplaces #10853, which raised the limit to 30 minutes for the Datakit\nshared coordinator only.\n\nPart of #10848\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "42010e5d98b6d8964328aeea8a6ef36a58d18eaa",
+      "url": "https://github.com/marin-community/marin/commit/42010e5d98b6d8964328aeea8a6ef36a58d18eaa",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-08T00:00:00Z",
+    "start": "2026-11-07T00:00:00Z"
+  }
+}

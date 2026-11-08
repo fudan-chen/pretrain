@@ -1,0 +1,1253 @@
+{
+  "comment_count": 31,
+  "issue_count": 9,
+  "issues": [
+    {
+      "author": "mcwitt",
+      "body": "This issue tracks extending the hero run ([#8435](https://github.com/marin-community/marin/issues/8435)) from 65K to 262,144-token context. Run status lives in [#8506](https://github.com/marin-community/marin/issues/8506). The recipe research lives in [logbooks #37](https://github.com/marin-community/marin-logbooks/issues/37). The 65K switch was [#10821](https://github.com/marin-community/marin/issues/10821) and [#10820](https://github.com/marin-community/marin/pull/10820).\n\n## Plan\n\nTrain two recipes one after the other from step 390251 to step 393491, 3,240 steps or 149.5B tokens each, then compare them. Each finalist runs on 11 racks with context parallelism 4 and expert parallelism 16 (CP4 × EP16) and 16 sequences per rack, so 176 in all, and takes about 27 h at 29.9 s/step with saves (estimate).\n\nParent: `hero-ctx65k-step372k`, final checkpoint `s3://marin-us-east-02a/marin/grug/hero-ctx65k-step372k/2026.08.19.2/checkpoints/step-390251`. The merged start is `s3://marin-us-east-02a/marin/grug/hero-ctx65k-merge-hb-avg11/checkpoints/step-390251`, an equal-weight hyperball average of the last 11 permanent checkpoints (details on [#8435](https://github.com/marin-community/marin/issues/8435#issuecomment-6676769570)).\n\n## Status\n\nFirst finalist `hero-lce-global184-step390k` is launching from main at `e0bc917ee5`, about 21:40 UTC on 2026-11-06. Go or no-go follows on #8506.\n\nSecond finalist `hero-lce-log65536sq-step390k` launches after it, at `0454bdd609` on the branch of draft [#11044](https://github.com/marin-community/marin/pull/11044), when the first ends.\n\nBoth appear in the W&B report, [Hero 262K finalists](https://wandb.ai/marin-community/marin_moe/reports/Hero-262K-finalists--VmlldzoxODI2NjQ1Nw==).\n\n## Configuration\n\n| Field | Value | Status |\n|---|---|---|\n| First finalist | Global 1.84: `qk_mult` 1.66, long scale 1.108 | Merged, [#11041](https://github.com/marin-community/marin/pull/11041) |\n| Second finalist | Log floor 65536, slope 0.1, power 2, global layers | Branch; merges only if it wins, at the comparison on Monday 2026-11-09 |\n| Start | Merged checkpoint at step 390251 | Merged, #11041 |\n| Loader queue | 64 batches, down from 512 | Merged, #11041 |\n| Run length | 3,240 steps, stop step 393491, 149.5B tokens | Merged, #11041 |\n| Learning rate | Linear from 5% to 1% of peak over the 3,240 steps | Merged; the #11041 review approved the PR that states it |\n| Router bias | Updates each step, as before | A frozen-bias arm was not adopted |\n| Evals | In-loop at 262K every 500 steps, with a final eval at the stop | Padded windows and multi-length evals are not in this launch |\n| Checkpoints | Seven permanent, about 30 TB per finalist (inferred) | Merged, #11041 |\n| Data | Documents above 65,536 tokens at 4× sampling weight, 43.9% of tokens | [#10980](https://github.com/marin-community/marin/pull/10980), merged |\n| Capacity factor | 1.5 | Unchanged |\n\nThe earlier switches set `qk_mult` from 1.3 × (1 + 0.1 ln(N/4096)) on all layers: 1.48 at 16K and 1.66 at 65K. Global 1.84 takes the value that rule gives at 262K and applies it to global layers only. No training arm ran it. It lies between Keep 1.66 and Global 1.88, which were trained.\n\n## Evidence\n\nSeven 100-step arms at 11 racks, on the launch data mix, from step 390251: six recipes from the merged checkpoint and Keep 1.66 (`qk_mult` unchanged) from the raw one. Each arm is one seed. \"Global X\" means global layers at X and other layers at 1.66. Clean macro is the mean loss over 19 held-out subsets. MRCR is the paired retrieval eval from [#8701](https://github.com/marin-community/marin/issues/8701); full NLL is its loss with the whole document in context, and recovery is the share of the evidence's benefit that survives in a long document. The logbook defines these fully. The [logbook](https://github.com/marin-community/marin-logbooks/blob/c2307cd320fb832c022284d6df07858db3b89d5f/logbooks/37-hero-262k/notebook.md) has full tables, commands, commits and negative results. W&B: `hero-lce11*` and `hero-mrcr-lce11*` in [`marin_moe`](https://wandb.ai/marin-community/marin_moe).\n\n- Held-out text does not separate the merged recipes. Clean macro at 262K spans 0.0004 (1.6451 to 1.6455), against checkpoint jitter of 0.0002 to 0.0007.\n- Retrieval (MRCR full NLL) differences survive correction across documents only, since no arm was repeated. The second finalist is 0.0017 below Keep 1.66 (corrected p 0.002) and 0.0014 below Global 1.88 (corrected p 0.001). Global 1.88 is not separated from Keep 1.66 (corrected p 1.00).\n- Recovery does not separate the arms from Keep 1.66 after correction. It is 0.982 to 0.984 everywhere.\n- The merged start was 0.0017 lower on clean macro than raw after 100 steps, down from about 0.003, on one seed. It may not last the run. Retrieval did not change.\n- Raising the scale produces gradient spikes in the first two steps: 6.31 for Global 1.88 and 19.65 for the second finalist, against 0.62 for Keep 1.66. Gradients are clipped at 1.0. Whether this matters past 100 steps is not known.\n- Holding the router bias at the merged checkpoint's value, in one more 100-step arm against the merged Global 1.88 arm, was not adopted. The rule, fixed before submission, needed clean macro better by more than 0.0007, and the change was 0.00015. Drops were 1.05x, under the 2x reject line. Full NLL was 0.0010 lower [-0.0015, -0.0006]. That arm's grad norm reached 83.56 on one step, against 0.19 in the control. The cause is unexplained, and one run cannot show whether freezing caused it.\n- Memory: the train loader's 512-batch queue lives in device memory, and growth largely ends when it first wraps. One batch leaves per step, so queue 64 wraps every 64 steps. At queue 64 the tightest of 704 devices had 3.86 GiB free, against 2.08 GiB at 512, in runs that differ in recipe and start. On one rack at queue 64, a slow remainder of growth reached zero by the fourth wrap. Trimming the memory pool did not stop growth.\n\n## Not tested\n\n1. Global 1.84 in training. No rehearsal ran, so this launch is the first GPU training run of its recipe and of the code at `e0bc917ee5`.\n2. Any 11-rack run past 100 steps, so also the queue-64 memory trend at 11 racks past its first wrap.\n3. The learning-rate schedule at this length. The arms ran the same 5% start on a 4,335-step schedule, so this run's rate falls about 34% faster per step.\n4. The 11-rack stop path. `HERO_SCHEDULE_EXTENSION` ([#10917](https://github.com/marin-community/marin/pull/10917), merged) was tested on one rack, on an earlier deploy head.\n5. SFT and RL loading of the merged checkpoint, for any recipe.\n6. Export of the second finalist. Hero exports refuse log scaling until serving support lands, so that checkpoint cannot be served yet. [#10986](https://github.com/marin-community/marin/pull/10986) (open) adds the slope and power fields.\n7. Repeats. No arm has a second seed, so training noise at 11 racks is unmeasured.\n8. Code on the launch commit that no arm ran. This includes #10556, which skips short-convolution weight gradients for frozen weights. Hero weights are not frozen, and reading the source and a CPU check with stand-in kernels show no effect. We did not check compiled GB200 code. It also includes [#11054](https://github.com/marin-community/marin/pull/11054), which changes only how eval macros are computed on the host after the eval loop.\n\n## Reading the first evals\n\nTraining evals drop each corpus's final partial window, so `ptb` and `wikitext_103` have no window at 262K and write no online value. [#10711](https://github.com/marin-community/marin/pull/10711), which adds padded windows and multi-length evals, is not in this launch. Offline evals pad instead, so they still score both subsets.\n\n- `eval_dropless/paloma/macro_loss` excludes both subsets, which moves the parent's 1.960 to 2.043 at step 390251 with no change in the model.\n- The `eval_regressed` alert compares each eval with the previous two, so it should fire on the child's first two evals for that reason, the first near step 390500 and about 2 h in. It is expected, and it does not show a regression. No run has shown it yet.\n- `eval_dropless/macro_loss` now excludes both subsets too (#11054), and read 1.85 on the first eval, at W&B step 390499. The 100-step arms averaged them in as zeros and read about 1.78, so that series is not comparable with theirs.\n- In-loop and offline levels differ. In the arms, the in-loop eval read 0.0040 above the offline eval on the 12 clean Paloma subsets. The finalist comparison uses offline evals.\n\nThe `throughput_low` alert has a floor of 2.0M tokens per second, and this run trains at about 1.58M, so it should also fire for as long as the floor stands. It does not affect training.\n\n## Gates\n\nThese values are confirmed.\n\n| When | Check | Expected | Fail |\n|---|---|---|---|\n| Restore | One coordinator; restored step 390251 from the merged path; optimizer counts match | | Any mismatch |\n| First steps | Train cross-entropy; step time; drop fraction; learning rate | Cross-entropy below 1.25; about 29 s/step; near the arms' 2.9e-4; 5% of peak | Cross-entropy at or above 1.25 |\n| First hour | Optimizer, learning-rate and parameter-norm graphs, read by eye | No step or jump | Reviewer judgment |\n| About 33 min into training | Largest device memory in use after the first queue wrap | Near 179.4 GiB | Above 180 GiB means queue 64 did not land |\n| After the first eval and each restart | Largest device memory in use, of 184.30 GiB | 180.44 GiB; pass up to 180.75 | Above 182.25 GiB |\n\nThere is no matched control: the parent ended at step 390251. Compare with the parent's last steps and the 11-rack arms at matching steps.\n\n## Checklist\n\n### A. Decisions\n\n- [x] **A1** Start from the merged checkpoint.\n- [x] **A2** Finalists and their order.\n- [x] **A3** Loader queue 64.\n- [x] **A4** Learning-rate schedule.\n- [x] **A5** Frozen router bias: not adopted.\n- [ ] **A6** Gates, and go or no-go for the second finalist.\n\n### B. Code\n\n- [x] **B1** [#10917](https://github.com/marin-community/marin/pull/10917) stop step, merged as `7903eda6d1`.\n- [x] **B2** Deploy PR for the first finalist, [#11041](https://github.com/marin-community/marin/pull/11041), merged as `cac11d381a`: `HERO_MODEL`, schedule extension, `HERO_CONTEXT_PHASES`, `HERO_FLOPS_BASELINE_TOTAL`, `current_run.py`, `trigger_hero.sh`.\n- [x] **B3** [#11054](https://github.com/marin-community/marin/pull/11054) eval macros, merged as `e0bc917ee5`, the launch commit.\n- [ ] **B4** Second finalist: [#11044](https://github.com/marin-community/marin/pull/11044), a branch carrying [#10986](https://github.com/marin-community/marin/pull/10986), merged only if it wins.\n- [ ] **B5** Serving support for log scaling, before SFT or RL uses the second finalist.\n\n### C. Tests\n\n- [x] **C1** Seven 100-step arms at 11 racks, and one frozen-bias arm.\n- [x] **C2** Stop path on one rack, on an earlier deploy head (`d0d4e15f45`).\n- [ ] **C3** SFT and RL load test of the merged checkpoint. Not required for this launch; still to do.\n\n### D. Launch, for each finalist\n\n- [ ] **D1** Fork W&B once from the parent at `_step` 390250, the row for the last update before restored step 390251.\n- [x] **D2** Publish the W&B comparison report before the first step: [Hero 262K finalists](https://wandb.ai/marin-community/marin_moe/reports/Hero-262K-finalists--VmlldzoxODI2NjQ1Nw==), one report for both finalists.\n- [ ] **D3** Launch; confirm one coordinator, the restore at step 390251 and the first steps.\n- [ ] **D4** Read the gates and post go or no-go to #8506.\n\n### E. Afterwards\n\n- [ ] **E1** Compare the finalists on Paloma, Uncheatable and MRCR at matching steps, using offline evals. Record the winner here, on logbooks #37 and on #8435.\n- [ ] **E2** Seal each run. Update the logbook conclusion and the `marin-logbooks` index.\n\n## Stop and recovery\n\nA failed gate stops the finalist. After a fix, relaunch from step-390251 with a new run ID, or from the child's newest complete checkpoint if the fault is an ordinary interruption. Do not fork W&B again for a retry of the same run. There is no parent run to return to, since the 65K run has ended.\n\n\n",
+      "closed_at": null,
+      "comments": [
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 Triage: this is an active two-finalist production run. The [launch request](https://github.com/marin-community/marin/issues/8506#issuecomment-6696266590) records `hero-lce-global184-step390k` at `e0bc917ee5`; it does not yet confirm a restored step or training progress. Draft [#11044](https://github.com/marin-community/marin/pull/11044) carries the second recipe at `0454bdd609`, with [#10986](https://github.com/marin-community/marin/pull/10986) as its open log-scaling dependency. The existing PRs cover the code work identified for this launch.\n\nPlan:\n1. Verify that the first run restores merged checkpoint `step-390251`, starts 176 trainers, and logs training steps. Confirm the proposed loss, step-time, drop-fraction, and memory gates with the run owner; record the go/no-go decision on [#8506](https://github.com/marin-community/marin/issues/8506).\n2. After the first coordinator ends, verify its final checkpoint and eval. Launch the second finalist from the pinned #11044 commit, with its own W&B fork and output identity, then apply the same gates.\n3. Compare offline Paloma, Uncheatable, and MRCR at matching steps. Record the winner here, on [#8435](https://github.com/marin-community/marin/issues/8435), and in [logbooks #37](https://github.com/marin-community/marin-logbooks/issues/37). Merge the second recipe only if it wins; complete serving support before SFT or RL uses it. Seal both runs and verify downstream checkpoint loading.",
+          "created_at": "2026-11-06T21:37:42Z",
+          "id": 6696325280,
+          "updated_at": "2026-11-06T21:37:42Z",
+          "url": "https://github.com/marin-community/marin/issues/11056#issuecomment-6696325280"
+        }
+      ],
+      "created_at": "2026-11-06T21:35:31Z",
+      "labels": [
+        "agent-generated"
+      ],
+      "number": 11056,
+      "state": "open",
+      "state_reason": null,
+      "title": "[hero] Extend the hero run to 262K context",
+      "updated_at": "2026-11-07T00:18:18Z",
+      "updated_in_target_window": true,
+      "url": "https://github.com/marin-community/marin/issues/11056"
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "body": "The November 6 Tier 2 ferry failed in `datakit/quality/tier2-skewed`. After Iris lost a worker, Zephyr released its replacement workers while four map shards still belonged to the lost worker. The quality stage stopped at 115/119 shards and the ferry exited 1. This is the Tier 2 recurrence of #10974. Classification: controller bug, triggered by an Iris worker failure.\n\nReproduce:\n1. Start a final-stage Zephyr map with `drain_idle_workers=True`; let worker A hold the last shard.\n2. Lose A's Iris worker and start replacement B before A's 120-second heartbeat expires.\n3. B gets `SHUTDOWN` while A still owns the shard. After the timeout, the shard requeues with no worker left. A local probe on `6f62a629` produced `first=RUN_TASK; replacement=SHUTDOWN; requeued=1; completed=0/1`, followed by `Worker job terminated permanently`.\n\nExpected: A replacement worker stays available to process shards requeued after the failed worker's heartbeat expires.\n\n<details><summary>Run evidence</summary>\n\n- Iris marked four quality worker tasks (3, 4, 20, 42) for retry at 18:10:57 UTC after their TPU worker exceeded the reconcile failure threshold. All four replacement tasks succeeded; the worker job reported 119/119 tasks succeeded.\n- Finelog `marin` / `log`, 18:10:40–18:12:30 UTC: replacement task `20:1` received `SHUTDOWN` at 18:11:27 (seq `30841684615`); the coordinator aborted at 18:11:39 with 115/119 shards complete (seq `30841686524`); the original workers missed heartbeats at 18:11:54–57 (seq `30841692099`–`30841692110`). These are event rows, not counters. The hub rows have an empty `cluster` field.\n- [Actions diagnostics artifact](https://github.com/marin-community/marin/actions/runs/42237530145/artifacts/13531227614) and [Zephyr drain predicate](https://github.com/marin-community/marin/blob/6f62a629e157b91cb170d6733e959f48b5d88906/lib/zephyr/src/zephyr/coordinator.py#L908-L927).\n- [Echo incident record](https://marina.oa.dev/echo/wiki/944).\n\n</details>\n\n## Canary run context\n\n- Lane: `datakit-tier2` (GCP, us-west4); date: 2026-11-06 UTC\n- Iris job: `/runner/iris-run-job-20261106-145119`\n- [GitHub Actions run](https://github.com/marin-community/marin/actions/runs/42237530145)\n- [W&B run](https://wandb.ai/marin-community/marin/runs/datakit-tier2-ferry-42237530145-1) (configured ID; creation not verified)\n",
+      "closed_at": "2026-11-07T05:16:47Z",
+      "comments": [
+        {
+          "author": "ravwojdyla-agent",
+          "body": "🤖 #10976 covers this failure. It merged as c7cbddcce2, after this run, which used 6f62a629. Its drain check keeps one idle worker while a final stage has unfinished shards. Here the four lost workers still owned their shards, so they did not count as idle, and one replacement would have stayed to run the four requeued shards.\n\nTier 1 (https://github.com/marin-community/marin/actions/runs/42320579951) and tier 2 (https://github.com/marin-community/marin/actions/runs/42320582449) passed on `main` at 4d77b1f000, which includes #10976. Neither run lost a worker during a final stage, so neither exercised this path. The evidence that it works is the coordinator regression test in #10976.\n",
+          "created_at": "2026-11-07T03:52:16Z",
+          "id": 6701892783,
+          "updated_at": "2026-11-07T03:52:16Z",
+          "url": "https://github.com/marin-community/marin/issues/11045#issuecomment-6701892783"
+        },
+        {
+          "author": "ravwojdyla-agent",
+          "body": "🤖 Closing: #10976 fixes this, and tiers 1 and 2 pass on `main` with it (see the comment above).",
+          "created_at": "2026-11-07T05:16:46Z",
+          "id": 6702710627,
+          "updated_at": "2026-11-07T05:16:46Z",
+          "url": "https://github.com/marin-community/marin/issues/11045#issuecomment-6702710627"
+        }
+      ],
+      "created_at": "2026-11-06T18:52:45Z",
+      "labels": [
+        "bug",
+        "agent-generated",
+        "canary"
+      ],
+      "number": 11045,
+      "state": "closed",
+      "state_reason": "completed",
+      "title": "[canary-datakit-tier2] Quality shards stranded after worker retry",
+      "updated_at": "2026-11-07T05:16:47Z",
+      "updated_in_target_window": true,
+      "url": "https://github.com/marin-community/marin/issues/11045"
+    },
+    {
+      "author": "yonromai",
+      "body": "<!-- Title: Test GrugMoE architecture choices for RL inference -->\n<!-- Suggested labels: experiment, agent-generated -->\n\n<!-- experiment-tldr:start -->\n## Summary\n\nThis issue is the execution tracker for measuring GrugMoE architecture choices that must be fixed before pretraining. It does not choose the training model; it asks the inference team to benchmark a frozen validation anchor from PR #7820 on GB200, establish benchmark health with rolling R3-off repeatability plus separate production-like chat-R3 controls, then run a bounded sequence of architecture comparisons: serving topology, KV heads, global-attention frequency, sliding window, SConv4, lightweight blocks, and modeling-gated P1 candidates. The controlling protocol is #7912, which defines plateau throughput, routing controls, required artifacts, and acceptance gates. Work is incomplete until valid result packets support an inference recommendation to modeling before architecture freeze.\n\n### Helpful links\n- [Benchmark protocol #7912](https://github.com/marin-community/marin/issues/7912)\n- [Merged validation-anchor PR #7820](https://github.com/marin-community/marin/pull/7820)\n- [Provisional pretraining and RL timelines #7673](https://github.com/marin-community/marin/issues/7673)\n<!-- experiment-tldr:end -->\n\n\n> [!IMPORTANT]\n> The inference team measures cost and makes recommendations. Modeling owns\n> quality constraints and the final pretraining architecture. The anchor below\n> is a stable A/B reference, not a selected training model.\n\n## Validation anchor\n\n| Property | Frozen value |\n| --- | --- |\n| Shape | Hidden size 6,144; 48 layers |\n| Attention | 48 query heads; 12 local / 6 global KV heads; five local layers per global layer; window 512 |\n| Routed experts | Top-4 of 128; intermediate size 3,072 |\n| Shared experts | Two separate half-width experts; intermediate size 3,072 each |\n| Other blocks | Global NoPE, local half-RoPE, `sconv4`, attention gate, exclusive self-attention, frozen QB routing bias, gated norms |\n| Serving | Trunk logits only; `PP1 TP1 DP16 EP16`; BF16 weights and KV cache on four `gb200-4x` nodes |\n\nMerged [PR #7820](https://github.com/marin-community/marin/pull/7820)\ndefines this exact shape. The protocol's preflight evidence shows that it can\nstart and generate. It does not show that modeling selected it or that dummy\nweights predict trained-model performance.\n\n## Required experiments\n\nRun in this order when capacity is scarce. Check a box only after linking a\nvalid result packet and recording the inference recommendation.\n\n- [ ] **0 · Benchmark health.** Pass two identical rolling R3-off\n      reference arms within 2%, then measure the reference with the\n      production-like chat-R3 contract. Do not start architecture comparisons\n      before this passes.\n- [ ] **1 · Serving topology.** Compare EP8 on 8 GPUs with EP16 on 16. Report\n      per-GPU throughput and zero-preemption capacity. Test EP32 on 32 only if\n      EP16 remains efficient and more capacity is needed.\n- [ ] **2 · Global KV heads.** Compare local/global `12/6` with `12/12` and\n      `12/2`. These two alternatives bound full and compressed global KV; add\n      no other head counts.\n- [x] **3 · Global-attention frequency.** Compare global attention every six\n      layers with every four. [Result: #8017](https://github.com/marin-community/marin/issues/8017):\n      keep global attention every six layers.\n- [x] **4 · Sliding window.** Compare 512, 1,024, and 2,048. [Result: #8017](https://github.com/marin-community/marin/issues/8017):\n      512 is cheapest; 1,024 has a small measured cost; 2,048 has no\n      inference-cost case in these measurements.\n- [ ] **5 · SConv4.** Compare the full four-site `sconv4` path on versus off.\n      Profile once only if the delta is material or health is abnormal.\n- [ ] **6 · Lightweight blocks.** Keep XSA, attention gate, and GatedNorm on in\n      the anchor; briefly disable each one at a time. Treat this as one bundled\n      gate, not three project tracks.\n\nFor MoE geometry and EP topology, run both canonical dummy routing and the\nprotocol's deterministic balanced-routing control. Run the primary matrix\nwith R3 off; add R3-on controls for payload-changing candidates and finalists\nas specified in #7912.\n\n<details>\n<summary><strong>P1 candidates requiring a modeling decision</strong></summary>\n\nModeling must mark each family **Include** or **Exclude with reason**. An\nincluded family needs one complete executable config. A missing serving path or\nfailed measurement is not a quality rejection.\n\n- [ ] **7 · Width.** Compare the anchor with one complete `d7168` candidate.\n      Treat `d8192` as a placement/performance-cliff probe unless modeling\n      explicitly promotes it. Record every coupled shape change; do not label\n      the whole bundle as width alone.\n- [ ] **8 · Expert pool size.** Compare `4/128/i3072` with exact\n      `4/256/i3072`. Keep top-K and active expert width fixed. Run canonical and\n      balanced routes; add no expert-count sweep.\n- [ ] **9 · Expert granularity.** Compare `4/128/i3072` with exact\n      `8/256/i1536`, after modeling confirms matched total and active routed-MLP\n      width. Run both route controls; add no granularity sweep.\n- [ ] **10 · Over-Encoding.** Compare the anchor with one modeling-confirmed\n      mechanism and config. Measure one serving-cost pair; do not sweep\n      mechanisms.\n- [ ] **11 · Wider attention.** Compare 48 query heads and local/global KV\n      `12/6` with one bundled 64-query-head, `16/8` candidate. Treat query\n      heads, attention width, and KV layout as one bundle.\n- [ ] **12 · Finalist.** If no P1 family is included, reuse the anchor evidence.\n      If one is included, reuse its pair and add only missing finalist checks.\n      If two or more are included, run one composed pair. Do not run a\n      combinations matrix.\n\n</details>\n\n<details>\n<summary><strong>Non-blocking stretch candidates</strong></summary>\n\nRun these only after required work, in this order, when modeling supplies one\nquality-viable config and capacity remains:\n\n- [ ] **13 · MLA.** Compare GQA with one exact MLA candidate. If modeling does\n      not revive it, record `Deferred: no live quality candidate`. Do not sweep\n      MLA or KV-matching variants.\n- [ ] **14 · Dense/MoE alternation.** After MLA closes, compare all-MoE with one\n      matched dense/MoE candidate. Add no alternation-ratio sweep.\n- [ ] **15 · Smaller local KV.** Compare `12/6` with one exact smaller-local-KV\n      shape at only 8K and 65K context. Add no head-count sweep.\n\nThese boxes do not block the inference recommendation or hero-run readiness.\n\n</details>\n\n## Completion\n\nThis tracker is complete when:\n\n- [ ] modeling has included or excluded every P1 family and supplied exact\n      configs for included candidates;\n- [ ] benchmark health and every required architecture box have valid results;\n- [ ] every included P1 candidate has a valid result or a recorded,\n      modeling-owned exclusion;\n- [ ] the reference, attention/KV finalists, every memory-cliff candidate, and\n      the final model pass the four-turn 65K trajectory;\n- [ ] the reference and attention/KV finalists pass the one-turn 131K capacity\n      stress; and\n- [ ] the final inference recommendation states the measured cost, confidence,\n      and remaining caveat, and is shared with modeling before architecture\n      freeze.\n\nLower precision, remaining serving-only tuning, MTP speculative decoding, and\na full synchronous RL-loop benchmark belong in follow-ups.\n\n<details>\n<summary><strong>What each result packet must contain</strong></summary>\n\nCreate one subissue and result packet per experiment family, not per scalar\nvalue. Each main result contains:\n\n1. the decision question and the one changed property or declared bundle;\n2. a compact reference/candidate table with generated tok/s/GPU, paired delta,\n   load/KV/routing/R3 health, and repeat status;\n3. immutable code, config, image, workload, Iris job, placement, and artifact\n   links; and\n4. a plain inference recommendation, confidence, and remaining caveat.\n\nFor attention/KV candidates, include predicted and active KV bytes and\nzero-preemption resident sequences per DP rank. For MoE candidates, include\nboth routing fixtures and per-rank load. For width, include loaded weights,\nnon-KV memory, available KV bytes, and any EP16 cliff. If a candidate changes\nthe R3 payload shape, include its cost and use the protocol's R3-off diagnostic\ntrigger.\n\nKeep negative results. A tuned diagnostic never replaces the fixed-setting\nresult, and no candidate is rejected without a recorded human decision.\n\n</details>\n\n<details>\n<summary><strong>Why the gated and stretch candidates are bounded</strong></summary>\n\n- [#7673](https://github.com/marin-community/marin/issues/7673) retains\n  `d7168` as a planning candidate and treats `d8192` as an unmeasured width\n  cliff; neither issue entry supplies a full executable config.\n- [#7201's top-4-of-256 proposal](https://github.com/marin-community/marin/issues/7201#issuecomment-5054192424)\n  doubles the resident expert pool while keeping top-K and active expert width\n  fixed. This is distinct from the top-8-of-256 granularity candidate.\n- The [wider-attention probe](https://github.com/marin-community/marin/issues/7201#issuecomment-5125065343)\n  and [follow-up](https://github.com/marin-community/marin/issues/7201#issuecomment-5125219118)\n  propose the 64-head `16/8` bundle but do not establish target quality or RL\n  inference performance.\n- [Over-Encoding](https://github.com/marin-community/marin/issues/7368#issuecomment-5021519909)\n  has small-scale training evidence but no B200 serving result.\n- Existing [MLA results](https://github.com/marin-community/marin/issues/7381#issuecomment-5018382492)\n  favor GQA, so MLA runs only if modeling revives one candidate.\n- [Dense/MoE evidence](https://github.com/marin-community/marin/issues/6885)\n  is positive small-scale training evidence, not a target-scale model decision\n  or B200 serving result.\n\n</details>\n\n<details>\n<summary><strong>References</strong></summary>\n\n- [#7201: GB200 architecture TPS tracker](https://github.com/marin-community/marin/issues/7201)\n- [#7673: provisional pretraining and RL timelines](https://github.com/marin-community/marin/issues/7673)\n- [#7706: serving topology study](https://github.com/marin-community/marin/issues/7706)\n- [#7374: MLA ablation tracker](https://github.com/marin-community/marin/issues/7374)\n- [#7585: SConv quality tests](https://github.com/marin-community/marin/issues/7585)\n- [#7164: train-to-serve routing parity](https://github.com/marin-community/marin/issues/7164)\n- [#7248: R3 payload and transport measurements](https://github.com/marin-community/marin/issues/7248)\n\n</details>\n\n\n",
+      "closed_at": null,
+      "comments": [
+        {
+          "author": "dlwh-golem",
+          "body": "@dlwh Updated the managed experiment TL;DR block to the standard Summary/Helpful links format and labeled the issue `tldr`.",
+          "created_at": "2026-08-03T20:33:08Z",
+          "id": 5171398520,
+          "updated_at": "2026-08-03T20:33:08Z",
+          "url": "https://github.com/marin-community/marin/issues/7913#issuecomment-5171398520"
+        },
+        {
+          "author": "yonromai",
+          "body": "Protocol update: the primary architecture metric will use **R3 off** so the\nexperimental carrier does not dilute model/engine differences. Production-like\nchat R3 will be measured separately on the reference, payload-shape-changing\ncandidates, and finalists. Supporting data and the exact next gate are recorded\nin [#7912](https://github.com/marin-community/marin/issues/7912#issuecomment-5185894476).\n",
+          "created_at": "2026-08-04T23:53:16Z",
+          "id": 5185895431,
+          "updated_at": "2026-08-04T23:53:16Z",
+          "url": "https://github.com/marin-community/marin/issues/7913#issuecomment-5185895431"
+        },
+        {
+          "author": "dlwh-golem",
+          "body": "@dlwh Reconciled the tracker summary and benchmark-health checklist with the updated #7912 R3 guidance: primary architecture comparisons now run R3-off, with separate production-like chat-R3 controls.",
+          "created_at": "2026-08-05T20:54:13Z",
+          "id": 5197221810,
+          "updated_at": "2026-08-05T20:54:13Z",
+          "url": "https://github.com/marin-community/marin/issues/7913#issuecomment-5197221810"
+        },
+        {
+          "author": "michaelmanly",
+          "body": "@yonromai \nCurious how you’re handling GB200 capacity for these runs , is everything staying on your existing Iris/internal cluster, or do you ever spill benchmark jobs onto external capacity when the queue gets tight?\n\nThe result-packet contract here is already pretty clean, so it seems like the hard part may just be getting reproducible capacity without changing the benchmark conditions.\n",
+          "created_at": "2026-08-07T20:04:06Z",
+          "id": 5221502969,
+          "updated_at": "2026-08-07T20:04:06Z",
+          "url": "https://github.com/marin-community/marin/issues/7913#issuecomment-5221502969"
+        },
+        {
+          "author": "github-actions[bot]",
+          "body": "This issue has been inactive for 83 days and is marked as stale.\nIf there is no further activity within 7 days, it will be automatically closed.\nIf you believe this issue is still relevant, please add a comment to keep it open.",
+          "created_at": "2026-10-30T05:50:37Z",
+          "id": 6516004776,
+          "updated_at": "2026-10-30T05:50:37Z",
+          "url": "https://github.com/marin-community/marin/issues/7913#issuecomment-6516004776"
+        },
+        {
+          "author": "github-actions[bot]",
+          "body": "This issue has been automatically closed due to inactivity.\nIf you believe this issue is still relevant, please reopen it or create a new issue with updated information.",
+          "created_at": "2026-11-06T06:48:03Z",
+          "id": 6679012164,
+          "updated_at": "2026-11-06T06:48:03Z",
+          "url": "https://github.com/marin-community/marin/issues/7913#issuecomment-6679012164"
+        }
+      ],
+      "created_at": "2026-08-03T01:53:05Z",
+      "labels": [
+        "experiment",
+        "agent-generated",
+        "tldr"
+      ],
+      "number": 7913,
+      "state": "open",
+      "state_reason": "reopened",
+      "title": "Test GrugMoE architecture choices for RL inference",
+      "updated_at": "2026-11-07T05:59:24Z",
+      "updated_in_target_window": true,
+      "url": "https://github.com/marin-community/marin/issues/7913"
+    },
+    {
+      "author": "WhenWen",
+      "body": "<!-- experiment-tldr:start -->\n## Summary\n\nThis experiment tested NorMuonH as a matrix-parameter optimizer swap for Grug MoE, using NorMuon's output-axis normalization inside the existing hyperball update while keeping the same Adam routing for embeddings, routers, vector/scalar leaves, and the lm head as the AdamH baseline. Gate 1 completed at d512 and d768: NorMuonH beat the v16 AdamH baseline at both scales and was effectively tied with the corrected MuonH matrix-swap baseline, with about 1.34x wall-clock speedup at d512 and 1.28x at d768 versus AdamH. The recommendation from the recorded result is that NorMuonH passed the first gate and justified the already-launched gate-2 sweep, but its measured advantage over MuonH was only about 1%.\n\n### Helpful links\n- Final Gate 1 result comment: https://github.com/marin-community/marin/issues/5598#issuecomment-4425980304\n- W&B report: https://wandb.ai/marin-community/marin_moe/reports/NorMuonH-vs-MuonH-vs-v16-AdamH-—-gate-1--VmlldzoxNjg0Nzc3Nw==\n- Implementation PR: #5597\n- Paired MuonH comparison: #5596\n<!-- experiment-tldr:end -->\n\n## Description\n\nEvaluate a Grug MoE optimizer ablation that uses NorMuon inside the existing hyperball-style update for every matrix-shaped parameter except the lm head (`output_proj`), which remains on AdamH. Vector and scalar leaves remain on Adam.\n\nThe key implementation detail is axis convention. NorMuon is written in the paper for matrices `W in R^{m x n}` and tracks one second-moment statistic per row using `mean_cols(O * O)`. Grug stores dense matrices as `(fan_in, fan_out)`, so this experiment maps NorMuon's neuron/output statistic to the trailing output axis. For stacked MoE tensors `(num_experts, fan_in, fan_out)`, the statistic has shape `(num_experts, fan_out)`.\n\nExact initiating prompts:\n\n> Additionally test using NorMuon instead of Muon inside hyperball (please be careful about dimension as jax has slightly different convention) https://arxiv.org/abs/2510.05491v1\n\n> Create a separate issue for it to track experiment status and continue to follow moe.md\n\n## Hypothesis or Goal\n\nNorMuon's output-axis adaptive normalization after orthogonalization may improve over the MuonH matrix swap by reducing imbalance across output/neuron update magnitudes while preserving the low-condition-number Muon direction and Grug hyperball norm preservation.\n\nGate 1 tests d512 at 2.19e17 FLOPs and d768 at 1.70e18 FLOPs against the README baseline table, plus the paired MuonH matrix-swap issue #5596.\n\n### Links\n\n* Paper: https://arxiv.org/abs/2510.05491v1\n* Research logbook: `.agents/logbooks/moe-normuonh-matrix-sweep.md`\n* Launcher: `experiments/grug/moe/normuonh_matrix_sweep.py`\n* Paired MuonH issue: #5596\n* Implementation PR: #5597\n\n## Results\n\nNot launched yet. Initial local validation passed focused optimizer tests, including a state-shape check that pins Grug's output-axis NorMuon convention.\n",
+      "closed_at": "2026-11-07T05:59:27Z",
+      "comments": [
+        {
+          "author": "WhenWen",
+          "body": "🤖 Workflow note: I attempted to add this as a sub-issue of #4281 per `experiments/grug/moe/agent.md`, but GitHub rejected the mutation because #4281 already has the maximum 100 sub-issues.\n\nI will continue tracking status here and keep #5596 linked as the paired MuonH comparison issue.",
+          "created_at": "2026-05-09T18:18:10Z",
+          "id": 4413305424,
+          "updated_at": "2026-05-09T18:18:10Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-4413305424"
+        },
+        {
+          "author": "WhenWen",
+          "body": "🤖 Update: NorMuonH is now included in PR #5597 at commit 99445d491. The shared hyperball helper reshares Muon/NorMuon direction updates to parameter layouts before per-expert norm math, and the focused optimizer plus Grug contract tests pass alongside the repo pre-commit entry point.\n\nLaunch status: `/kaiyue/iris-run-job-20260509-183259` is running and created both gate-1 children, but they are pending on v5p-8 preemptible capacity with Iris reporting quota-pool tier blocking. Logbook: https://github.com/marin-community/marin/tree/99445d491/.agents/logbooks/moe-normuonh-matrix-sweep.md",
+          "created_at": "2026-05-09T18:40:05Z",
+          "id": 4413389475,
+          "updated_at": "2026-05-09T18:40:05Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-4413389475"
+        },
+        {
+          "author": "WhenWen",
+          "body": "🤖 Update: corrected the NorMuonH ablation so parameters that the AdamH baseline routes to Adam stay on Adam with the same Adam hyperparams. This includes token embeddings, routers, router biases, attention gates, and vector/scalar leaves; AdamH/AdamH-expert matrix groups switch to NorMuonH. Validation passed with `uv run pytest -o addopts='' tests/test_grug_moe_optimizer.py tests/test_grug_variant_contracts.py -q` and `./infra/pre-commit.py --all-files --fix`.\n\nCorrected launch: `/kaiyue/iris-run-job-20260509-190231`, suffix `baseline-adam-mask`. At last check, d512 and d768 are both running in Iris; d512 has a W&B run and d768 is still in startup before W&B appears. Logbook: https://github.com/marin-community/marin/tree/806fa1b3d/.agents/logbooks/moe-normuonh-matrix-sweep.md",
+          "created_at": "2026-05-09T19:14:06Z",
+          "id": 4413459278,
+          "updated_at": "2026-05-09T19:14:06Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-4413459278"
+        },
+        {
+          "author": "WhenWen",
+          "body": "🤖 W&B startup update: corrected NorMuonH gate-1 jobs under `/kaiyue/iris-run-job-20260509-190231` are both running with zero Iris failures/preemptions. W&B runs are live for `normuonh-matrix-baseline-adam-mask-d512-2.19e17` and `normuonh-matrix-baseline-adam-mask-d768-1.70e18`; recent logs show no `Traceback` or `ShardingTypeError`.\n\nLogbook: https://github.com/marin-community/marin/tree/c6dd1df58/.agents/logbooks/moe-normuonh-matrix-sweep.md",
+          "created_at": "2026-05-09T19:16:23Z",
+          "id": 4413463597,
+          "updated_at": "2026-05-09T19:16:23Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-4413463597"
+        },
+        {
+          "author": "WhenWen",
+          "body": "🤖 Resuming NorMuonH gate 1.\n\n* d512 (`normuonh-matrix-baseline-adam-mask-d512-2.19e17`) already finished from the prior corrected launch (`/kaiyue/iris-run-job-20260509-190231`): macro_loss=**3.7512**, tps=407,697 → wall-clock speedup vs v16 AdamH = **1.34** at d512 (essentially tied with the corrected MuonH baseline-adam-mask result 3.7542).\n* d768 was preempted before the prior launch could finish. Latest checkpoint is at step 2000 in `gs://marin-us-east5/grug/normuonh_matrix_sweep/normuonh-matrix-baseline-adam-mask-d768-1.70e18-cd4be9/checkpoints/`.\n\nRelaunched preemptible v5p-8 in **us-east5** (where prior NorMuonH d512 + the MuonH stack all landed):\n\n* New parent: `/kaiyue/iris-run-job-20260511-162245`\n* Flags: `--preemptible --region us-east5 NORMUONH_MATRIX_GATE=1 NORMUONH_MATRIX_RUN_SUFFIX=baseline-adam-mask`\n* The marin executor will skip cached d512 and only resume d768.\n\nA babysitter is monitoring the run with instructions to (a) relaunch on preemption, (b) auto-build the 3-way W&B report (baseline / MuonH / NorMuonH at d512 and d768) on completion, and (c) fire a desktop notification when d768 reaches `finished`.",
+          "created_at": "2026-05-11T16:23:09Z",
+          "id": 4422601802,
+          "updated_at": "2026-05-11T16:23:09Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-4422601802"
+        },
+        {
+          "author": "WhenWen",
+          "body": "🤖 Gate 1 complete — NorMuonH passes against the v16 AdamH baseline at both scales and is marginally better than the corrected MuonH baseline-adam-mask.\n\n## Final results\n\n| Scale | Run | macro_loss | tps |\n|---|---|---|---|\n| d512 (2.19e17) | v16 AdamH baseline | 3.8104 | 405,630 |\n| d512 (2.19e17) | MuonH baseline-adam-mask | 3.7542 | 411,620 |\n| d512 (2.19e17) | **NorMuonH baseline-adam-mask** | **3.7512** | 407,697 |\n| d768 (1.70e18) | v16 AdamH baseline | 3.4339 | 273,532 |\n| d768 (1.70e18) | MuonH baseline-adam-mask | 3.3988 | 281,211 |\n| d768 (1.70e18) | **NorMuonH baseline-adam-mask** | **3.3964** | 280,626 |\n\n## Effective speedup (L∞=1.6, α=0.0941)\n\n**vs v16 AdamH baseline:**\n\n| Scale | Wall-clock | Step-wise |\n|---|---|---|\n| d512 | **1.34** | 1.33 |\n| d768 | **1.28** | 1.25 |\n\n**vs MuonH baseline-adam-mask (#5596):**\n\n| Scale | Wall-clock | Step-wise |\n|---|---|---|\n| d512 | 1.005 | 1.01 |\n| d768 | 1.012 | 1.01 |\n\n→ **Gate 1 passes** vs README baseline at both scales. NorMuonH is essentially tied with MuonH at d512 and slightly better at d768 (~+1% wall-clock).\n\n## W&B report\n\nhttps://wandb.ai/marin-community/marin_moe/reports/NorMuonH-vs-MuonH-vs-v16-AdamH-—-gate-1--VmlldzoxNjg0Nzc3Nw==\n\nThree-way comparison (baseline / MuonH / NorMuonH) at d512 and d768, 2×2 train and eval grids, x-axis `run_progress` starting at 0.05.\n\n## Auto-launching gate 2\n\nPer the experiment plan (and the user's standing instruction), gate 2 has been launched without waiting for confirmation:\n\n* **Parent:** `/kaiyue/iris-run-job-20260511-232705`\n* **Mode:** preemptible v5p-8, `--region us-east5`\n* **Suffix:** `baseline-adam-mask`\n* **Children expected:** `grug-train-normuonh-matrix-baseline-adam-mask-d1024-9.00e18` and `grug-train-normuonh-matrix-baseline-adam-mask-d1280-2.83e19`\n* **W&B group:** `normuonh-matrix-sweep`\n\nA gate-2 babysitter is being spawned with autonomous relaunch on preemption, scaling-law fit on the four NorMuonH points, projection vs baseline at 1e21 / 1e23, automatic W&B report build, and desktop notification on completion.",
+          "created_at": "2026-05-11T23:28:18Z",
+          "id": 4425980304,
+          "updated_at": "2026-05-11T23:28:18Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-4425980304"
+        },
+        {
+          "author": "github-actions[bot]",
+          "body": "This issue has been inactive for 83 days and is marked as stale.\nIf there is no further activity within 7 days, it will be automatically closed.\nIf you believe this issue is still relevant, please add a comment to keep it open.",
+          "created_at": "2026-08-03T01:45:09Z",
+          "id": 5161464038,
+          "updated_at": "2026-08-03T01:45:09Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-5161464038"
+        },
+        {
+          "author": "dlwh-golem",
+          "body": "@dlwh Added a managed experiment TL;DR block summarizing the completed Gate 1 NorMuonH result and labeled the issue `tldr`.",
+          "created_at": "2026-08-08T21:13:51Z",
+          "id": 5228201874,
+          "updated_at": "2026-08-08T21:13:51Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-5228201874"
+        },
+        {
+          "author": "github-actions[bot]",
+          "body": "This issue has been inactive for 83 days and is marked as stale.\nIf there is no further activity within 7 days, it will be automatically closed.\nIf you believe this issue is still relevant, please add a comment to keep it open.",
+          "created_at": "2026-10-31T05:42:42Z",
+          "id": 6539687546,
+          "updated_at": "2026-10-31T05:42:42Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-6539687546"
+        },
+        {
+          "author": "github-actions[bot]",
+          "body": "This issue has been automatically closed due to inactivity.\nIf you believe this issue is still relevant, please reopen it or create a new issue with updated information.",
+          "created_at": "2026-11-07T05:59:26Z",
+          "id": 6703095258,
+          "updated_at": "2026-11-07T05:59:26Z",
+          "url": "https://github.com/marin-community/marin/issues/5598#issuecomment-6703095258"
+        }
+      ],
+      "created_at": "2026-05-09T18:17:46Z",
+      "labels": [
+        "experiment",
+        "stale",
+        "agent-generated",
+        "tldr"
+      ],
+      "number": 5598,
+      "state": "closed",
+      "state_reason": "not_planned",
+      "title": "Agent MoE Experiment: NorMuonH matrix optimizer swap",
+      "updated_at": "2026-11-07T05:59:27Z",
+      "updated_in_target_window": true,
+      "url": "https://github.com/marin-community/marin/issues/5598"
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "body": "The scheduled Grug multislice smoke fails in dataset preparation before it submits a TPU training child. Seven Nemotron tokenization jobs exit 1 with `ValueError: No training files matched configured patterns` under `gs://marin-us-east5/raw/`. The StarCoder and ProofPile dependencies fail on missing east5 raw inputs too. The parent exits with `RuntimeError: 9 step(s) failed`.\n\nReproduce:\n1. With the canary's `us-east5` region, run `uv run fsutil ls gs://marin-us-east5/raw`. It raises `FileNotFoundError`.\n2. Run `uv run fsutil ls gs://marin-us-east5/tokenized/nemotron_cc/hq_actual-5af4cc`. It lists only `.executor_info` and `.executor_status`; the latter contains `FAILED`.\n\nExpected: the smoke resolves available dataset inputs and reaches its five TPU training steps.\n\nThe pinned [central2 Nemotron cache](https://filer.marina.oa.dev/#gs%3A%2F%2Fmarin-us-central2%2Ftokenized%2Fnemotron_cc%2Fhq_actual-5af4cc%2Ftrain%2Finput_ids) contains training shards. The [diagnostics artifact](https://github.com/marin-community/marin/actions/runs/42263386701/artifacts/13525607590) records all seven Nemotron child failures. Finelog `marin` / `log` records the low-synthetic traceback at key `/runner/iris-run-job-20261106-173831/nemotron_cc-low_synth-llama3_2f20e3eb-5a0bf6e2/0:0`, seq 30841122195–30841122206. Its parent log records the StarCoder and ProofPile errors at seq 30841100625 and 30841100699.\n\n## Canary run context\n\n- Lane: `grug-multislice` (GCP TPU); date: 2026-11-06 UTC\n- Iris job: `/runner/iris-run-job-20261106-173831`\n- [GitHub Actions run](https://github.com/marin-community/marin/actions/runs/42263386701)\n- [Configured W&B run](https://wandb.ai/marin-community/marin/runs/grug-multislice-smoke-42263386701-1) (training did not start)\n",
+      "closed_at": null,
+      "comments": [
+        {
+          "author": "mvanhorn",
+          "body": "The training sets are pinned as paths relative to the region the canary runs in. In us-east5 those copies are failed executor stubs, so the pins are rebuilt by tokenizing, but the raw corpora are not in that region and the rebuild finds no training files.\n\nEach pinned training cache is adopted from the first usable copy under the local prefix and then the other GCS data buckets, and that copy is streamed in place.\n\nhttps://github.com/marin-community/marin/pull/11070",
+          "created_at": "2026-11-07T09:55:36Z",
+          "id": 6705308407,
+          "updated_at": "2026-11-07T09:55:36Z",
+          "url": "https://github.com/marin-community/marin/issues/11042#issuecomment-6705308407"
+        }
+      ],
+      "created_at": "2026-11-06T17:50:27Z",
+      "labels": [
+        "bug",
+        "agent-generated",
+        "canary"
+      ],
+      "number": 11042,
+      "state": "open",
+      "state_reason": null,
+      "title": "[canary-grug-multislice] Missing east5 inputs block smoke before TPU",
+      "updated_at": "2026-11-07T09:55:36Z",
+      "updated_in_target_window": true,
+      "url": "https://github.com/marin-community/marin/issues/11042"
+    },
+    {
+      "author": "penfever",
+      "body": "Pi sessions converted to ATIF by #10972 omit three fields available during a trial: assistant reasoning, tool error status, and final token and step counts. The missing data limits episode inspection and can make failed tool calls appear successful.\n\nDone when:\n- Pi reasoning content is retained in the ATIF trajectory without changing the visible assistant answer.\n- Tool result error flags are represented in the corresponding ATIF observations.\n- Final token and step counts collected during the scenario appear in ATIF final metrics, with a test comparing them to the source session.\n\nSee the approval review on #10972 for the three gaps.\n",
+      "closed_at": "2026-11-07T15:55:27Z",
+      "comments": [
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 # Research\n\nPi `message_end` assistant blocks contain `thinking`, but `_assistant_step` only extracts text and tool calls; `_attach_tool_result` drops `isError`. `final_metrics` recomputes prompt and completion counts separately from `AgentContext`, omits cached tokens and cost, and has no source-session parity test.\n\n**Relevant code**\n- [`pi.py#L752-L793`](https://github.com/marin-community/marin/blob/main/vendor/harbor/src/harbor/agents/installed/pi.py#L752-L793) — collected scenario totals\n- [`pi.py#L863-L925`](https://github.com/marin-community/marin/blob/main/vendor/harbor/src/harbor/agents/installed/pi.py#L863-L925) — ATIF final metrics\n- [`pi.py#L966-L1060`](https://github.com/marin-community/marin/blob/main/vendor/harbor/src/harbor/agents/installed/pi.py#L966-L1060) — assistant and observation conversion\n\n# Proposed Fix\n\n`pi.txt` → `populate_context_post_run` → `_trajectory_from_events` loses thinking and error status at the step builders, then independently sums final usage. Map thinking blocks to `Step.reasoning_content`, carry `isError` in `ObservationResult.extra`, and fill ATIF final metrics from the collected context totals while keeping `total_steps` tied to emitted steps. Compare the resulting metrics and fields against the source session in the Pi conversion test.",
+          "created_at": "2026-11-07T15:35:04Z",
+          "id": 6709094779,
+          "updated_at": "2026-11-07T15:35:04Z",
+          "url": "https://github.com/marin-community/marin/issues/11071#issuecomment-6709094779"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 [PR #11072](https://github.com/marin-community/marin/pull/11072) preserves Pi thinking in ATIF reasoning, records tool-result error flags, and fills final metrics from the scenario totals. All 54 Pi tests pass. The broader Harbor suite passed 2,393 tests and had one unrelated local failure because this Python lacks `os.pidfd_open`.",
+          "created_at": "2026-11-07T15:46:50Z",
+          "id": 6709272875,
+          "updated_at": "2026-11-07T15:46:50Z",
+          "url": "https://github.com/marin-community/marin/issues/11071#issuecomment-6709272875"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 [PR #11072](https://github.com/marin-community/marin/pull/11072) merged at `39ca3fac7a26b3b416103618729b6882036b56e9`. CI passed, including Harbor unit tests and Marin lint; issue #11071 is closed.",
+          "created_at": "2026-11-07T15:55:54Z",
+          "id": 6709396959,
+          "updated_at": "2026-11-07T15:55:54Z",
+          "url": "https://github.com/marin-community/marin/issues/11071#issuecomment-6709396959"
+        }
+      ],
+      "created_at": "2026-11-07T15:30:51Z",
+      "labels": [
+        "agent-generated"
+      ],
+      "number": 11071,
+      "state": "closed",
+      "state_reason": "completed",
+      "title": "[harbor] Preserve Pi reasoning, tool errors, and final metrics in ATIF",
+      "updated_at": "2026-11-07T15:55:54Z",
+      "updated_in_target_window": true,
+      "url": "https://github.com/marin-community/marin/issues/11071"
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "body": "The November 7 Grug multislice canary failed during dataset preparation. Seven Nemotron jobs plus the StarCoder and ProofPile steps reported `ValueError: No training files matched configured patterns` under `gs://marin-us-east5/raw/`. The launcher exited with `RuntimeError: 9 step(s) failed` before submitting a TPU training job. This repeats #11042; the proposed fix in #11070 is still open and is absent from the failing revision `33748734802cbb9839a99731260bcc1977e1530e`.\n\nReproduce:\n1. Run `uv run fsutil ls gs://marin-us-east5/raw/nemotro-cc-eeb783`; it raises `FileNotFoundError`.\n2. Run `uv run fsutil ls gs://marin-us-east5/tokenized/nemotron_cc/low_synth-3c57b3`; it lists only `.executor_info` and `.executor_status`. The status file contains `FAILED`.\n\nExpected: the canary resolves prepared dataset inputs and runs its five TPU training steps.\n\nThe [diagnostics artifact](https://github.com/marin-community/marin/actions/runs/42391975743/artifacts/13581418411) records all seven Nemotron child failures. Finelog deployment `marin`, namespace `log`, records the low-synthetic traceback at key `/runner/iris-run-job-20261107-163507/nemotron_cc-low_synth-llama3_2f20e3eb-27ab4021/0:0`, seq 30860770276–30860770287; the launcher log at key `/runner/iris-run-job-20261107-163507/0:0` records the StarCoder and ProofPile errors at seq 30860762675 and 30860762742. The [Actions wait step](https://github.com/marin-community/marin/actions/runs/42391975743/job/128461259513) reports the parent failure.\n\n## Canary run context\n\n- Lane: `grug-multislice` (GCP TPU); date: 2026-11-07 UTC\n- Iris job: `/runner/iris-run-job-20261107-163507`\n- [GitHub Actions run](https://github.com/marin-community/marin/actions/runs/42391975743)\n- [Configured W&B run](https://wandb.ai/marin-community/marin/runs/grug-multislice-smoke-42391975743-1) (training did not start)\n",
+      "closed_at": null,
+      "comments": [],
+      "created_at": "2026-11-07T16:43:10Z",
+      "labels": [
+        "bug",
+        "agent-generated",
+        "canary"
+      ],
+      "number": 11074,
+      "state": "open",
+      "state_reason": null,
+      "title": "[canary-grug-multislice] Nov 7 smoke fails on east5 dataset pins",
+      "updated_at": "2026-11-07T16:43:10Z",
+      "updated_in_target_window": true,
+      "url": "https://github.com/marin-community/marin/issues/11074"
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "body": "The [November 7 SkyRL nightly](https://github.com/marin-community/marin/actions/runs/42386166991) left three lanes active on `cw-rno2a` after their last workload output. The OPD task logged `OK against ci/marin_nightly/specs/opd-qwen3-sync.json` at 15:30 UTC, and Grug logged `48 passed` at 16:11 UTC. Both Actions steps remained active until their 100-minute workflow timeout at 17:03 UTC. Iris recorded only `JobFinalizedTaskKilled` when cleanup cancelled them.\n\nCatCount wrote both parquet files by 15:25 UTC on attempt 1 and 15:45 UTC on attempt 2. Its data child stayed active until each 1,200-second deadline killed the parent, so the training child was never submitted. Iris recorded only `ParentJobTerminated` for the data task. The [CatCount native log](https://github.com/marin-community/marin/actions/runs/42386166991/artifacts/13580134035), [OPD log](https://github.com/marin-community/marin/actions/runs/42386166991/artifacts/13582626696), and [Grug log](https://github.com/marin-community/marin/actions/runs/42386166991/artifacts/13583036603) contain the final workload output. The previous nightly [passed](https://github.com/marin-community/marin/actions/runs/42253717522).\n\nReproduce:\n1. Open the November 7 run and compare each lane's last workload output with its Actions step completion time.\n2. Inspect Iris task events for `/runner/skyrl-nightly-opd-sync-h100-42386166991-1/0`, `/runner/skyrl-nightly-grug-megatron-h100-42386166991-1/0`, and the CatCount data children under `/runner/skyrl-nightly-cat-count-h100-42386166991-1-a1` and `-a2`.\n\nExpected: Iris tasks finish promptly after their commands complete; CatCount advances from data creation to training. A live process or pod trace is needed to distinguish a task cleanup hang from a missed completion event. This run did not capture one. The earlier [CatCount artifact setup stall #10787](https://github.com/marin-community/marin/issues/10787) is related; its exact blocked operation was also unconfirmed. Tracked nightly failure: #10910.\n\nIncident record: https://marina.oa.dev/echo/wiki/948\n",
+      "closed_at": null,
+      "comments": [],
+      "created_at": "2026-11-07T17:13:44Z",
+      "labels": [
+        "bug",
+        "agent-generated"
+      ],
+      "number": 11077,
+      "state": "open",
+      "state_reason": null,
+      "title": "[iris] cw-rno2a SkyRL tasks stall after final workload output",
+      "updated_at": "2026-11-07T17:14:42Z",
+      "updated_in_target_window": true,
+      "url": "https://github.com/marin-community/marin/issues/11077"
+    },
+    {
+      "author": "github-actions[bot]",
+      "body": "Automated tracking issue for failures of the `skyrl-nightly` scheduled run.\n\nEach failure adds a comment below with the run link and a log excerpt, and asks\na weaver session to triage. A repository-local fix PR should close this issue\nwith a Fixes link. If no fix PR is warranted, close the issue once the lane\nis green again. The next failure opens a fresh issue.\n",
+      "closed_at": null,
+      "comments": [
+        {
+          "author": "marin-ci",
+          "body": "@weaverbot The scheduled `skyrl-nightly` run failed — triage it.\n\n- Failing run: https://github.com/marin-community/marin/actions/runs/41871379081 (`gh run view 41871379081 --log-failed -R marin-community/marin`)\n- Diagnose the root cause and post your findings as a comment on this issue.\n- If the fix belongs in this repo, open a PR. If the cause is Marin/Iris\n  infrastructure, file or link an issue in marin-community/marin instead and\n  note it here.\n- A PR in this repo that fixes the tracked failure must end its body with\n  Fixes #10910 so merging it closes this issue. Use\n  Part of #10910 only when the PR does not restore the lane.\n- When you are completely done (findings posted, any PR opened), clean up\n  after yourself: post your wrap-up comment, then as your literal final\n  action run `loom session archive $(git branch --show-current)` to tear\n  down your own session (branch and history survive; recoverable with\n  `loom session recover`). Skip the archive if you opened a PR — the\n  session auto-archives when the PR merges, and staying live lets you\n  respond to review feedback.\n\nThe nightly runs OPD, Grug Megatron and the asynchronous CatCount learning gate through WIF-authenticated Iris jobs. CatCount reports INFRASTRUCTURE_FAILURE and retries once when no native training row reached the log. Failures after training starts and metric violations are GATE_FAILURE. Inspect the native log to distinguish placement, connection, lock, native-extension and training failures. A repository-local PR that fixes the tracked failure must end its body with a Fixes link to this issue. Use Part of only when the PR does not restore the lane.\n\n<details><summary>Failed-step log excerpt</summary>\n\n```\n(no failed-job logs were available when this was captured)\n```\n\n</details>\n",
+          "created_at": "2026-11-04T17:37:42Z",
+          "id": 6637590931,
+          "updated_at": "2026-11-04T17:37:42Z",
+          "url": "https://github.com/marin-community/marin/issues/10910#issuecomment-6637590931"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "~~On it~~ — this session was relaunched; the live status card is below.",
+          "created_at": "2026-11-04T17:37:52Z",
+          "id": 6637594171,
+          "updated_at": "2026-11-07T17:04:22Z",
+          "url": "https://github.com/marin-community/marin/issues/10910#issuecomment-6637594171"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 OPD and CatCount failed before training with `KeyError: 'IRIS_TERMINATION_GRACE_MS'` in `iris.cluster.client.job_info.get_job_info()`. [OPD's native log](https://github.com/marin-community/marin/actions/runs/41871379081/artifacts/13345061452) shows the exception when its telemetry wrapper starts. [CatCount's log](https://github.com/marin-community/marin/actions/runs/41871379081/artifacts/13343559159) shows the same exception on both attempts; no `WANDB_MIRROR kind=train` row appeared. Grug Megatron passed.\n\nThe `cw-rno2a` controller reports version `260d937671` (checked at 17:41 UTC). That revision's [task environment builder](https://github.com/marin-community/marin/blob/260d93767112780da77918f2c3394ee09608bf04/lib/iris/src/iris/cluster/runtime/env.py#L250-L270) does not set the variable. The [job bundle in this run](https://github.com/marin-community/marin/blob/006d38cdc9b6ba7fad8d42143ab9c1040ebe92fb/lib/iris/src/iris/cluster/client/job_info.py#L129) requires it after #10774. This is a deployed Iris runtime and task-bundle version mismatch, matching the [existing infrastructure issue #10902](https://github.com/marin-community/marin/issues/10902) and [incident record](https://marina.oa.dev/echo/wiki/924).\n\nThe Iris runtime needs a coordinated update, followed by a green SkyRL nightly run. The repository code already sets the variable in current task environments, so this failure does not call for another code PR. I am leaving #10910 open until the lane is green.\n",
+          "created_at": "2026-11-04T17:42:50Z",
+          "id": 6637690039,
+          "updated_at": "2026-11-04T17:42:50Z",
+          "url": "https://github.com/marin-community/marin/issues/10910#issuecomment-6637690039"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 Triage complete for [SkyRL nightly run 41871379081](https://github.com/marin-community/marin/actions/runs/41871379081). OPD and both CatCount attempts exited before training because `get_job_info()` required `IRIS_TERMINATION_GRACE_MS`; Grug Megatron passed. The `cw-rno2a` Iris controller is still at `260d937671`, before the change that supplies this variable. The native-log evidence and version comparison are in the [findings comment](https://github.com/marin-community/marin/issues/10910#issuecomment-6637690039).\n\nThe required Iris runtime update is tracked by [infrastructure issue #10902](https://github.com/marin-community/marin/issues/10902), and the [shared incident record](https://marina.oa.dev/echo/wiki/924) now includes this lane. No repository PR is warranted for this deployed-version mismatch. #10910 stays open until the SkyRL nightly is green again.\n",
+          "created_at": "2026-11-04T17:44:30Z",
+          "id": 6637724906,
+          "updated_at": "2026-11-04T17:44:30Z",
+          "url": "https://github.com/marin-community/marin/issues/10910#issuecomment-6637724906"
+        },
+        {
+          "author": "yonromai",
+          "body": "🤖 #10911 merged as `8d78991477` and restores the 10-second default when `IRIS_TERMINATION_GRACE_MS` is absent. This addresses the startup failure caused by older Iris runtimes omitting that metadata. CI passed, including CoreWeave smoke.\n\nConfirmation from this scheduled lane is pending; this issue stays open until a run containing the fix passes. The [incident record](https://marina.oa.dev/echo/wiki/924) tracks verification.\n",
+          "created_at": "2026-11-04T20:41:25Z",
+          "id": 6641594246,
+          "updated_at": "2026-11-04T20:41:25Z",
+          "url": "https://github.com/marin-community/marin/issues/10910#issuecomment-6641594246"
+        },
+        {
+          "author": "marin-ci",
+          "body": "@weaverbot The scheduled `skyrl-nightly` run failed — triage it.\n\n- Failing run: https://github.com/marin-community/marin/actions/runs/42386166991 (`gh run view 42386166991 --log-failed -R marin-community/marin`)\n- Diagnose the root cause and post your findings as a comment on this issue.\n- If the fix belongs in this repo, open a PR. If the cause is Marin/Iris\n  infrastructure, file or link an issue in marin-community/marin instead and\n  note it here.\n- A PR in this repo that fixes the tracked failure must end its body with\n  Fixes #10910 so merging it closes this issue. Use\n  Part of #10910 only when the PR does not restore the lane.\n- When you are completely done (findings posted, any PR opened), clean up\n  after yourself: post your wrap-up comment, then as your literal final\n  action run `loom session archive $(git branch --show-current)` to tear\n  down your own session (branch and history survive; recoverable with\n  `loom session recover`). Skip the archive if you opened a PR — the\n  session auto-archives when the PR merges, and staying live lets you\n  respond to review feedback.\n\nThe nightly runs OPD, Grug Megatron and the asynchronous CatCount learning gate through WIF-authenticated Iris jobs. CatCount reports INFRASTRUCTURE_FAILURE and retries once when no native training row reached the log. Failures after training starts and metric violations are GATE_FAILURE. Inspect the native log to distinguish placement, connection, lock, native-extension and training failures. A repository-local PR that fixes the tracked failure must end its body with a Fixes link to this issue. Use Part of only when the PR does not restore the lane.\n\n<details><summary>Failed-step log excerpt</summary>\n\n```\n(no failed-job logs were available when this was captured)\n```\n\n</details>\n",
+          "created_at": "2026-11-07T17:04:12Z",
+          "id": 6710373799,
+          "updated_at": "2026-11-07T17:04:12Z",
+          "url": "https://github.com/marin-community/marin/issues/10910#issuecomment-6710373799"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "On it — https://loom.oa.dev/s/a5mdt72i\n\n- 🟢 `Nov  4 17:38Z` Triaging skyrl-nightly run 41871379081\n- 🟠 `Nov  4 17:44Z` **attention** — SkyRL triaged: Iris runtime rollout needed; https://github.com/marin-community/marin/issues/10910#issuecomment-6637690039\n- 🟢 `Nov  7 17:04Z` Triaging scheduled run #42386166991 for issue #10910\n- 🟠 `Nov  7 17:15Z` **attention** — SkyRL nightly triaged: Iris completion stall tracked in https://github.com/marin-community/marin/issues/11077; operator diagnosis and a green nightly remain",
+          "created_at": "2026-11-07T17:04:22Z",
+          "id": 6710376163,
+          "updated_at": "2026-11-07T17:15:25Z",
+          "url": "https://github.com/marin-community/marin/issues/10910#issuecomment-6710376163"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 The [November 7 SkyRL nightly](https://github.com/marin-community/marin/actions/runs/42386166991) failed because its `cw-rno2a` Iris jobs stayed active after their last workload output. The exact blocked operation is still unconfirmed.\n\nCatCount wrote its train and validation parquet files on both attempts, then each attempt hit the 1,200-second deadline with exit 137. [Its native log](https://github.com/marin-community/marin/actions/runs/42386166991/artifacts/13580134035) has no `WANDB_MIRROR kind=train` row. Iris shows only the coordinator and data child for each attempt; no training job was submitted. [OPD](https://github.com/marin-community/marin/actions/runs/42386166991/artifacts/13582626696) printed `OK against ci/marin_nightly/specs/opd-qwen3-sync.json` at 15:30 UTC, and [Grug](https://github.com/marin-community/marin/actions/runs/42386166991/artifacts/13583036603) printed `48 passed` at 16:11 UTC. Both jobs remained active until the workflow's 100-minute timeout cancelled them at 17:03 UTC. Iris task events show cancellation, with no earlier completion event. The [November 6 run passed](https://github.com/marin-community/marin/actions/runs/42253717522), so this is distinct from the earlier missing `IRIS_TERMINATION_GRACE_MS` failure addressed by #10911.\n\nThe cross-lane stall is tracked in [infrastructure issue #11077](https://github.com/marin-community/marin/issues/11077) and the [incident record](https://marina.oa.dev/echo/wiki/948). The earlier [CatCount artifact stall #10787](https://github.com/marin-community/marin/issues/10787) is related history. A live pod or process trace is needed to distinguish task cleanup from missed completion observation. No repository PR is warranted on the available evidence. #10910 remains open until a subsequent SkyRL nightly passes.\n",
+          "created_at": "2026-11-07T17:15:41Z",
+          "id": 6710528714,
+          "updated_at": "2026-11-07T17:15:41Z",
+          "url": "https://github.com/marin-community/marin/issues/10910#issuecomment-6710528714"
+        }
+      ],
+      "created_at": "2026-11-04T17:37:41Z",
+      "labels": [
+        "agent-generated",
+        "nightly-failure"
+      ],
+      "number": 10910,
+      "state": "open",
+      "state_reason": null,
+      "title": "[nightly-gsm8k-h100-and-grug-megatron-h100] scheduled run failing",
+      "updated_at": "2026-11-07T17:15:41Z",
+      "updated_in_target_window": true,
+      "url": "https://github.com/marin-community/marin/issues/10910"
+    }
+  ],
+  "observation_end": "2026-11-08T09:03:34Z",
+  "source": "marin-community/marin",
+  "spillover_comment_count": 95,
+  "spillover_issue_count": 3,
+  "spillover_issues": [
+    {
+      "author": "penfever",
+      "body": "One pod whose container exec fails in the runtime makes every Iris controller control tick raise. While that pod stays in that state, the controller dispatches and cleans up nothing.\n\nOn cw-rno2a, no task attempt has reached RUNNING in the controller database since 2026-11-06 21:59 UTC. 80 tasks across 8 users sit in `TASK_STATE_ASSIGNED`. Their pods can exist and run, because `sync` applies new pods before the polling step that raises. The controller never records them as running, so jobs that wait on a child's terminal state stall. The `marin` and `cw-us-east-02a` clusters are unaffected. The controller (build `260d937671`) logs this on every tick:\n\n```\niris.cluster.controller.controller Control tick failed\n  controller.py:1087 _control_tick -> self.backend.reconcile(...)\n  backends/k8s/tasks.py:2658 sync -> self._poll_pods(...)\n  backends/k8s/tasks.py:3278 _poll_pods -> self._finalize_task_outputs(entry, pod_name, pod)\n  backends/k8s/tasks.py:3173 _finalize_task_outputs -> self.kubectl.exec(pod_name, [\"touch\", OUTPUT_RELEASE_PATH], ...)\n  platforms/k8s/service.py:760 exec -> ExecResult(returncode=resp.returncode, ...)\n  kubernetes/stream/ws_client.py:292 returncode -> int(err['details']['causes'][0]['message'])\nValueError: invalid literal for int() with base 10: 'Internal error occurred: error executing command in container: failed to exec in container: failed to start exec \"f3d16a5d…\": OCI runtime exec f…'\n```\n\nWhen the runtime cannot start the exec, kubernetes-client 36.0.3 parses a non-numeric failure cause as the exit code. `CloudK8sService.exec` catches only `ApiException` and `TransportError`, and `_finalize_task_outputs` catches only `KubectlError`. The `ValueError` therefore escapes `sync`, `reconcile` and `_control_tick`, and the tick never commits. The same code is on current `main`.\n\nReproduce (unit level): call `CloudK8sService.exec` with a closed exec stream whose `returncode` is `kubernetes.stream.ws_client.WSClient.returncode`, and whose error channel returns `{\"status\": \"Failure\", \"details\": {\"causes\": [{\"message\": \"Internal error occurred: ... OCI runtime exec failed\"}]}}`. It raises `ValueError` instead of returning a failed `ExecResult`. Live: submit any job to cw-rno2a, for example `iris --cluster=cw-rno2a job run --cpu 0.1 --memory 256MB -- echo ok`. It stays ASSIGNED in the controller database. `iris rpc controller get-kubernetes-cluster-status` is not reliable here: its pod cache refreshes inside the failing tick, so it is stale.\n\nNo test covers this. `test_cloud_k8s_service.py` fakes exec streams only with integer return codes, and no provider or controller test asserts that one pod's unexpected error leaves the rest of `sync` and the tick intact.\n\nExpected: an exec that cannot start returns a failed `ExecResult` (or a `KubectlError`), and one pod's failure in `_poll_pods` cannot abort reconcile for the whole cluster. Tests cover both.\n",
+      "closed_at": null,
+      "comments": [
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 ## Research\n\n`CloudK8sService.exec` reads the Kubernetes websocket's `returncode`, whose client parser raises `ValueError` when the runtime reports an OCI exec failure as a nonnumeric cause. `_finalize_task_outputs` catches only `KubectlError`, so that exception escapes pod polling and aborts the controller tick.\n\nRelevant code:\n- [`service.py#L760`](https://github.com/marin-community/marin/blob/33748734802cbb9839a99731260bcc1977e1530e/lib/iris/src/iris/cluster/platforms/k8s/service.py#L760): reads the websocket exit code.\n- [`tasks.py#L3179`](https://github.com/marin-community/marin/blob/33748734802cbb9839a99731260bcc1977e1530e/lib/iris/src/iris/cluster/backends/k8s/tasks.py#L3179): releases the output uploader.\n- [`tasks.py#L3285`](https://github.com/marin-community/marin/blob/33748734802cbb9839a99731260bcc1977e1530e/lib/iris/src/iris/cluster/backends/k8s/tasks.py#L3285): calls finalization during pod polling.\n\n## Proposed Fix\n\nReturn a failed `ExecResult` when the websocket exit code is malformed. Keep output release failures local to that pod so polling can process other tasks, and add regressions for both boundaries.",
+          "created_at": "2026-11-07T16:51:34Z",
+          "id": 6710180525,
+          "updated_at": "2026-11-07T16:51:34Z",
+          "url": "https://github.com/marin-community/marin/issues/11075#issuecomment-6710180525"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 Fix proposed in #11076: malformed Kubernetes exec exit codes now return failed results, and an output release error no longer stops pod polling. The affected-test run passed 1,348 tests; five evaluation tests failed in Shellbox's local backend on this host, and a focused case also failed on `main`. Incident record: https://marina.oa.dev/echo/wiki/947",
+          "created_at": "2026-11-07T17:05:21Z",
+          "id": 6710391085,
+          "updated_at": "2026-11-07T17:05:21Z",
+          "url": "https://github.com/marin-community/marin/issues/11075#issuecomment-6710391085"
+        },
+        {
+          "author": "penfever",
+          "body": "@rjpower seems like this bug has RNO2A in a bad state, blocking a bunch of jobs",
+          "created_at": "2026-11-07T17:05:21Z",
+          "id": 6710391107,
+          "updated_at": "2026-11-07T17:05:21Z",
+          "url": "https://github.com/marin-community/marin/issues/11075#issuecomment-6710391107"
+        },
+        {
+          "author": "rjpower",
+          "body": "@penfever looking into it.",
+          "created_at": "2026-11-08T08:48:39Z",
+          "id": 6719452507,
+          "updated_at": "2026-11-08T08:48:39Z",
+          "url": "https://github.com/marin-community/marin/issues/11075#issuecomment-6719452507"
+        }
+      ],
+      "created_at": "2026-11-07T16:48:29Z",
+      "labels": [
+        "bug",
+        "agent-generated"
+      ],
+      "number": 11075,
+      "state": "open",
+      "state_reason": null,
+      "title": "[iris] One failed pod exec aborts every k8s controller tick, stalling the cluster",
+      "updated_at": "2026-11-08T08:48:40Z",
+      "updated_in_target_window": false,
+      "url": "https://github.com/marin-community/marin/issues/11075"
+    },
+    {
+      "author": "rjpower",
+      "body": "Hero run started on August 19th. This should be a terse log of status events and interventions since then.\n\n```\n./experiments/grug/moe_hero_ep/trigger_hero.sh\n```\n",
+      "closed_at": null,
+      "comments": [
+        {
+          "author": "rjpower",
+          "body": "August 20th: noticed that we are OOMing every ~3 hours.\n\nWe attempted interventions to adjust XLA_PYTHON_CLIENT_MEM_FRACTION=0.83 (giving XLA more memory). This made things worse. \n\n--xla_gpu_memory_limit_slop_factor seems to be another promising tunable. Adjusting to 0.88 from the default 0.95 didn't help. Testing with 0.85 now.\n\nIn theory fraction 0.83 with slop 88 strictly dominates the baseline, as a followup to test if the lowered thresholds don't hold.",
+          "created_at": "2026-08-20T23:22:04Z",
+          "id": 5363258940,
+          "updated_at": "2026-08-20T23:39:44Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5363258940"
+        },
+        {
+          "author": "muchanem",
+          "body": "04:06:44 UTC — at step ~2359 (loss 1.78), GPUs on node s9vrxs64 (task 9, with tasks 4/8 in the same rack failing alongside) hit `CUDA_ERROR_NVLINK_UNCORRECTABLE: uncorrectable NVLink error detected during the execution`",
+          "created_at": "2026-08-21T04:31:59Z",
+          "id": 5365222655,
+          "updated_at": "2026-08-21T04:31:59Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5365222655"
+        },
+        {
+          "author": "ravwojdyla",
+          "body": "For completeness of the log: on August 19th 8:30pm PT, step 164, manual test of resume failed due to host OOM, fixed and resumed via https://github.com/marin-community/marin/pull/8480",
+          "created_at": "2026-08-21T15:59:48Z",
+          "id": 5372233783,
+          "updated_at": "2026-08-21T15:59:48Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5372233783"
+        },
+        {
+          "author": "rjpower",
+          "body": "We observed periodic host OOMs after several checkpoints. https://echo.oa.dev/wiki/200 . Restarting with the following changes:\n\n1. Tensorstore restore parallelism bounded by a fixed budget\n2. Checkpoint offload cache to 16GB\n3. malloc_trim() calls after each checkpoint\n\nin theory 2 will make checkpoints faster (fully async), and 3 will prevent the host OOM recurrence",
+          "created_at": "2026-08-21T18:27:40Z",
+          "id": 5373722833,
+          "updated_at": "2026-08-21T18:27:40Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5373722833"
+        },
+        {
+          "author": "rjpower",
+          "body": "`malloc_trim` was still inconsistently resulting in OOMs during checkpointing. Restarting on main with the jemalloc changes in.\n\nRestores were hitting single worker stalls. Merged and running with #8584 . First restore after this change was successful, though it might have been luck/caching.",
+          "created_at": "2026-08-22T15:43:25Z",
+          "id": 5381228200,
+          "updated_at": "2026-08-22T17:21:19Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5381228200"
+        },
+        {
+          "author": "rjpower",
+          "body": "🤖 Relaunched after a checkpoint-time OOM\n\nThe `coord-fast-restore` instance OOMed while saving step 11252 at 22:57 UTC. Iris retried the 176-task child, so the root was cancelled to avoid overlapping production gangs.\n\nReplacement: https://iris.oa.dev/#/job/%2Fpower%2Fhero-12d8b6f0-dee637-coord-memfix\n\nThe replacement uses `main` at `8aaeb40fe2dd152734801edafe474f8e52ef78f8`, the existing `hero-12d8b6f0-dee637` run ID, size `d6144`, version `2026.08.19.2`, and the existing W&B/output lineage. The launcher will select the newest complete checkpoint. The coordinator uses JAX port `32615`.\n\nCurrent status: the coordinator is running and waiting for the Marin step lock held by the previous instance to expire. Next check is lock acquisition, 176-task gang dispatch, and checkpoint restore.\n",
+          "created_at": "2026-08-23T23:11:34Z",
+          "id": 5389008642,
+          "updated_at": "2026-08-23T23:11:34Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5389008642"
+        },
+        {
+          "author": "rjpower",
+          "body": "🤖 Memory sampling on the current `coord-memfix` instance isolates checkpoint-correlated retained RSS to writer tasks 0–127. Their median floor rose 11.7 GiB after the first save and 4.4 GiB after the second; tasks 128–175 stayed on the baseline slope. Each writer rank was assigned about 9.5–10.2 GiB, and `/proc` attributes the retained difference to anonymous memory across the four child Python processes.\n\nThe run contains #8609. The signature matches its documented persistent CUDA pinned-host BFC pool cost. The smaller second increment does not support projecting a fixed 30 GiB leak per save.\n\nIncident record: https://echo.oa.dev/wiki/227",
+          "created_at": "2026-08-24T01:28:38Z",
+          "id": 5389681869,
+          "updated_at": "2026-08-24T01:28:38Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5389681869"
+        },
+        {
+          "author": "rjpower",
+          "body": "🤖 Correction after tracing the current checkpoint path: the long-lived `GlobalAsyncCheckpointManager` keeps the completed TensorStore commit futures in `_commit_futures`; `wait_until_finished()` joins but does not clear them, and the writes allow indefinite source-buffer references. This mechanism predates #8609 and plausibly retains one staged checkpoint share per writer rank. PR #8599 contained a reviewed post-join cleanup for these futures, but that part did not land with #8609. The pinned-host BFC pool in #8609 remains an additional allocator-level floor that clearing the manager cannot purge. Updated evidence and safe cleanup boundaries: https://echo.oa.dev/wiki/227",
+          "created_at": "2026-08-24T01:36:39Z",
+          "id": 5389725084,
+          "updated_at": "2026-08-24T01:36:39Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5389725084"
+        },
+        {
+          "author": "ravwojdyla",
+          "body": "🤖 At 08:52:52 UTC, training task 8 OOMed during checkpoint serialization. The 2 GB coordinator OOMed 16 seconds later. Its zero failure retry budget then stopped the 176-task child job.\n\nEvidence: https://echo.oa.dev/wiki/232\n\nPR #8617 adds the production trigger with a 4 GB coordinator and a failure retry budget of 1000: https://github.com/marin-community/marin/pull/8617\n\nResumed job: https://iris.oa.dev/#/job/%2Frav%2Fhero-12d8b6f0-dee637-coord-84a0012f%2Fgrug-train-hero-12d8b6f0-dee637",
+          "created_at": "2026-08-24T11:03:59Z",
+          "id": 5394314776,
+          "updated_at": "2026-08-24T11:03:59Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5394314776"
+        },
+        {
+          "author": "rjpower",
+          "body": "🤖 The loader-cache ablation is complete. On two trays with the Harrier mixture, global batch 1024, and sequence length 4096, the profiler-free 1 GB/process arm delivered 0.937 batches/s including cold start versus 0.956 batches/s at 125 GB/process. The hero runs at 19.9 s/step (0.050 batches/s), so the 1 GB cap has 18.6x headroom and bounds the decoded cache near 0.923 GiB/process. Report: https://echo.oa.dev/wiki/235",
+          "created_at": "2026-08-24T21:29:34Z",
+          "id": 5401613236,
+          "updated_at": "2026-08-24T21:29:34Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5401613236"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 Attempt 0 failed after node `s6htxs64` lost connectivity. At 16:53:31 UTC, JAX reported that process IDs 333–335 had stopped sending heartbeats; startup logs map those IDs to local ranks 1–3 of Iris task 83 on that node. Kubernetes marked the node `NotReady` 11 seconds later, CoreWeave cordoned it for `ConnectivityUpdateTime`, and the node rebooted at 17:07. No OOM, CUDA, NCCL, or training exception preceded the failure. The tenant-visible events do not identify why connectivity was lost.\n\nIris atomically retried the 176-task gang. Attempt 1 resumed at step 27,000 and was training when checked at 17:15 UTC.\n\nIncident record: https://echo.oa.dev/wiki/270",
+          "created_at": "2026-08-27T17:16:28Z",
+          "id": 5442658185,
+          "updated_at": "2026-08-27T17:16:28Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5442658185"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 Echo incident record: https://echo.oa.dev/wiki/310\n\nAttempt 1 stalled after step 50195 when task 83 host s55sxs64 / 10.186.210.49 logged a local IB port error and later entered IBFlappingSingleNodeInterface. Attempt 2 restored step 50191 and reached step 50207 with clean telemetry and RAS. No live run action is required.",
+          "created_at": "2026-09-02T00:25:58Z",
+          "id": 5502471700,
+          "updated_at": "2026-09-02T00:26:13Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5502471700"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Hero backend swap to ragged all-to-all (main `8e48cdb3ca`), 2026-09-02. The pooled-wave hero `hero-12d8b6f0-dee637` was stopped at step 54262 (22:27Z). The replacement runs under a new run id, `hero-ragged_a2a-ep-step54k`, resuming full state from the old run's `step-54000` permanent checkpoint via `--initialize-from-checkpoint` (#8868) so the old run's W&B history and checkpoint tree stay intact. Launched 23:26Z; first step 00:03Z after a 15-min cold data-loader fetch and a ~14-min cold compile. Through step 54054 on the same batches as the control: loss tracks the old run step for step at a constant −0.006 nats (dropless), drop fraction 3.4e-2 → <1e-4, MFU 20.5 → 23.3%, 16.8 s/step vs 18.5. Go/no-go at step 54200 (~01:00Z) from the side-by-side report: https://wandb.ai/marin-community/marin_moe/reports/ep_change:-hero-ragged-a2a-swap,-200-step-trial--VmlldzoxNzg1ODIzMA== Rollback, if needed, is `trigger_hero.sh` at `04751985c7`, which resumes the old run from step-54000. Capacity-limited eval is off on the new run (#8859, #8861); dashboards move to the dropless eval in #8862.\n",
+          "created_at": "2026-09-03T00:19:44Z",
+          "id": 5518372559,
+          "updated_at": "2026-09-03T00:19:44Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5518372559"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Rolled back at 01:15Z. The ragged hero (`hero-ragged_a2a-ep-step54k`) hung twice: step 54071 on attempt 0 (after 70 clean steps at 23.4% MFU, loss matching the old run step for step) and step 54001 on attempt 1, each time on one rack's EP domain, with no error logged; the progress watchdog killed each attempt after 15 min. Evidence and analysis in #8870. The old code (`04751985c7`, run `hero-12d8b6f0-dee637`) was relaunched from the same `step-54000` permanent checkpoint at 01:15Z as `/marin/hero-12d8b6f0-dee637-coord-e3052688`; its checkpoint tree and W&B history were never written by the ragged run. Net cost of the trial: ~3 h of the 11 racks and the old run's steps 54001–54262.\n",
+          "created_at": "2026-09-03T01:16:59Z",
+          "id": 5518830230,
+          "updated_at": "2026-09-03T01:16:59Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5518830230"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Rollback verified. `/marin/hero-12d8b6f0-dee637-coord-e3052688` (`04751985c7`) restored `step-54000` at 01:20Z and is training at ~17 s/step with loss matching its own earlier trajectory step for step (54002: 1.24686 vs 1.2465; 54008: 1.2574 vs 1.2574). Steps 54001–54262 are a replay of what the pooled-wave run had already trained before the swap, so the W&B run shows no new rows until it passes 54262 (~02:40Z); finelog/Grafana carry every step now. No config change from before the swap; the next permanent checkpoint is step 60000.\n",
+          "created_at": "2026-09-03T01:31:10Z",
+          "id": 5518941160,
+          "updated_at": "2026-09-03T01:31:10Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5518941160"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Paused for the #8870 debugging window and redeployed from main. A checkpoint was forced through the training-control endpoint before the cancel, so the pause cost about one step instead of the ~131 (~44 min, ~515 GPU-hours) that killing at a random point in the hourly temporary-checkpoint cycle would have discarded: `step-58014` committed 23:13:13Z and was verified complete (`manifest.json`, `manifest.ocdbt`, `metadata.json`, 28,098 objects, 5.36 TB). `/marin/hero-12d8b6f0-dee637-coord-e3052688` was cancelled at 23:14:12Z having last logged step 58.0k at loss 1.22.\n\nThe window ran 11 racks from 23:16Z to 00:40Z across two jobs and did not reproduce the hang: 164 steps then 71, 235 in total, at the hero's exact shape restored from the same `step-54000` the two failed attempts used. Details in #8870.\n\nRedeployed at 00:41:36Z from a pristine worktree at `origin/main` `023ed7a24d` as `/marin/hero-wd-gate-router-p02-step58k-coord-95c15d9b`, run id `hero-wd-gate-router-p02-step58k`, submitted with `IRIS_USER=marin`. It carries two changes relative to the paused run: the pooled-wave fallback (#8884, which the paused run was already effectively running) and gate/router weight decay on by default at 0.02 annealed linearly to zero (#8833). The launch args were diffed against the paused run's own recorded argv and match on every field except run id, job name, `--initialize-from-checkpoint`, and the `--system-reason` string.\n\nResume verified: the gang placed in ~80 s, 177 tasks, and the restore names `step-58014` under the temporary root rather than falling back to the `step-54000` permanent, which would have discarded ~4,000 steps. First step 00:50:12Z; now training at ~18.4 s/step, MFU ~21%, loss ~1.24, continuous with the 1.22-1.25 before the pause, and logging to W&B as `hero-wd-gate-router-p02-step58k`.\n\nNet cost: ~96 min of the 11 racks, of which ~84 was the window and ~9 startup.\n\nNote for #8833: that experiment's launcher originally handed off from `step-54000`; #8890 repointed it at `step-58014` so the relaunch would not discard the day of training since. Its control is therefore the paused hero's own trajectory from 58014, not the step-54000 one.\n",
+          "created_at": "2026-09-04T01:07:13Z",
+          "id": 5534208221,
+          "updated_at": "2026-09-04T01:07:13Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5534208221"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-wd-gate-router-p02-step58k`\n- Commit: `0908920c86db7eb549094bd33d0e81c0c3ec4846`\n- Tree dirty: `false`\n- Coordinator job: `hero-wd-gate-router-p02-step58k-coord-55970f3d`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-04T23:32:14Z",
+          "id": 5547644106,
+          "updated_at": "2026-09-04T23:32:14Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5547644106"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 Incident record for the 2026-09-05 training retry after InfiniBand port errors: https://marina.oa.dev/echo/wiki/347",
+          "created_at": "2026-09-05T18:19:13Z",
+          "id": 5553842711,
+          "updated_at": "2026-09-05T18:19:13Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5553842711"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Plan for today's redeployment of the hero on the ragged all-to-all transport, 2026-09-09. The live run `hero-wd-gate-router-p02-step58k` (commit `0908920c86`) is at step ~81.5k at 19.8 s/step, loss ~1.23.\n\nSequence: merge #8959 (QuACK 0.6.4, the grouped-GEMM scheduler fix) and #9043 (ragged transport and fp32 weights on device back as the hero default, reverting #8884), then force a checkpoint on the live run through the training-control endpoint about 70 minutes before the cutover, mark its metadata non-temporary so the hourly temporary save does not prune it, open the launcher PR pointing `trigger_hero.sh` at it under run id `hero-ragged_a2a-ep-step<N>k`, let the old run train 200 steps past it as the paired control, cancel the old coordinator, and launch main from a pristine worktree as `IRIS_USER=marin`. Waiting for the next permanent checkpoint was rejected: step-84000 lands at ~07:00Z tomorrow and step-90000 on Thursday, and a forced checkpoint costs one step (the step-58014 precedent).\n\nThe new run carries, relative to the live one: the ragged transport with fp32 weights on device (#9043), one train-step executable per rank (#8911), the balanced ragged device kernel wheel (#8976), QuACK 0.6.4 (#8959), and the cross-entropy tile and FA4 padding fixes (#8960, #8961). The root cause of #8870 is still open; the strongest lead is a fabric fault on the racks that land at replica indices 8-10, which the trial cannot avoid.\n\nGate over the 200-step window against the old run on the same batches: loss within bf16 noise of the control after the ~0.006 nat dropless offset, drop fraction below 1e-3, MFU at or above the control's ~21%, no hang, retry, or watchdog. Anything short of that rolls back at once by relaunching `trigger_hero.sh` at `0908920c86`, which resumes the old run's own newest checkpoint. Runbook scripts (preflight with an NVLink counter sweep, cancel, launch, monitor, rollback) are being dry-run read-only against the cluster. A W&B report with both run sets over the trial window will be linked here before launch, along with each transition: forced checkpoint, cancel, launch, first steps, go/no-go.\n",
+          "created_at": "2026-09-09T17:26:25Z",
+          "id": 5606002395,
+          "updated_at": "2026-09-09T17:26:25Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5606002395"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Handoff checkpoint forced on `hero-wd-gate-router-p02-step58k` at 18:26:33Z through the training-control endpoint: `step-81716`, committed 18:28:09Z (5.36 TB, 26,795 objects) under the run's temporary root, metadata rewritten to `is_temporary: false` at 18:30Z so the hourly save keeps it. The old run keeps training; the 200-step control window ends at step 81916, about 19:35Z. #9043 now carries the launcher change (run id `hero-ragged_a2a-ep-step81k`, `--initialize-from-checkpoint` that step), so the cutover needs #8959 and #9043 on main. Side-by-side report for the window: https://wandb.ai/marin-community/marin_moe/reports/ep_change:-hero-ragged-a2a-swap,-200-step-trial-(step-81716)--VmlldzoxNzkwMjQyNQ==\n",
+          "created_at": "2026-09-09T18:31:06Z",
+          "id": 5606812293,
+          "updated_at": "2026-09-09T18:31:06Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5606812293"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-ragged_a2a-ep-step81k`\n- Commit: `9ccc1bd5e4de935039a578b4544d7f29b7199cef`\n- Tree dirty: `false`\n- Coordinator job: `hero-ragged_a2a-ep-step81k-coord-1515615f`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-09T19:34:39Z",
+          "id": 5607600274,
+          "updated_at": "2026-09-09T19:34:39Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5607600274"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Cutover. `/marin/hero-wd-gate-router-p02-step58k-coord-55970f3d` was cancelled at 19:33:50Z and confirmed terminal at 19:34:10Z with step 81919 logged, so the control window 81716-81916 is complete. `hero-ragged_a2a-ep-step81k` launched at 19:34:45Z as `/marin/hero-ragged_a2a-ep-step81k-coord-1515615f` from a pristine worktree at main `9ccc1bd5e4` (#8959 and #9043 included), submitted as `IRIS_USER=marin`, restoring `step-81716` via `--initialize-from-checkpoint`. Expect restore then a cold compile of the ragged executable before the first step, roughly 30 minutes. Rollback is `trigger_hero.sh` at `0908920c86`, which resumes the old tree's newest checkpoint (`step-81716` or a later hourly temporary save).\n",
+          "created_at": "2026-09-09T19:35:15Z",
+          "id": 5607607490,
+          "updated_at": "2026-09-09T19:35:15Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5607607490"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 First steps. `hero-ragged_a2a-ep-step81k` restored `step-81716` (log-confirmed path) at 19:38Z and logged step 81720 at 19:48Z, 14 minutes after launch. Over the first five paired steps against the pooled-wave control on the same batches: loss delta −0.0062 nats (range −0.0061 to −0.0063, the dropless offset seen in the 09-02 trial), capacity overflow rate 9e-5 vs 3.4e-2, tokens/s 2.75M vs 2.52M, load-balancing loss 8.010 vs 8.004, router z loss 16.92 vs 17.10, routing entropy 5.9487 vs 5.9488. The old tree's hourly save wrote `step-81900` at 19:28Z and the protected `step-81716` survived it. Go/no-go at step 81916, about 20:45Z.\n",
+          "created_at": "2026-09-09T19:49:13Z",
+          "id": 5607788308,
+          "updated_at": "2026-09-09T19:49:13Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5607788308"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-ragged_a2a-ep-step81k`\n- Commit: `9ccc1bd5e4de935039a578b4544d7f29b7199cef`\n- Tree dirty: `false`\n- Coordinator job: `hero-ragged_a2a-ep-step81k-coord-d425be66`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-09T20:23:38Z",
+          "id": 5608209836,
+          "updated_at": "2026-09-09T20:23:38Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5608209836"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 The ragged run hung on its first attempt, in the #8870 pattern. `/marin/hero-ragged_a2a-ep-step81k-coord-1515615f` completed 43 steps (81716-81758, first step 19:48:21Z, last 19:59:39Z) on-signature against the control: loss −0.0061 nats, capacity overflow 8e-5 vs 3.4e-2, per-step MFU p50 23.5%. Step 81759 started after a 30-40 s wait for the loader's next 64-item prefetch and never finished. No rank logged an error. Over the stall, tasks 112-127 (rack index 7) sat at 4.0 cores per task against ~8.0 on the other ten racks, and the 20:07:56Z NCCL RAS sample showed every cross-rack AllReduce communicator with one member exactly three operations behind. The watchdog could not fire before ~20:48Z (one-hour startup grace), so the coordinator was cancelled by hand at 20:23:25Z and the same run id relaunched at 20:23:41Z as `/marin/hero-ragged_a2a-ep-step81k-coord-d425be66` from the same commit, restoring `step-81716` again. The run stays up to measure recurrence; rollback to `0908920c86` remains one command.\n",
+          "created_at": "2026-09-09T20:24:06Z",
+          "id": 5608215407,
+          "updated_at": "2026-09-09T20:24:06Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5608215407"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-ragged_a2a-ep-step81k`\n- Commit: `9ccc1bd5e4de935039a578b4544d7f29b7199cef`\n- Tree dirty: `false`\n- Coordinator job: `hero-ragged_a2a-ep-step81k-coord-763359a6`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-09T20:39:01Z",
+          "id": 5608404121,
+          "updated_at": "2026-09-09T20:39:01Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5608404121"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-ragged_a2a-ep-step81k`\n- Commit: `9ccc1bd5e4de935039a578b4544d7f29b7199cef`\n- Tree dirty: `false`\n- Coordinator job: `hero-ragged_a2a-ep-step81k-coord-f48b4a48`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-09T20:48:56Z",
+          "id": 5608541587,
+          "updated_at": "2026-09-09T20:48:56Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5608541587"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Recurrence study, attempts 2 and 3, same commit `9ccc1bd5e4` and handoff `step-81716`. Attempt 2 (`coord-d425be66`, launched 20:23:41Z) restored by 20:28Z, cleared its loader prefetch by 20:31Z, and hung before logging any step: rack index 9 (tasks 144-159) at 4.0 cores per task for over four minutes while the other ten racks held ~8.0; cancelled 20:38:59Z. Attempt 3 (`coord-763359a6`, launched 20:39:04Z) restored at 20:41:44Z, cleared the loader by 20:47:01Z, and hung the same way on rack index 1 (tasks 16-31, 4.1 cores vs 7.6-8.4 elsewhere); cancelled 20:48:54Z. Attempt 4 launched 20:48:59Z as `coord-f48b4a48`. Tally: three hangs in three attempts, on rack indices 7, 9, and 1, after 43, 0, and 0 completed steps. Detection now runs on a 30 s cadence from the per-rack CPU asymmetry in `iris.task` (one rack below 0.6x the median), which called attempts 2 and 3 within about two minutes of the loader clearing. Auto-restart is capped at five.\n",
+          "created_at": "2026-09-09T20:49:14Z",
+          "id": 5608545188,
+          "updated_at": "2026-09-09T20:49:14Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5608545188"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-ragged_a2a-ep-step81k`\n- Commit: `9ccc1bd5e4de935039a578b4544d7f29b7199cef`\n- Tree dirty: `false`\n- Coordinator job: `hero-ragged_a2a-ep-step81k-coord-c6b2ede7`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-09T21:07:43Z",
+          "id": 5608763494,
+          "updated_at": "2026-09-09T21:07:43Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5608763494"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-ragged_a2a-ep-step81k`\n- Commit: `50f42bc43acd58e95d549c534af24a9751015381`\n- Tree dirty: `false`\n- Coordinator job: `hero-ragged_a2a-ep-step81k-coord-72aad6e7`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-09T21:11:18Z",
+          "id": 5608807722,
+          "updated_at": "2026-09-09T21:11:18Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5608807722"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Attempt 4 (`coord-f48b4a48`, launched 20:48:59Z) hung the same way: restore done, loader cleared 20:57:03Z, then no step for ten minutes with rack index 2 (tasks 32-47, every task) at 3.6-4.4 cores against 7.6-9.0 elsewhere. The 21:01:34Z NCCL RAS sample showed every cross-rack AllReduce at min 39 / max 42, the skew of three. The 21:01Z py-spy dumps put every rank, stuck and healthy, inside the jitted executable at `train.py:1176` (`train_step`), not in the loader or compile. Cancelled 21:07:41Z. Attempt 5 (`coord-c6b2ede7`) was cancelled two minutes after submit, before restore, to switch wheels. Tally on main `9ccc1bd5e4`: four hangs in four attempts, rack indices 7, 9, 1, 2, after 43, 0, 0, 0 steps.\n\nAttempt 6 launched 21:11:23Z as `coord-72aad6e7` from local branch commit `50f42bc43a`: `9ccc1bd5e4` plus one change, the PJRT wheel `0.11.1+marin.b183c591142c` (XLA `b183c591142c`, device kernels compiled against NCCL 2.30.7 headers) in place of `3a8f3392723e` (compiled against 2.29.7). The wheel is staged under a 7-day tmp prefix; the branch is not pushed. Everything else, including the step-81716 handoff, is unchanged.\n",
+          "created_at": "2026-09-09T21:11:40Z",
+          "id": 5608811817,
+          "updated_at": "2026-09-09T21:11:40Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5608811817"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Go. Attempt 6 (`coord-72aad6e7`, PJRT wheel `0.11.1+marin.b183c591142c`, device kernels compiled against NCCL 2.30.7 headers, otherwise main `9ccc1bd5e4`) completed the 200-step window 81716-81916 at 22:15Z with no hang, retry, or error, and wrote its first hourly temporary checkpoint (`step-81912`, committed 22:15:03Z) at scale. Paired against the pooled-wave control on the same batches over 196 joined steps: loss delta −0.0064 nats mean (−0.0070 to −0.0058), capacity overflow 1e-4 vs 3.4e-2, MFU 23.3% vs 21.5%, tokens/s 2.73M vs 2.52M, load-balancing loss 8.003 vs 8.004, router z loss 16.94 vs 17.10, peak HBM 103.6 vs 136.3 GiB. Same-day comparison: the 2.29.7-header wheel `3a8f3392723e` hung four of four attempts (rack indices 7, 9, 1, 2; after 43, 0, 0, 0 steps). Report: https://wandb.ai/marin-community/marin_moe/reports/ep_change:-hero-ragged-a2a-swap,-200-step-trial-(step-81716)--VmlldzoxNzkwMjQyNQ==\n\nThe hourly save exposed a monitoring trap: hub finelog ingestion from cw-us-east-08a lagged 7-8 minutes from 22:13Z, so hub reads showed no step, a stopped heartbeat, and no pod telemetry while the regional store had the run at step 81936. Read the regional deployment for liveness. The wheel is on a local branch behind a presigned URL, so the run is not reproducible from main; the plan is to merge #9062 (the same header change as a fork release) and redeploy from main under a new run id, restarting from the old hero's `step-81716` so the lineage stays on main commits.\n",
+          "created_at": "2026-09-09T22:24:57Z",
+          "id": 5609573154,
+          "updated_at": "2026-09-09T22:24:57Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5609573154"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-ragged_a2a-nccl2307-ep-step81k`\n- Commit: `04fb3484560711bafcc98b2975d551363ee95067`\n- Tree dirty: `false`\n- Coordinator job: `hero-ragged_a2a-nccl2307-ep-step81k-coord-ab960585`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-09T22:50:37Z",
+          "id": 5609812430,
+          "updated_at": "2026-09-09T22:50:37Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5609812430"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Redeployed from main. #9062 merged as `04fb348456` (PJRT wheel `0.11.1+marin.b040736f2c4a`, the released build of the NCCL 2.30.7 header change, plus the launcher pointing at the same `step-81716` handoff). The trial coordinator `/marin/hero-ragged_a2a-ep-step81k-coord-72aad6e7` was cancelled at 22:50:30Z at step ~82020 after 300 clean steps; its tree is retained as the trial artifact and is not a lineage source. `hero-ragged_a2a-nccl2307-ep-step81k` launched 22:50:42Z as `/marin/hero-ragged_a2a-nccl2307-ep-step81k-coord-ab960585` from a pristine worktree at `04fb348456`, restoring the old hero's `step-81716` so the lineage stays on main commits; its first 200 steps replay the validated window against the pooled-wave control, which also validates the released binary against the pre-merge build the trial ran. The W&B report's treatment run set now points at the new run id. Between `9ccc1bd5e4` and this commit main also took #9040 (a levanter sharded-datasource fix), which the paired replay will expose if it changes data order.\n\nTelemetry caveat: the regional finelog on cw-us-east-08a has refused queries since ~22:22Z and the hub has nothing newer from it, so `TrainingTelemetryGone` fired at 22:36Z for the trial run while W&B showed it stepping normally. Liveness is being read from W&B until finelog recovers.\n",
+          "created_at": "2026-09-09T22:51:07Z",
+          "id": 5609817090,
+          "updated_at": "2026-09-09T22:51:07Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5609817090"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 200-step result for the redeploy. `hero-ragged_a2a-nccl2307-ep-step81k` (main `04fb348456`, PJRT wheel `0.11.1+marin.b040736f2c4a`) passed step 81916 at 23:57Z with no hang, retry, or error, and committed its first hourly temporary checkpoint (`step-81909`, 23:54:22Z) at scale. Paired against the pooled-wave control on the same batches over 202 steps (W&B history; finelog was intermittently unavailable): loss delta −0.00650 nats mean, range −0.00714 to −0.00581. Against the trial run on the pre-merge build of the same source: mean −0.00008, max abs 0.00046, so the released binary reproduces the trial. Steady-state MFU from step 81740: 23.11% vs the trial's 23.09% (n=178 each); the control's is 21.46%. Capacity overflow rate 7.8e-5 vs 3.4e-2, load-balancing loss 7.999 vs 8.004, router z loss 16.90 vs 17.10, peak HBM 103.6 vs 136.3 GiB, grad norm 0.380 vs 0.373. The run is the hero from here: lineage `hero-wd-gate-router-p02-step58k` step-81716 → this run on main commits; the trial run's tree is retained as an artifact only. W&B: https://wandb.ai/marin-community/marin_moe/runs/hero-ragged_a2a-nccl2307-ep-step81k\n",
+          "created_at": "2026-09-09T23:59:35Z",
+          "id": 5610467489,
+          "updated_at": "2026-09-09T23:59:35Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5610467489"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Restore path verified for the new run's own checkpoints. The hero now writes master-less checkpoints (fp32 weights on device), and every restore so far had read a master-bearing checkpoint from the pooled-wave run through the in-process migration. A one-rack diagnostic (`/mwittmann/restore-nccl2307-82906-coord-d431d3bc`, main `04fb348456`, `launch_diagnostics --checkpoint-path <new run's temp root> --num-steps 82926 --schedule-steps 390251`, metrics only) restored the hero's hourly `step-82906` (marked non-temporary so the hero's next save could not prune it mid-read) and trained 20 steps: loss 1.247 mean (1.201 to 1.285) on the 1024-sequence batch, load-balancing loss 8.04, router z loss 16.88, capacity overflow 2.1e-4, all 16 tasks succeeded with exit 0. A corrupted restore reads as loss above 2 and load-balancing loss above 12. The run trees were not written to; `step-82906` stays as a rollback anchor under the 14-day TTL.\n",
+          "created_at": "2026-09-10T05:18:58Z",
+          "id": 5613579243,
+          "updated_at": "2026-09-10T05:18:58Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5613579243"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 First hang on the NCCL 2.30.7 wheel, after 1590 clean steps. `hero-ragged_a2a-nccl2307-ep-step81k` attempt 0 completed step 83307 at 06:55Z and its hourly save committed `step-83306` at 06:55:45Z; step 83308 then never finished. From 06:58Z rack index 0 (tasks 0-15, the rack holding process 0) sat at 3.9-4.3 cores per task against 7.6-8.3 on the other ten racks, and the 07:02:56Z NCCL RAS sample showed every cross-rack AllReduce at min 230903 / max 230906, one member exactly three operations behind: the #8870 signature. No error lines. The progress watchdog terminated the gang at 07:10:40Z (924.6 s past the step start) and Iris retried; attempt 1 started 07:12Z and restores the run's own `step-83306`, so the retry costs one step plus the restart. Tally across wheels: 2.29.7 headers, 4 hangs in 4 attempts (43, 0, 0, 0 steps); 2.30.7 headers, 1 hang in ~1900 steps across the trial and this run. Two of today's hangs followed a save or a loader prefetch by one step; the rest hit the first step after restore.\n",
+          "created_at": "2026-09-10T07:13:36Z",
+          "id": 5614639876,
+          "updated_at": "2026-09-10T07:13:36Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5614639876"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Recovered. Attempt 1 restored `step-83305` (the hourly save's step; the previous comment said 83306), logged its first step at 07:15:38Z, replayed 83305-83307 with losses identical to attempt 0's (1.23021 and 1.21791 at 83305 and 83306), and passed the hang step 83308 at 07:16:41Z. Stall to recovery: 21 minutes, 3 replayed steps.",
+          "created_at": "2026-09-10T07:17:12Z",
+          "id": 5614680529,
+          "updated_at": "2026-09-10T07:17:12Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5614680529"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 Attempt 0 of `hero-ragged_a2a-nccl2307-ep-step81k` stalled after completed step 83307. NCCL RAS remained responsive with all 76 communicators alive, while 65 AllReduce communicators had frozen cross-rank operation-count gaps. No Kubernetes disruption, GPU fault, or IB error preceded the watchdog. This matches #8870, but the initiating rank, kernel, NIC, or fabric event remains unknown. Iris restored the complete step-83305 checkpoint; the replacement execution reached step 83417 by 07:48:54 UTC. Incident record: https://marina.oa.dev/echo/wiki/385",
+          "created_at": "2026-09-10T07:54:46Z",
+          "id": 5615118768,
+          "updated_at": "2026-09-10T07:54:46Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5615118768"
+        },
+        {
+          "author": "mcwitt",
+          "body": "🤖 Attempt 1 died of an NVLink hardware fault, not the hang. At 08:09:19Z tasks 144 and 158 (rack index 9, tasks 144-159) logged `CUDA_ERROR_NVLINK_UNCORRECTABLE: uncorrectable NVLink error detected`, and ranks on 146 and 147 failed with `JaxRuntimeError ... Could not synchronize CUDA stream: CUDA_ERROR_NVLINK_UNCORRECTABLE`; the gang went down and Iris retried immediately. Attempt 2 (`4d958bd747f6`) started 08:11Z and restores `step-83305` again, since attempt 1 ran 54 minutes and never reached its hourly save, so it replays 83305-83487 (about 55 minutes). Rack index 9 has been on the same physical nodes in every placement this week; it was one of the three racks the 09-04 telemetry window flagged for barrier stragglers, and the 09-05 pooled-wave fault was the same error family on rack index 10. This is the strongest hardware evidence yet for #8870's fabric-fault reading and belongs in the infra ask for NVLink and fabric-manager logs on those racks.",
+          "created_at": "2026-09-10T08:12:35Z",
+          "id": 5615346838,
+          "updated_at": "2026-09-10T08:12:35Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5615346838"
+        },
+        {
+          "author": "Helw150",
+          "body": "🤖 Hero launch requested.\n\n- Run ID: `hero-mix-996f4891-step108k`\n- Commit: `0cb3167f39f17eece3c75c67c0e1a6ade26686a4`\n- Tree dirty: `false`\n- Coordinator job: `hero-mix-996f4891-step108k-coord-b7cb4eda`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-15T17:15:14Z",
+          "id": 5684706768,
+          "updated_at": "2026-09-15T17:15:14Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5684706768"
+        },
+        {
+          "author": "Helw150",
+          "body": "🤖 Mixture swap is training under `hero-mix-996f4891-step108k`. The old coordinator was cancelled; the new coordinator is `/marin/hero-mix-996f4891-step108k-coord-b7cb4eda`, launched from clean main `0cb3167f39` with `IRIS_USER=marin` on 11 GB200 racks. Logs confirm restore from permanent step-108000. Model, optimizer, data components, and pre-switch weights match the old run; the new phase weights match #9162.\n\nAt step 108004: loss 1.2393, step time 17.33s, MFU 22.64%, load-balancing loss 8.019, router z loss 14.591, overflow 0.000121. This is an initial health check, not a quality comparison: the sampled data changed. The 200-step trial is still running.\n\n[New run](https://wandb.ai/marin-community/marin_moe/runs/hero-mix-996f4891-step108k) · [Comparison report](https://github.com/marin-community/marin/issues/9126).\n",
+          "created_at": "2026-09-15T17:27:10Z",
+          "id": 5684891157,
+          "updated_at": "2026-09-18T23:29:44Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5684891157"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Deploying the PDL-off QuACK launchers (#9183) and the validated ragged all-to-all PJRT wheel (#9179) to the hero as `hero-nopdl-step108k`, following the deploy-hero-change playbook. Handoff is `hero-mix-996f4891-step108k`'s hourly checkpoint `step-108778` (metadata marked non-temporary; a durable copy is landing under `hero-checkpoints/marin/grug/hero-mix-996f4891-step108k/2026.08.19.2/checkpoints/step-108778`). The old run trained through step 108981, so the trial window `108778-108978` has its paired control. Cancelling `/marin/hero-mix-996f4891-step108k-coord-b7cb4eda` now; the new run launches from main `8f6f33bebe` as soon as the racks free. Gate: loss equal to the control step for step within bf16 noise, MFU 2-3% above control, drops and router metrics unchanged, no hang or retry in the window. Rollback is the old commit `0cb3167f39` relaunched under the old run id, resuming its newest checkpoint. DRI: mcwitt.\n",
+          "created_at": "2026-09-15T23:20:36Z",
+          "id": 5689462381,
+          "updated_at": "2026-09-15T23:20:36Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5689462381"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-nopdl-step108k`\n- Commit: `8f6f33bebe681ed12ff88a6ed14121990bf2cec3`\n- Tree dirty: `false`\n- Coordinator job: `hero-nopdl-step108k-coord-d446fca8`\n- Target: `cw-us-east-08a` (11 x NVL72)",
+          "created_at": "2026-09-15T23:20:44Z",
+          "id": 5689464022,
+          "updated_at": "2026-09-15T23:20:44Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5689464022"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 `hero-nopdl-step108k` is training. Gang admitted 23:24 UTC, restore from `step-108778` at 23:25, first step at 23:34 (the XLA executable cache was warm; only the QuACK kernels recompiled). Steps 108778-108779 match the control (`hero-mix-996f4891-step108k`, same batches) to within 2.4e-7 in loss and cross entropy, with identical drop fraction (6.9e-5), capacity overflow, and peak memory (103.6 GiB); the first-step MFU is startup noise. No JaxRuntimeError or watchdog line. Trial window runs to step 108978; go/no-go after that against the gate in the cutover note. Report: https://wandb.ai/marin-community/marin_moe/reports/hero-nopdl-step108k:-PDL-off-QuACK-launchers-+-PJRT-708c3a4-wheel,-200-step-trial--VmlldzoxNzk0MTE3NQ==\n",
+          "created_at": "2026-09-15T23:34:49Z",
+          "id": 5689628437,
+          "updated_at": "2026-09-15T23:34:49Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5689628437"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Go: `hero-nopdl-step108k` stays. Over the trial window (steps 108778-108978, same batches as `hero-mix-996f4891-step108k`, 194 paired steps after the startup steps) loss tracks the control with mean delta -3.8e-5, standard deviation 1.6e-4, and maximum 3.8e-4 nats, no step beyond 1e-3; MFU 23.62% versus 23.03% (+2.6%, the wheel's predicted gain), tokens/s +2.6%; drop fraction 1.03e-4 versus 1.08e-4; peak HBM identical at 103.62 GiB; router z-loss, load-balancing loss, and routing entropy within 1% of control; no hang, retry, watchdog, or JaxRuntimeError. Window reached 00:31 UTC. The old run's tree is untouched (rollback remains `0cb3167f39` under the old id). Whether the PDL change removes the #8870 hang is judged by the recurrence interval from here (baseline one to two thousand steps). Report: https://wandb.ai/marin-community/marin_moe/reports/hero-nopdl-step108k:-PDL-off-QuACK-launchers-+-PJRT-708c3a4-wheel,-200-step-trial--VmlldzoxNzk0MTE3NQ==\n",
+          "created_at": "2026-09-16T00:33:19Z",
+          "id": 5690222518,
+          "updated_at": "2026-09-16T00:33:19Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5690222518"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 `hero-nopdl-step108k` passed step 110830 at 09:34 UTC: 2,052 steps since the step-108778 handoff with no hang, retry, watchdog, or JaxRuntimeError, and MFU holding at the trial level. The previous run under PDL hung every one to two thousand steps (108711 was its last, 711 steps after its restore). This is one interval, so it is consistent with the PDL mechanism rather than proof of it; the reading firms up if the run clears about 5,000 steps (mid-afternoon UTC on Sep 17) and would be reversed by a single hang with the same warp-role signature, which the capture tooling is now pointed at this run to record.\n",
+          "created_at": "2026-09-16T09:38:40Z",
+          "id": 5695342852,
+          "updated_at": "2026-09-16T09:38:40Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5695342852"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Follow-up on the hero checkpoint failure: [Echo 459](https://marina.oa.dev/echo/wiki/459) now identifies the metadata-rename conflict with the live bucket policy. `DenyHeroCheckpointDeletion` covers the temporary metadata sibling under `marin/grug/hero-*`. Step 114000 contains identical final and temporary metadata, consistent with the recorded successful copy followed by denied source deletion.\n\nAttempt 1 saved temporary checkpoint 114192, deleted temporary checkpoint 113865, and reached training step 114203 at September 17 03:20:21 UTC. It has passed the prior failure point, but permanent saves remain exposed until metadata staging or the narrowly scoped policy is corrected. No run, checkpoint, or policy was changed during this investigation.\n\nThe relevant policy dates to August 22 (#8504 and #8588); no newer change appears in upstream policy-file history. The separate September 16 quota incident returned HTTP 405 write-suspension errors. The latest storage sample at 01:28 UTC shows US-EAST-02A at 746.1/910 TiB and US-EAST-08A at 91.1/100 TiB. All 213 compute nodes were Ready without pressure or kernel-deadlock conditions at the follow-up check.\n",
+          "created_at": "2026-09-17T03:22:13Z",
+          "id": 5707969984,
+          "updated_at": "2026-09-17T03:22:13Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5707969984"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 The timing is explained by a recent code change: #8974, merged September 15 at 00:31 UTC, changed `_save_metadata` from a direct write to `atomic_rename`, introducing temporary-source deletion under the August 22 protected prefix. Both the mixture deployment (`0cb3167f39`) and nopdl deployment (`8f6f33bebe`) include it. Step 114000 was the first scheduled permanent milestone after those deployments; temporary saves use the unprotected temporary root.\n\nEarlier retained `DeleteObjects operation: AccessDenied` errors do exist: the preceding ragged coordinator at September 15 17:14 UTC and the mixture coordinator at 23:20 UTC. Both came from distributed-lock release, not checkpoint metadata publication. The September 15-onward search found only the September 17 nopdl attempt with this training metadata failure; older history was not exhaustively searched. Details added to [Echo 459](https://marina.oa.dev/echo/wiki/459).\n",
+          "created_at": "2026-09-17T03:26:53Z",
+          "id": 5708008076,
+          "updated_at": "2026-09-17T03:26:53Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5708008076"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Hero cutover accepted: GO after the full 200-step overlap.\n\n- Run ID: `hero-main-step121638`\n- Commit: `e8460b35bd6b312b62799b12ae363b3981af3c83`\n- Coordinator job: `hero-main-step121638-coord-f4a0bfe6`\n- Target: `cw-us-east-08a` (11 x NVL72)\n\nW&B fork: `hero-nopdl-step108k?_step=121637`; handoff checkpoint: `s3://hero-checkpoints/marin/grug/hero-nopdl-step108k/2026.08.19.2/checkpoints/step-121638`.\n\nRetained checkpoint copy verified: 15,394 objects, 4,291,183,714,991 bytes; all payload files matched, and completion metadata was copied last and checked. The destination is outside the bucket’s TTL expiration rules. The initial launch read the same checkpoint from its original temporary URI: `s3://hero-checkpoints/tmp/ttl=14d/checkpoints-temp/marin-us-east-02a/marin/grug/hero-nopdl-step108k/2026.08.19.2/checkpoints/step-121638`.\n\n[200-step overlap comparison](https://wandb.ai/marin-community/marin_moe/reports/Hero-main-cutover:-200-step-overlap-at-checkpoint-121638--VmlldzoxNzk2MzEyNA==). Completed all 200 paired updates (121638–121837); child left running.\n\nMean child-minus-parent loss +0.000306; maximum absolute difference 0.000820, below the 0.002 inspection threshold. Mean token drops improved. All 48 router layers reviewed (20 samples each): largest mean z-loss shift +5.25% in layer 2, without a large excursion or accompanying entropy/drop deterioration. All 177 tasks remained on attempt 0.\n\nElapsed time per update was 17.639 versus 17.101 seconds including the child’s hourly checkpoint (+3.15%). Excluding the same checkpoint-adjacent intervals ending at steps 121785–121800 from both runs gives 17.158 versus 17.141 seconds (+0.10%); this is a post-hoc diagnostic. Checkpoint step-121786 completed at 20:19:44 UTC, metadata verified, and throughput recovered. Peak device memory 115.54 versus 103.62 GiB, below the 138.22 GiB limit.\n\nEvaluation, resume from the child’s own checkpoint, retries, and long-horizon router behavior remain outside trial coverage. Coordinated GC is disabled (gc_interval=None); evaluate it separately. Production alerts remain enrolled. The public hero/scaling report now selects the accepted child; the overlap report preserves the parent comparison.\n",
+          "created_at": "2026-09-18T19:15:11Z",
+          "id": 5734989379,
+          "updated_at": "2026-09-18T20:36:59Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5734989379"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Starting the hero cutover to `hero-fa4sm100-nomask-step146k` (#9378, main `ad754c6d67`): native SM100 FA4 kernels (#9332), ragged MLP tail-mask removal (#9333), coordinated GC every 100 steps (#9266).\n\n- Handoff: `step-146139`, forced on `hero-main-step121638` and copied to `s3://hero-checkpoints/marin/grug/hero-main-step121638/2026.08.19.2/checkpoints/step-146139`; W&B fork at `_step` 146138.\n- The old run trained to step 146340 as the paired control for steps 146139-146338; its coordinator `/marin/hero-main-step121638-coord-f4a0bfe6` is being cancelled now.\n- Single-rack d768 validation passed ([report](https://wandb.ai/marin-community/marin_moe/reports/d768-validation:-hero-handoff-to-native-SM100-FA4-and-mask-free-ragged-MLP-(PR-9378)--VmlldzoxNzk5NDEzNw==)).\n- Trial gate and live overlap: [report](https://wandb.ai/marin-community/marin_moe/reports/Hero-cutover:-native-SM100-FA4-and-mask-free-ragged-MLP,-200-step-overlap-at-checkpoint-146139--VmlldzoxNzk5NTA1Ng==). Rollback relaunches `e8460b35bd` under `hero-main-step121638`.\n",
+          "created_at": "2026-09-23T21:39:45Z",
+          "id": 5803401391,
+          "updated_at": "2026-09-23T21:39:45Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5803401391"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Hero launch requested.\n\n- Run ID: `hero-fa4sm100-nomask-step146k`\n- Commit: `ad754c6d67555d6369a4a312ff7388e43cfd08c1`\n- Coordinator job: `hero-fa4sm100-nomask-step146k-coord-49fcf35f`\n- Target: `cw-us-east-08a` (11 x NVL72)\n\nW&B fork: `hero-main-step121638?_step=146138`; handoff checkpoint: `s3://hero-checkpoints/marin/grug/hero-main-step121638/2026.08.19.2/checkpoints/step-146139`.\n",
+          "created_at": "2026-09-23T21:40:58Z",
+          "id": 5803416767,
+          "updated_at": "2026-09-23T21:40:58Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5803416767"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 GO: `hero-fa4sm100-nomask-step146k` (`/marin/hero-fa4sm100-nomask-step146k-coord-49fcf35f`, main `ad754c6d67`) passed the 200-step paired trial against `hero-main-step121638` on the same batches (steps 146139-146338). It stays on as the hero.\n\n| Metric | New | Old |\n| --- | ---: | ---: |\n| Median MFU | 26.75% | 24.10% |\n| Median step time | 14.67 s | 16.29 s |\n| Median iteration time | 15.53 s | 18.62 s |\n| Tokens/s | 3.14M | 2.83M |\n| Drop fraction | 0.95e-4 | 1.01e-4 |\n| Router z-loss / load balancing | 15.13 / 7.998 | 15.09 / 8.000 |\n| Gradient norm | 0.692 | 0.719 |\n| Peak memory | 103.6 GiB | 120.9 GiB |\n\nTraining loss differed by +3.6e-4 on average (maximum 8.8e-4), rising over the window. The accepted step-121638 cutover showed the same pattern (+3.1e-4, maximum 8.2e-4), and the d768 validation of this code showed no bias over 11,420 steps. First attempt, one execution, no restarts or errors. Coordinated GC pauses rank 0 for about 1.2 s per collection. Not yet exercised: evaluation at step 147000, the new run's own save and resume, and the first permanent save at step 150000. [Overlap report](https://wandb.ai/marin-community/marin_moe/reports/Hero-cutover:-native-SM100-FA4-and-mask-free-ragged-MLP,-200-step-overlap-at-checkpoint-146139--VmlldzoxNzk5NTA1Ng==).\n",
+          "created_at": "2026-09-23T22:41:06Z",
+          "id": 5804146010,
+          "updated_at": "2026-09-23T22:41:06Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5804146010"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Storage incident on 2026-09-23/24, now resolved. At 23:44Z the US-EAST-08A CoreWeave account reached 104.56 TiB against its 100 TiB quota, and CoreWeave suspended writes (`405 MethodNotAllowed: Account is write suspended for this availability zone`). Most of the 11.7 TiB rise since 20:26Z came from this deploy's forced checkpoints and durable handoff copies in `hero-checkpoints`.\n\n- The step-146585 save staged at 23:43:47Z and hung: rank 0 blocked in the s3fs manifest upload, which has no timeout. Training and logs stopped with no error. The step watchdog restarted the gang at about 00:00Z (attempt 1), which restored `step-146355`.\n- Russell's cleanup brought usage to about 80 TB by 00:21Z. Writes were accepted again from 00:39Z.\n- Attempt 1's step-146582 save at 01:01Z then stalled. 448 of 704 processes finished their upload; the other 256, spread over 132 hosts, stopped writing at 01:01:55Z with no error, and the commit never completed. Host memory stayed about 260 GiB below the limit. The cause is not confirmed; a storage-side stall left over from the suspension is the leading explanation. Training continued because checkpoint uploads run in background threads, but the next save would have blocked on it, so the task was preempted at 01:40Z (attempt 2, again from `step-146355`).\n- Since then, saves `step-146582` (02:43Z) and `step-146817` (03:44Z) committed normally, and the first evaluation at step 147000 matched the trend: dropless loss 1.9086 against 1.9098 at step 144000.\n- Cost: steps 146355–146732 were trained twice, plus about two hours of hangs and restarts.\n- Cleanup: about 49 TB of stale temporary checkpoints and duplicates were deleted from `hero-checkpoints`. The durable handoff copies for steps 108778, 121638, and 146139 remain. The step-81716 handoff was deleted during the incident cleanup, and no durable copy of the step-58014 handoff was found.\n",
+          "created_at": "2026-09-24T15:47:28Z",
+          "id": 5817400840,
+          "updated_at": "2026-09-24T15:47:28Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5817400840"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 September 27 retry: the training gang stopped advancing at 08:20:35 UTC. The 900-second progress watchdog exited ranks with code 124 at 08:36:25–28, and Iris retried the gang. The initiating stall remains unknown. CUDA peer-memory errors first appear during watchdog teardown, so they do not establish a GPU fault as the cause. After further setup retries, training resumed; `train_loss` reached step 166006 at 14:19 UTC.\n\nIncident record: https://marina.oa.dev/echo/wiki/538\n",
+          "created_at": "2026-09-27T14:21:06Z",
+          "id": 5856665151,
+          "updated_at": "2026-09-27T14:21:06Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5856665151"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 September 30 retry: the step-184731 temporary checkpoint started at 21:34:36 UTC and did not complete. At 22:34:59, the next save encountered `BarrierTimeoutError` for `tensorstore_checkpoint_85::0`. JAX shut down the distributed trainers, and Iris retried the 176-task gang at 22:37 UTC. The coordinator remained on attempt 0.\n\nThe logs do not identify why some trainers failed to reach the checkpoint barrier; no preceding storage, worker, or GPU error was found. Attempt 8 is running and reported `train_loss` through step 184835 at 00:32 UTC on October 1.\n\nIncident record: https://marina.oa.dev/echo/wiki/568\n",
+          "created_at": "2026-10-01T00:33:26Z",
+          "id": 5922288472,
+          "updated_at": "2026-10-01T00:33:26Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5922288472"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 October 2 retry incident: the 176-task gang retried at 14:46, 14:53, 15:25, and 15:28 UTC. Attempt 10 showed XLA coordination `RegisterTask` timeouts; attempt 11 aborted during multihost tracker initialization. The initiating cause is unconfirmed. Attempt 12 resumed training and reached step 193732 at 15:54 UTC. [Incident record](https://marina.oa.dev/echo/wiki/593).\n",
+          "created_at": "2026-10-02T15:57:11Z",
+          "id": 5956153758,
+          "updated_at": "2026-10-02T15:57:11Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5956153758"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 October 3 hero stall, read-only triage: attempt 12 reached step 197999, then task 120 local rank 3 (global 483) failed the step-198000 save at 10:06:33 UTC. TensorStore received HTTP 400 while reading an OCDBT object from the earlier temporary step-197873 checkpoint. The other 703 ranks timed out at `tensorstore_checkpoint_17::0`, and Iris requeued the 176-task gang.\n\nAttempt 13 selected complete checkpoint step 197637. At 11:24 UTC, all 176 trainer pods were Running but training had not resumed. NCCL reported all 704 ranks present; ranks 68–71 (task 17) were the only AllReduce progress outliers. Two native profiles show all four task-17 ranks stuck in XLA `backend_compile_and_load` before checkpoint loading, while sampled peers wait in restore AllReduce. Task 17 is on `s2brxs64`; its LOTA proxy logged upstream TCP timeouts and HTTP 502 for `hero-checkpoints` at 10:09–10:11. Task-17 ranks also logged cache-read 502 errors. Direct node boot and condition reads were denied, so recurrence of the October 2 node fault is unverified.\n\nThe run has lost at least 78 minutes since the failed save and would replay steps 197638–197999 from the selected checkpoint. Next: have a node-read-authorized operator verify `s2brxs64` boot/health and storage connectivity, escalate the 400/502 evidence to CoreWeave storage support, then have the production owner decide on targeted recovery. No infrastructure or job mutation was made.\n\nIncident record: https://marina.oa.dev/echo/wiki/599\n",
+          "created_at": "2026-10-03T11:27:19Z",
+          "id": 5968715246,
+          "updated_at": "2026-10-03T11:27:19Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-5968715246"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 The October 6 training gang retry was triggered when Kubernetes deleted task 16 on node `s14fys64` due to a `NoExecute` taint. Iris requeued the gang; all 176 tasks were running and training had reached step 215756 by 21:00 UTC. The condition that caused the taint remains unconfirmed. Incident record: https://marina.oa.dev/echo/wiki/641",
+          "created_at": "2026-10-06T21:00:53Z",
+          "id": 6025364160,
+          "updated_at": "2026-10-06T21:00:53Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6025364160"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Hero launch requested.\n\n- Run ID: `hero-mfu30-step231k`\n- Commit: `f2bc69bf6c4cd54b303ccf089e439fe87ea13d35`\n- Coordinator job: `hero-mfu30-step231k-coord-fe5ddcbd`\n- Target: `cw-us-east-08a` (11 x NVL72)\n\nW&B fork: `hero-fa4sm100-nomask-step146k?_step=231463`; handoff checkpoint: `s3://hero-checkpoints/marin/grug/hero-fa4sm100-nomask-step146k/2026.08.19.2/checkpoints/step-231464`.\n\n",
+          "created_at": "2026-10-09T16:53:46Z",
+          "id": 6085366944,
+          "updated_at": "2026-10-09T16:54:26Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6085366944"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Hero cutover to `hero-mfu30-step231k` (#9960, main `f2bc69bf6c`) is under way: the MoE optimization stack (#9829–#9834) with the launch memory settings from #9958.\n\n- `hero-fa4sm100-nomask-step146k` was cancelled at step 231664, after a 200-step paired window past the handoff `step-231464` (forced on it and copied to `s3://hero-checkpoints/marin/grug/hero-fa4sm100-nomask-step146k/2026.08.19.2/checkpoints/step-231464`).\n- The new coordinator `/marin/hero-mfu30-step231k-coord-fe5ddcbd` was submitted at 16:53Z. Expect restore plus a cold compile (about 35 minutes) before the first step.\n- Trial report: https://wandb.ai/marin-community/marin_moe/reports/x--VmlldzoxODA4NDgwNg==\n",
+          "created_at": "2026-10-09T16:54:28Z",
+          "id": 6085377485,
+          "updated_at": "2026-10-09T16:54:28Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6085377485"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 GO: `hero-mfu30-step231k` (`/marin/hero-mfu30-step231k-coord-fe5ddcbd`, main `f2bc69bf6c`) passed the 200-step paired trial against `hero-fa4sm100-nomask-step146k` on the same batches (steps 231464–231663). It stays on as the hero.\n\n| Metric | New | Old |\n| --- | ---: | ---: |\n| Median MFU | 29.44% | 26.32% |\n| Median step time | 13.33 s | 14.91 s |\n| Median iteration time | 13.43 s | 15.14 s |\n| Peak HBM | 123.4 GiB | 120.8 GiB |\n| Mean drop fraction | 7.66e-5 | 7.25e-5 |\n\nTraining loss: mean difference −8.5e-5, largest 4.2e-4 over 200 steps. Router z-loss, load-balancing loss, and routing entropy are within 0.5% of the old run. No restart, retry, or error. Not yet exercised: the run's first eval (step 234000) and a resume from its own checkpoint. Trial report: https://wandb.ai/marin-community/marin_moe/reports/x--VmlldzoxODA4NDgwNg==\n",
+          "created_at": "2026-10-09T17:53:33Z",
+          "id": 6086320955,
+          "updated_at": "2026-10-09T17:53:33Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6086320955"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Hero paused for the 16K QK sweep, wave 1 (#9615). `hero-mfu30-step231k` (`/marin/hero-mfu30-step231k-coord-fe5ddcbd`, commit `f2bc69bf6c`) was cancelled at 22:34Z after a requested permanent checkpoint, `step-257553`, committed at 22:22Z.\n\n- Three 100-step arms (`qk16k-a1-step252k`, `qk16k-a2-step252k`, `qk16k-a3-step252k`) run one at a time on the 11 racks from permanent `step-252000` at 16K, branch `agent/hero-16k-qk-trial` (`b623f4b809`, not for merge). Expected pause: about 3.5–4 hours.\n- The hero then resumes from `step-257553` under the same run ID at `f2bc69bf6c` via `trigger_hero.sh launch`.\n- Live report: https://wandb.ai/marin-community/marin_moe/reports/Hero-16K-QK-sweep,-wave-1-(live)--VmlldzoxODEwNjUzNw==\n",
+          "created_at": "2026-10-13T22:34:54Z",
+          "id": 6156659886,
+          "updated_at": "2026-10-13T22:34:54Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6156659886"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 Plan change: `hero-mfu30-step231k` stays paused at permanent `step-257553` instead of resuming at 4K. The 16K context switch (qk_mult 1.48 on all layers) will hand off from that checkpoint as `hero-ctx16k-step257k` once the deploy PR is reviewed and merged.\n\nThe QK sweep (#9615) was cut short after three arms; their step-252100 eval losses were 1.81349 (qk 1.3), 1.81156 (1.48), and 1.81200 (1.58), so the theoretically motivated 1.48 is kept. A global-only 1.68 arm (`/larry/qk16k-g168-step252k`) is running on the racks now.\n",
+          "created_at": "2026-10-14T01:33:33Z",
+          "id": 6158892409,
+          "updated_at": "2026-10-14T01:33:33Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6158892409"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-ctx16k-step257k`\n- Commit: `eadf76a1bc24c2bdd9e0e8cbcd75b8da843551b0`\n- Coordinator job: `hero-ctx16k-step257k-coord-041a377a`\n- Target: `cw-us-east-08a` (11 x NVL72)\n\nW&B fork: `hero-mfu30-step231k?_step=257552`; handoff checkpoint: `s3://marin-us-east-02a/marin/grug/hero-mfu30-step231k/2026.08.19.2/checkpoints/step-257553`.\n",
+          "created_at": "2026-10-14T02:10:15Z",
+          "id": 6159324075,
+          "updated_at": "2026-10-14T02:10:15Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6159324075"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 16K context switch launched: `hero-ctx16k-step257k` (`/marin/hero-ctx16k-step257k-coord-041a377a`, main `eadf76a1bc`, #10101) was submitted at 02:10Z. It forks `hero-mfu30-step231k` at permanent `step-257553` with 16K context, `qk_mult` 1.48, and batch 2816, keeping 4,194,304 tokens per rack per update and the 390251-step schedule.\n\nThe parent stopped at the handoff, so there is no same-batch control window. The trial gates agreed before launch:\n\n- The first logged step is 257553, and cross-entropy stays below 1.25 over the first 10 steps.\n- Cross-entropy stays in 1.09–1.15 (rolling median).\n- MFU is at least 29% after warmup.\n- Drop fraction is below 2e-3 by steps 257633–257652.\n- Peak memory is 123–124 GiB.\n- No retries, watchdogs, or runtime errors.\n- The first 16K eval, at step 258000, completes.\n\nExpect a cold compile before the first step, and a one-off step down in `eval_dropless/*` (16K packing) that may trip `eval_regressed`. Rollback relaunches `f2bc69bf6c` under `hero-mfu30-step231k`, which resumes `step-257553`.\n\nComparison report: https://wandb.ai/marin-community/marin_moe/reports/Hero-16K-cutover:-hero-ctx16k-step257k-trial--VmlldzoxODEwNzE3Mg==\n",
+          "created_at": "2026-10-14T02:10:38Z",
+          "id": 6159328645,
+          "updated_at": "2026-10-14T02:10:38Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6159328645"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 GO: `hero-ctx16k-step257k` (`/marin/hero-ctx16k-step257k-coord-041a377a`, main `eadf76a1bc`) passed every agreed gate and stays on as the hero, training at 16K context with `qk_mult` 1.48 from step 257553.\n\n| Gate | Result |\n| --- | --- |\n| Restore | first logged step 257553 on all 704 ranks; cross-entropy at most 1.132 over the first 10 steps |\n| Cross-entropy | median 1.105 over the last 20 steps |\n| MFU | median 30.7% |\n| Drop fraction | 1.21e-3 at steps 257640–257650 |\n| Peak memory | 123.42 GiB of a 143.75 GiB limit |\n| Retries, watchdogs, errors | none; every task on its first attempt |\n| First 16K eval (step 258000) | completed in 72 s |\n\nThe first 16K-packed eval reads 1.8066 eval loss, 1.5612 Uncheatable macro, and 2.0875 Paloma macro, against 1.8456, 1.5817, and 2.1114 at the parent's last 4K-packed eval (step 255000). These are lower mainly because eval now packs at 16K, so the series steps down at the switch and is not comparable across it. The first hourly temporary checkpoint (`step-257789`) was written to the expected 3-day temp tree.\n\nThe run is now on its ordinary recovery policy. Rollback remains `f2bc69bf6c` under `hero-mfu30-step231k` from `step-257553` if needed. The scaling-ladder report now includes the run as \"16K context\".\n\nComparison report: https://wandb.ai/marin-community/marin_moe/reports/Hero-16K-cutover:-hero-ctx16k-step257k-trial--VmlldzoxODEwNzE3Mg==\n",
+          "created_at": "2026-10-14T04:08:34Z",
+          "id": 6160673866,
+          "updated_at": "2026-10-14T04:08:34Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6160673866"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 October 23 training retry: after the coordinator's intentional 00:55:44 UTC credential-rotation preemption, the child 176-task gang failed during startup twice. Both attempts reported XLA `CoordinationService/WatchTasks` connection refusal to `10.186.213.65:32614`; Iris retried task 0 and atomically requeued 175 siblings at 01:00:59 and 01:05:53 UTC. The initiating cause remains unconfirmed; no gang disruption event was found in the regional Iris event window.\n\nAttempt 2 restored this run's rolling checkpoint `step-312162` at 01:11:46. Iris reported 176/176 trainers running, and regional Finelog advanced to step 312224 at 01:29:24 UTC (loss 1.0598, median MFU 30.55%). Recovery required no manual intervention. [Echo incident](https://marina.oa.dev/echo/wiki/844).\n",
+          "created_at": "2026-10-23T01:30:19Z",
+          "id": 6355202688,
+          "updated_at": "2026-10-23T01:30:19Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6355202688"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 October 23 follow-up: training attempt 2 again hit XLA `CoordinationService/WatchTasks` connection refusal to `10.186.213.65:32614` at 02:03:07 UTC. Iris requeued the 176-task gang at 02:03:22. The coordinator was intentionally retried at 02:07:24 to reload updated local credentials after a key revocation. The replacement child started at 02:13. The initiating cause of the XLA endpoint failure remains unconfirmed.\n\nAt 15:29 UTC, the regional Iris state rollup reported 177 running tasks (176 trainers plus the coordinator). Regional Finelog reached step 315506 at 15:31 UTC. The last retry is outside the alert's 15-minute window; no job or cluster action was needed in this follow-up. [Incident record](https://marina.oa.dev/echo/wiki/844).\n\nThe latest W&B Paloma macro loss was 2.035468 at step 314999 (13:32 UTC), below the preceding two evaluations (2.044515 and 2.043683). The `eval_regressed` condition no longer holds, and that evaluation is outside the rule's 30-minute freshness window. [W&B run](https://wandb.ai/marin-community/marin_moe/runs/hero-ctx16k-step257k).\n",
+          "created_at": "2026-10-23T15:32:36Z",
+          "id": 6368537536,
+          "updated_at": "2026-10-23T15:32:36Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6368537536"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 October 29 training interruption: `hero-ctx16k-step257k` last logged step 352561 at 17:18:42 UTC. Task 1 stopped emitting logs and resource samples around 17:16; XLA reported its processes 4–6 unhealthy at 17:18:44. Task 100 then aborted, and Iris requeued the 176-task gang at 17:19:11. The initiating cause of task 1's lost heartbeat is not confirmed.\n\nThe retry was fully placed by 17:40:48 (176/176 trainers running). New execution `iris:e2cb22c5d4c72ec4` is publishing initialization heartbeats through 17:46; no new training step has been confirmed yet. Iris is recovering automatically, with no manual job or cluster action taken. [Echo incident](https://marina.oa.dev/echo/wiki/896).\n",
+          "created_at": "2026-10-29T17:47:12Z",
+          "id": 6504151707,
+          "updated_at": "2026-10-29T17:47:12Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6504151707"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 October 29 follow-up at 18:23 UTC: no retry has logged a training step. Step 352561 at 17:18:42 remains the last verified step. Trainer task 0 failed on attempts 1–4 at 17:48:52, 17:59:30, 18:10:12, and 18:20:40; Iris requeued the 176-task gang each time. Multiple ranks logged NCCL `ncclCuMemAlloc` CUDA `out of memory` shortly before XLA fatal errors. The source of the GPU memory pressure is not yet confirmed.\n\nAt 18:21 the fifth attempt had 176 trainer tasks building while the coordinator remained running. Automatic retry is active but has not restored training. No manual job or cluster action has been taken. [Updated Echo incident](https://marina.oa.dev/echo/wiki/896).\n",
+          "created_at": "2026-10-29T18:24:11Z",
+          "id": 6504948632,
+          "updated_at": "2026-10-29T18:24:11Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6504948632"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 October 29 follow-up at 18:53 UTC: training remains stopped at step 352561 (17:18:42). Attempts 1–7 restored `step-352321` but logged no new training step; Iris requeued task 0 at 17:48, 17:59, 18:10, 18:20, 18:31, 18:41, and 18:52. Attempt 8 was scheduling at the last check. In attempts 6 and 7, multiple tasks on different nodes logged NCCL `ncclCuMemAlloc` CUDA out-of-memory during `jit_train_step` before the XLA shutdown-barrier errors. Those barrier errors and sibling requeues are fallout.\n\nNode `s62pys64` used about 168–170 GiB per GPU during healthy training and reached 184.3 GiB of about 185 GiB in a failed retry; usage fell to 17.6 GiB after the trainer exited. The extra allocation's source is still unknown. The launch record pins this coordinator to Oct 14 source commit `eadf76a1bc`; subsequent merged source changes are not in its shipped bundle. The Oct 23 Cutlass cache incident remains visible as unreadable-cache warnings and recompilation, but this run had previously resumed training despite that warning. The current cluster controller reports healthy, and I found no evidence connecting a separate Finelog relay investigation to the GPU OOM.\n\nNo job or cluster mutation was made. [Incident record](https://marina.oa.dev/echo/wiki/896).\n\n19:01 UTC addendum: read-only node telemetry shows 17.6–18.8 GiB per GPU still used on two former hero nodes between trainer attempts; one sampled unaffected node was near zero, and `s62pys64` was near zero in the October 23 restart gap. In the current pod, `nvidia-smi` lists ~149,790 MiB for the rank process but ~167,821 MiB device use per GPU. No other tenant Pod was listed on that node. The ~18 GiB difference may be a host/driver allocation or a process invisible from this pod; ownership is unconfirmed. This is a plausible source of lost first-step headroom, so the cause remains under investigation. No node reset or other disruptive action was taken.\n\n19:08 UTC addendum: retry 8 also failed before logging a step and was requeued at 19:02; 11 tasks on distinct nodes logged NCCL CUDA OOM around 19:00. Retry 9 is loading the same rolling checkpoint. [CoreWeave's 18:25 usage collection](https://github.com/marin-community/marin/actions/runs/40930510786/job/123647381245) shows US-EAST-08A at 86.75 TiB used of a 500 TiB quota, including 53.26 TiB in `hero-checkpoints`. Retry 8 successfully read `step-352321`; quota exhaustion does not explain the failures. No fresh checkpoint write has been exercised while training is stopped.\n\n19:11 UTC addendum: retry 9 also loaded `step-352321` at 19:08, then 11 tasks logged NCCL CUDA out-of-memory around 19:10:43 before any training step. The task 0 retry decision was still pending at the last check.\n\n19:36 UTC addendum: operator host diagnostics at 19:24 found ~18,029 MiB per GPU retained on 12 of 16 rack-392 nodes while idle, with no host compute process; `nvidia-imex` held GPU devices on an affected node, unlike a clean same-rack node. IMEX peers `.47` and `.69` were unavailable. Independent read-only IMEX logs show peer `.47` disconnected at 17:17:32 and unimport requests have gone unanswered since 17:18:47; a cleanup was attempted at 17:32 but did not visibly clear the memory. Task 1's deleted node has not yet been mapped to either peer. Retry 11 again hit NCCL CUDA OOM on 11 tasks and was requeued at 19:33; attempt 12 is scheduling. Retained fabric/driver memory is now the leading explanation, with exact ownership and safe recovery still unconfirmed. A separate child Loom investigation `ohvplf1l` is handling the rack-level issue. No infrastructure change was made.\n\n19:43 UTC placement check: cordoning rack 392 alone would not let the current 176-task gang run. Kueue requires eleven complete 16-node NVLink-domain slices; the current assignment occupies 11 racks including 392. The only other visible 16-node rack, 399, has 13 nodes in other running four-GPU Iris jobs, leaving only three. Other racks have at most one or two spare nodes. Cordon would block future placement on 392 without freeing an alternate full domain; it would not move Pods already running. No cordon was performed.\n\n19:50 UTC update: retry 12 hit the same NCCL CUDA OOM on 11 tasks at 19:41:48 and requeued at 19:44; retry 13 was initializing at 19:48, with no new training step. The separate [rack-392 IMEX incident](https://marina.oa.dev/echo/wiki/898) found peer `.47` disconnected at 17:17:32 and over 1,100 undelivered unimports by 17:18:53. Provider repair and verification of IMEX peers and idle GPU memory is the preferred recovery. A fallback migration requires owner approval to displace four jobs occupying 13 rack-399 nodes, keep that full 16-node domain clear, exclude rack 392, and verify Kueue readmission. The current coordinator retries automatically; a manual hero restart is warranted only if those retries stop or cannot pick up repaired placement. No disruptive action was taken.\n\n20:27 UTC migration update: the operator authorized the fallback and performed the node cordons and job cancellations independently after this session's Kubernetes token was denied Node mutation. Iris now shows three target jobs killed and the fourth succeeded. Hero attempt 15 was admitted across ten original racks plus all 16 nodes in rack 399, with none of the 12 affected rack-392 nodes assigned. Task 0 is on rack 394; rack 399 is the replacement slice. Training has not resumed: task 29's rack-399 Pod on `sgkvxs64` remains Pending in `stage-workdir` init while the other 175 tasks run. It logged staging complete at 20:19:36 but Kubernetes still reports the init container Running; read-only exec on that node times out while a healthy comparison node responds. Node/runtime diagnosis is ongoing. Regional Finelog has no attempt-15 process-zero step. This session cannot directly check W&B because it has no configured API key. [CoreWeave ticket](https://openathena.slack.com/archives/C098LP2DK9Q/p1793303785250079); [incident record](https://marina.oa.dev/echo/wiki/896). No hero relaunch or other infrastructure action was taken by this session.\n\n20:31 UTC: node-agent telemetry from `sgkvxs64` stopped at 20:11:59, while a healthy rack-394 comparison node was fresh at 20:29:15. The stuck Pod's init status remains unchanged and no step is logged. This supports a node-specific liveness/runtime problem; exact cause is unconfirmed. The operator has been alerted; no force deletion or restart was attempted.\n\n20:36 UTC: Node events on `sgkvxs64` show two cgroup OOM-kill warnings at 20:12:08 and 23 QSPI transfer timeouts at 20:14:12; no other recent node showed that QSPI event. Task 29 is still stuck in init and no step is logged. The warnings coincide with the node-agent gap but exact causality is unproven. Rack 399 has only 16 nodes for the required NVLink slice; cordoning this node alone would strand the gang. The operator has been notified for node-level recovery.\n\n20:45 UTC: attempt 15 failed and Iris automatically started attempt 16. All 176 trainer Pods are Running, including the replacement Pod on `sgkvxs64`, and node-agent telemetry from that node resumed. Process-zero Finelog is fresh for the new execution but still `phase=0` with no training step. CoreWeave has recommended restarting affected nodes to pull in an IMEX fix, according to the operator. A full Iris cluster restart would kill all jobs and would not itself reboot the hosts; the recommendation is to let this attempt reach a verified step and plan provider-directed node/IMEX-domain recovery with explicit scope and health checks. No cluster restart was performed.\n\n20:47 UTC: attempt 16 reached training phase. Finelog process-zero execution `iris:036a406bb0e73d05` logged `progress_time_seconds` and `train_loss` at steps 352321 (20:47:17) and 352322 (20:47:37). All 176 trainer Pods remained Running, including `sgkvxs64`, with 16 Pods on rack 399. This confirms training resumed past the rolling checkpoint step 352321; it has not yet exceeded the original high-water step 352561. W&B remains unverified from this session because it lacks authorized API access. Monitor past 352561 and verify a subsequent checkpoint write. The rack-392 IMEX repair remains a separate provider-directed maintenance task; no full-cluster restart is recommended while training progresses.\n",
+          "created_at": "2026-10-29T18:54:03Z",
+          "id": 6505610334,
+          "updated_at": "2026-10-29T20:48:53Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6505610334"
+        },
+        {
+          "author": "ClassicLarry",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-gradclip-step356k`\n- Commit: `8aac0db3d9de5e38ede80a6dd1aaeafdc3f16147`\n- Coordinator job: `hero-gradclip-step356k-coord-f1750729`\n- Target: `cw-us-east-08a` (11 x NVL72)\n\nW&B fork: `hero-ctx16k-step257k?_step=356530`; handoff checkpoint: `s3://marin-us-east-02a/marin/grug/hero-ctx16k-step257k/2026.08.19.2/checkpoints/step-356531`.\n",
+          "created_at": "2026-10-30T13:51:35Z",
+          "id": 6524447746,
+          "updated_at": "2026-10-30T13:51:35Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6524447746"
+        },
+        {
+          "author": "ClassicLarry",
+          "body": "🤖 **hero-gradclip-step356k: first step confirmed.**\n\n- All ranks logged `Loading checkpoint from s3://marin-us-east-02a/marin/grug/hero-ctx16k-step257k/2026.08.19.2/checkpoints/step-356531` at 13:54:29 UTC. The training loop started at about 13:59:40.\n- The first logged step was 356531 at 14:02:35 UTC (`_step` = `global_step` = 356531). It took 143.7 s because of compilation. Its loss was 1.007708, the same as the parent's at that step.\n- 176/176 tasks are RUNNING and every one is still on attempt 0, so there were no retries and the tokenizer race did not happen. There were no watchdog firings or errors.\n- Comparison report: https://forge.coreweave.com/marin-community/marin_moe/reports/Hero-gradclip-cutover:-hero-ctx16k-step257k-vs-hero-gradclip-step356k--VmlldzoxODIwODU1NA==\n",
+          "created_at": "2026-10-30T14:50:56Z",
+          "id": 6525675630,
+          "updated_at": "2026-10-30T14:50:56Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6525675630"
+        },
+        {
+          "author": "ClassicLarry",
+          "body": "🤖 **hero-gradclip-step356k: 50-step trial gate (steps 356531–356580, paired by step against hero-ctx16k-step257k). Recommendation: GO, with one item for the DRI (MFU band).**\n\n| Gate | Parent | Child | Result |\n|---|---|---|---|\n| Loss delta (child − parent) | | mean −3e-5, max abs 8e-5 (over the 91 overlapping steps to 356621: max abs 1.8e-4) | pass (limit 0.002) |\n| MFU median | 30.17% (30.35% over 355500–356530) | 30.56% (first 2 compile steps excluded) | below the 30.7–32% band, but +0.2–0.4 pt over the parent |\n| Step time median | 13.96 s | 13.78 s | pass |\n| Drop fraction median | 1.38e-3 | 1.37e-3 (range 0.92–1.88e-3) | pass |\n| Router z-loss / load balancing / entropy | 13.73 / 8.005 / 5.949 | 13.73 / 8.001 / 5.949 | flat |\n| Peak memory | 123.4 GiB | 123.2 GiB of 143.75 | pass |\n| `train/grad_clipped` | n/a | 0/50 (0/197 through step 356727). Pre-clip norm median 0.458, max 0.782 | the clip never fired |\n| Crashes, retries, watchdogs | | none. All tasks still on attempt 0. Only short data-loading waits (≤30 s, one rank at a time) | pass |\n\nThe MFU shortfall comes from the band, not the child. The parent's own median over the same window was also below 30.7%.\n\nCoverage gaps: the clip never engaged, so the trial confirms there is no regression but does not show the clip working. The trial also did not cover evals, the child's own checkpoint save/resume (its first hourly temporary checkpoint should land around 15:02 UTC), or the retry path.\n\nReport: https://forge.coreweave.com/marin-community/marin_moe/reports/Hero-gradclip-cutover:-hero-ctx16k-step257k-vs-hero-gradclip-step356k--VmlldzoxODIwODU1NA==\n",
+          "created_at": "2026-10-30T14:50:58Z",
+          "id": 6525676502,
+          "updated_at": "2026-10-30T14:50:58Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6525676502"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 The 65K changeover has started. `hero-gradclip-step356k` was cancelled at 03:13 UTC on 11-02 after logging the control window through step 372,049; its permanent step-372000 checkpoint is the handoff for `hero-ctx65k-step372k` (#10820, merged as 6e6924fedd). The W&B fork exists, and the launch record will be posted here.\n",
+          "created_at": "2026-11-02T03:13:15Z",
+          "id": 6568147816,
+          "updated_at": "2026-11-02T03:18:08Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6568147816"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-ctx65k-step372k`\n- Commit: `6e6924fedd64cc241f2de50ec3660a386ec12436`\n- Coordinator job: `hero-ctx65k-step372k-coord-589f57de`\n- Target: `cw-us-east-08a` (11 x NVL72)\n\nW&B fork: `hero-gradclip-step356k?_step=371999`; handoff checkpoint: `s3://marin-us-east-02a/marin/grug/hero-gradclip-step356k/2026.08.19.2/checkpoints/step-372000`.\n",
+          "created_at": "2026-11-02T03:24:56Z",
+          "id": 6568294569,
+          "updated_at": "2026-11-02T03:24:56Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6568294569"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 The 65K cutover passed every gate. `hero-ctx65k-step372k` restored permanent step-372000 and reached step 372,102 on its first attempt at 16.05 s per step; it should finish near Thu 11-05 15:00 UTC. Details in the [comparison on #10821](https://github.com/marin-community/marin/issues/10821#issuecomment-6568749068) and the [W&B cutover report](https://wandb.ai/marin-community/marin_moe/reports/hero-ctx65k-step372k:-65K-context-cutover-at-step-372,000--VmlldzoxODIzOTYyMw==).\n",
+          "created_at": "2026-11-02T04:03:07Z",
+          "id": 6568749287,
+          "updated_at": "2026-11-02T04:04:48Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6568749287"
+        },
+        {
+          "author": "ClassicLarry",
+          "body": "🤖 Hero restart (same run): `hero-ctx65k-step372k` was restarted in place to pick up #10896 (permanent checkpoints every 500 steps over the final 5000: 385500 through 390000, plus the final step).\n\n- Run ID, output root and W&B run are unchanged (`resume: allow`). It resumes from its own resume checkpoint step-382854 (written 05:02 UTC).\n- Commit: `33189166cf` on `larry/hero-ctx65k-relaunch`, which is the running commit `6e6924fedd` plus only #10896. Main's 47 later commits, some of which touch the training path, are not included.\n- Coordinator: `/marin/hero-ctx65k-step372k-coord-12b10bcf` (submitted 05:13 UTC). The old coordinator `hero-ctx65k-step372k-coord-589f57de` was cancelled at about 05:03 UTC.\n- Launched with the same command as `trigger_hero.sh launch`, skipping only its `hero_launch_commit` lineage check, which compares against the W&B run's recorded `6e6924fedd`.\n- Storage: `marin-us-east-02a` is at 760.6 / 1000.6 TB (Finelog, 01:26 UTC). The change adds about 9 permanent checkpoints.\n",
+          "created_at": "2026-11-04T05:13:36Z",
+          "id": 6623177473,
+          "updated_at": "2026-11-04T05:13:36Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6623177473"
+        },
+        {
+          "author": "loom-oa-dev[bot]",
+          "body": "🤖 Incident record: https://marina.oa.dev/echo/wiki/929. Checkpoint metadata and W&B state await verification by a credentialed run owner.\n",
+          "created_at": "2026-11-05T16:02:20Z",
+          "id": 6662739734,
+          "updated_at": "2026-11-05T16:02:20Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6662739734"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-lce-global184-step390k`\n- Commit: `e0bc917ee549f15dd30e3c97ce3ff8d690b43440`\n- Coordinator job: `hero-lce-global184-step390k-coord-45fc9efa`\n- Target: `cw-us-east-08a` (11 x NVL72)\n\nW&B fork: `hero-ctx65k-step372k?_step=390250`; handoff checkpoint: `s3://marin-us-east-02a/marin/grug/hero-ctx65k-merge-hb-avg11/checkpoints/step-390251`.\n",
+          "created_at": "2026-11-06T21:35:35Z",
+          "id": 6696266590,
+          "updated_at": "2026-11-06T21:35:35Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6696266590"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 The 262K extension has started. `hero-lce-global184-step390k` restored the merged step-390251 and reached step 390260 at 29.9 s/step on its first attempt. It uses Global 1.84 (`qk_mult` 1.66, long scale 1.108) from `e0bc917ee5` and stops at step 393491, near 00:45 UTC on 2026-11-08. No rehearsal ran, so this is the first training run of this recipe and commit. The first two in-loop evals, from step 390500, should fire `eval_regressed` with no change in the model; see #11056.\n",
+          "created_at": "2026-11-06T21:55:22Z",
+          "id": 6696825577,
+          "updated_at": "2026-11-06T21:55:22Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6696825577"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 GO on `hero-lce-global184-step390k` at step 390526. Median 29.06 s/step, drop fraction 3.0e-4, largest device memory 180.444 GiB after the first eval, largest grad norm 48.49 (one step, clipped at 1.0), no retries. Comparison: [W&B report](https://wandb.ai/marin-community/marin_moe/reports/Hero-262K-finalists--VmlldzoxODI2NjQ1Nw==). Not covered yet: 11-rack memory after several queue wraps, and the stop path.\n",
+          "created_at": "2026-11-07T00:10:07Z",
+          "id": 6699324519,
+          "updated_at": "2026-11-07T00:10:07Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6699324519"
+        },
+        {
+          "author": "mcwitt",
+          "body": "Hero launch requested.\n\n- Run ID: `hero-lce-log65536sq-step390k`\n- Branch: `hero-lce-log65536sq`; recover from this branch at the commit below, not from main\n- Commit: `0454bdd60945ee976f5293a1dcc7e5ba7b086021`\n- Coordinator job: `hero-lce-log65536sq-step390k-coord-f92722c4`\n- Target: `cw-us-east-08a` (11 x NVL72)\n\nW&B fork: `hero-ctx65k-step372k?_step=390250`; handoff checkpoint: `s3://marin-us-east-02a/marin/grug/hero-ctx65k-merge-hb-avg11/checkpoints/step-390251`.\n",
+          "created_at": "2026-11-08T00:39:44Z",
+          "id": 6715159646,
+          "updated_at": "2026-11-08T00:39:44Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6715159646"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 `hero-lce-global184-step390k` reached step 393491 and its final checkpoint is complete: `s3://marin-us-east-02a/marin/grug/hero-lce-global184-step390k/2026.08.19.2/checkpoints/step-393491`. `hero-lce-log65536sq-step390k` launched at 00:39 UTC on 2026-11-08 from the merged step-390251, at `0454bdd609` on the branch of #11044, with log floor 65536, slope 0.1, power 2. Same data, learning rate and shape.\n",
+          "created_at": "2026-11-08T00:40:08Z",
+          "id": 6715163540,
+          "updated_at": "2026-11-08T00:40:08Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6715163540"
+        },
+        {
+          "author": "mcwitt-agent",
+          "body": "🤖 GO on `hero-lce-log65536sq-step390k` at step 390530. Median 29.06 s/step, drop fraction 3.1e-4, largest device memory 180.444 GiB after the first eval, largest grad norm 20.14 (step 2, clipped at 1.0, as its 100-step arm predicted), no retries. Comparison: [W&B report](https://wandb.ai/marin-community/marin_moe/reports/Hero-262K-finalists--VmlldzoxODI2NjQ1Nw==). Not covered yet: the stop path on this run.\n",
+          "created_at": "2026-11-08T03:10:39Z",
+          "id": 6716548620,
+          "updated_at": "2026-11-08T03:10:39Z",
+          "url": "https://github.com/marin-community/marin/issues/8506#issuecomment-6716548620"
+        }
+      ],
+      "created_at": "2026-08-20T23:20:23Z",
+      "labels": [],
+      "number": 8506,
+      "state": "open",
+      "state_reason": null,
+      "title": "Hero Run / Ongoing Status",
+      "updated_at": "2026-11-08T03:10:39Z",
+      "updated_in_target_window": false,
+      "url": "https://github.com/marin-community/marin/issues/8506"
+    },
+    {
+      "author": "penfever",
+      "body": "<!-- experiment-tldr:start -->\n## Summary\n\nThis eval experiment tried to reproduce Artificial Analysis Intelligence Index Terminal-Bench 2.1 scores on Marin for four large MoE baselines using Terminus 2, three attempts per task, a 250-turn limit, a 7,200-second agent timeout, and the pinned TB2.1 dataset. The main result is mixed. Nemotron 3 Ultra 550B A55B NVFP4 reproduced the AAII point estimate almost exactly at 54.09% versus 53.93%. Qwen3.5-122B-A10B-FP8 was still preliminary in the posted table, at 42.34% versus 47.57% with 110/111 completed trials and 156 trials remaining. DeepSeek-V4-Flash-0731 cleared the infrastructure-success gate but missed parity badly, scoring 56.23% versus AAII's 78.65% with no confirmed protocol discrepancy. GLM-5.2 AWQ INT4 produced no valid cohort because the checkpoint could not be served with the required context under the tested single-node geometry. The follow-up work is to finish Qwen, isolate the DeepSeek score gap, and rerun GLM with a serving geometry that preserves the intended context budget.\n\n### Helpful links\n- Experiment summary comment: https://github.com/marin-community/marin/issues/8261#issuecomment-5299403446\n- Versioned launch configs and artifacts: https://huggingface.co/datasets/penfever/large-model-agentic-eval-parity-tb21-aa/tree/main/artifacts\n- Baseline/context comment: https://github.com/marin-community/marin/issues/8261#issuecomment-5299504940\n<!-- experiment-tldr:end -->\n\n## Human Authored tl;dr\n\nWHAT THIS IS: The purpose of this experiment was to try to reproduce AAII tb2.1 eval scores on the Marin cluster on some strong baselines.\nWHY WE DID IT: Exercise Marin's eval pipeline and thoroughly understand how AAII executes tb2.1, since minor differences in protocol can dramatically impact scores.\nRESULT: Picked four models; Qwen3.5-122B-A10B-FP8, DeepSeek-V4-Flash-0731, Nemotron 3 Ultra 550B A55B NVFP4, GLM-5.2 AWQ INT4. GLM 5.2 did not run (needs either pipeline parallel or B200s or possibly both). Nemotron 3 Ultra 550B A55B NVFP4 succeeded. Qwen3.5-122B-A10B-FP8 is slightly below parity but pretty close. DeepSeek-V4-Flash-0731 is way below parity and there's no obvious discrepancy so I'm not sure why.",
+      "closed_at": null,
+      "comments": [
+        {
+          "author": "penfever",
+          "body": "🤖 ## Experiment summary\n\nThis experiment compares Marin's Terminal-Bench 2.1 results with the Artificial Analysis Intelligence Index (AAII) for four large MoE models. The protocol uses Terminus 2, three attempts per task (267 trials), a 250-turn limit, a 7,200-second agent timeout, and the pinned `terminal-bench/terminal-bench-2-1@sha256:7d7bdc1cbedad549fc1140404bd4dc45e5fd0ea7c4186773687d177ad3a0699a` dataset. Marin used Daytona sandboxes; AAII used E2B.\n\n| Model | AAII | Marin | Delta | Scoreable trials | Infrastructure success | Status |\n|---|---:|---:|---:|---:|---:|---|\n| Nemotron 3 Ultra 550B A55B NVFP4 | 53.93% | 54.09% | +0.16 pp | 257/267 | 96.25% | Reproduced |\n| Qwen3.5-122B-A10B-FP8 | 47.57% | 42.34% | -5.23 pp | 110/111 completed | 99.10% | Preliminary; 156 trials remain |\n| DeepSeek-V4-Flash-0731 | 78.65% | 56.23% | -22.42 pp | 265/267 | 99.25% | Valid Marin result; parity failed |\n| GLM-5.2 AWQ INT4 | 77.90% | — | — | 0/267 | 0.00% | No valid cohort |\n\nThe Qwen rerun aligns the 262,144-token serving context and 81,920-token generation limit across vLLM and Terminus 2. Its current 42.34% mean comprises 48 successes and 62 zeros. Thirteen `AgentTimeoutError` trials received verifier scores and are valid; one `VerifierTimeoutError` is an infrastructure failure.\n\nNemotron reproduces the AAII point estimate within 0.16 percentage points. DeepSeek clears the 90% infrastructure gate but remains 22.42 points below AAII with no confirmed protocol discrepancy. GLM did not produce a valid result because the AWQ checkpoint could not be served with the required context under the tested single-node geometry; pipeline parallelism or B200 capacity remains to be tested.\n\nCheckpoint and environment differences limit the comparison. AAII evaluated unquantized Qwen and GLM checkpoints and BF16 Nemotron, while Marin used Qwen FP8, GLM AWQ INT4, and Nemotron NVFP4. DeepSeek used the same checkpoint family. The sandbox provider also differs.\n\nNext steps are to finish the Qwen cohort, isolate the DeepSeek score gap, and rerun GLM with a serving geometry that preserves the intended context budget.\n",
+          "created_at": "2026-08-14T01:20:25Z",
+          "id": 5288308268,
+          "updated_at": "2026-08-14T01:20:25Z",
+          "url": "https://github.com/marin-community/marin/issues/8261#issuecomment-5288308268"
+        },
+        {
+          "author": "penfever",
+          "body": "🤖 The versioned launch configurations, records, and result artifacts are published at [penfever/large-model-agentic-eval-parity-tb21-aa](https://huggingface.co/datasets/penfever/large-model-agentic-eval-parity-tb21-aa/tree/main/artifacts). The upload preserves the experiment directory structure; expiring signed Iris endpoint URLs are redacted from public copies.\n",
+          "created_at": "2026-08-14T02:06:09Z",
+          "id": 5288582468,
+          "updated_at": "2026-08-14T02:06:09Z",
+          "url": "https://github.com/marin-community/marin/issues/8261#issuecomment-5288582468"
+        },
+        {
+          "author": "penfever",
+          "body": "🤖 Official and independent baselines put these results in context:\n\n| Model | Vendor SWE-Bench Verified | Vendor Terminal-Bench | Artificial Analysis TB 2.1 |\n|---|---:|---:|---:|\n| Qwen3.5-122B-A10B | 72.0 | 49.4 (TB 2.0) | 47.57 |\n| DeepSeek-V4-Flash-0731 | not reported | 82.7 (TB 2.1) | 78.65 |\n| Nemotron 3 Ultra 550B A55B | 69.5 | 53.9 (TB 2.1) | 53.93 |\n| GLM-5.2 | not reported | 81.0 (TB 2.1) | 77.90 |\n\nArtificial Analysis v4.1.1 runs 89 tasks three times with Terminus-2 in E2B and reports pass@1. Only DeepSeek is an exact checkpoint match: its entry uses `DeepSeek-V4-Flash-0731`; the other entries differ in precision or checkpoint from this campaign. Vendor conditions also vary. GLM reports 256K context and 48K maximum output with a four-hour timeout; NVIDIA documents thinking-mode sampling and an eight-repeat Terminal-Bench recipe, but its public recipe names TB 2.0 while the card reports TB 2.1; Qwen does not publish a complete resource-limit recipe. These figures are therefore comparison targets, not zero-confound parity baselines.\n\nThe official Terminal-Bench leaderboard did not contain any of the four exact campaign targets when checked on August 11, 2026. Current DeepSeek and GLM-5.2 model materials also do not report SWE-Bench Verified; older family results are not transferable to these checkpoints.\n",
+          "created_at": "2026-08-14T02:06:10Z",
+          "id": 5288582582,
+          "updated_at": "2026-08-14T02:06:10Z",
+          "url": "https://github.com/marin-community/marin/issues/8261#issuecomment-5288582582"
+        },
+        {
+          "author": "dlwh-golem",
+          "body": "@dlwh Added a managed experiment TL;DR block summarizing the AAII TB2.1 parity results, unresolved gaps, and artifact links; also added the `tldr` label.",
+          "created_at": "2026-08-16T22:13:52Z",
+          "id": 5309937811,
+          "updated_at": "2026-08-16T22:13:52Z",
+          "url": "https://github.com/marin-community/marin/issues/8261#issuecomment-5309937811"
+        },
+        {
+          "author": "github-actions[bot]",
+          "body": "This issue has been inactive for 83 days and is marked as stale.\nIf there is no further activity within 7 days, it will be automatically closed.\nIf you believe this issue is still relevant, please add a comment to keep it open.",
+          "created_at": "2026-11-08T06:02:07Z",
+          "id": 6718010040,
+          "updated_at": "2026-11-08T06:02:07Z",
+          "url": "https://github.com/marin-community/marin/issues/8261#issuecomment-6718010040"
+        }
+      ],
+      "created_at": "2026-08-14T01:19:51Z",
+      "labels": [
+        "experiment",
+        "stale",
+        "agent-generated",
+        "tldr"
+      ],
+      "number": 8261,
+      "state": "open",
+      "state_reason": null,
+      "title": "[eval] Large Model Agentic Eval Parity with AAII on TB2.1",
+      "updated_at": "2026-11-08T06:02:08Z",
+      "updated_in_target_window": false,
+      "url": "https://github.com/marin-community/marin/issues/8261"
+    }
+  ],
+  "window": {
+    "end": "2026-11-08T00:00:00Z",
+    "start": "2026-11-07T00:00:00Z"
+  }
+}

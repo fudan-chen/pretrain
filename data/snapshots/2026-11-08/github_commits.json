@@ -1,0 +1,43 @@
+{
+  "commit_count": 3,
+  "commits": [
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-11-08T23:35:54Z",
+      "committed_at": "2026-11-08T23:35:54Z",
+      "message": "[iac] Grant editor and IAP VM access to a registered developer (#11088)\n\nGrant `roles/editor`, `roles/compute.instanceAdmin.v1`,\n`roles/compute.osAdminLogin`, and `roles/iap.tunnelResourceAccessor` on\n`hai-gcp-models` to the developer registered as `human-082`. The\nprincipal already holds `projects/hai-gcp-models/roles/marindev` from\n#10729. The new roles match those of `human-032` and `human-064`:\nproject\nediting, plus sudo SSH to GCE instances through IAP TCP forwarding.\n\nA reviewer should run `review-grant` to confirm the decrypted principal,\nthen `pulumi up` on the `marin` stack.",
+      "sha": "e8eeba00da7aefd98b31620ad8d938e1d442d52d",
+      "url": "https://github.com/marin-community/marin/commit/e8eeba00da7aefd98b31620ad8d938e1d442d52d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-08T13:45:08Z",
+      "committed_at": "2026-11-08T13:45:08Z",
+      "message": "[rigging] Verify multipart S3 copies and abort failed uploads (#10639)\n\nHash promoted multipart S3 objects when their ETag changes, and compare\nthe result with the verified staging SHA-256 before publishing the\nmanifest. CoreWeave produced different ETags for identical bytes,\ncausing all 80 multipart objects in the reported transfer to fail\npromotion.\n\nWrite S3 staging objects with autocommit disabled and commit only after\nthe source stream completes. A failed UploadPart now aborts the\nmultipart upload. Small one-part uploads are verified by SHA-256 because\ntheir ETag shape changes; changed promotion ETags also require a\ndestination read. Live CoreWeave validation has not run.\n\nFixes #10638\nFixes #11081\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "1cf5c009d358261bd41f368bcd033197ecd731f0",
+      "url": "https://github.com/marin-community/marin/commit/1cf5c009d358261bd41f368bcd033197ecd731f0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-08T09:16:52Z",
+      "committed_at": "2026-11-08T09:16:52Z",
+      "message": "[iris] Keep pod exec failures from aborting controller ticks (#11076)\n\nKeep a failed output-uploader exec from aborting Kubernetes controller\nticks. The Kubernetes client raises ValueError while parsing an OCI\nruntime failure's nonnumeric cause as an exit code; that exception\nstalled cw-rno2a dispatch with 80 tasks ASSIGNED and no pods.\n\nReturn a failed ExecResult for the malformed exit code and keep output\nrelease exceptions local to one pod. The existing finalization deadline\nstill handles uploaders that cannot be released.\n\nThe affected-test run passed 1,348 tests and failed five evaluation\ntests in Shellbox's local backend because this host lacks\n`os.pidfd_open`. A focused evaluation case also failed from a separate\n`main` checkout on this host.\n\nIncident: https://marina.oa.dev/echo/wiki/947\n\nFixes #11075\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "da4bba85a4b9ae57902bd26d00d700d9921398c7",
+      "url": "https://github.com/marin-community/marin/commit/da4bba85a4b9ae57902bd26d00d700d9921398c7",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-09T00:00:00Z",
+    "start": "2026-11-08T00:00:00Z"
+  }
+}

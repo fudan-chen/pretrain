@@ -1,0 +1,142 @@
+{
+  "commit_count": 12,
+  "commits": [
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-09T23:39:39Z",
+      "committed_at": "2026-11-09T23:39:39Z",
+      "message": "[iac] Temporarily allow deleting 17 CoreWeave hero checkpoints (#11137)\n\nReplace the `marin/grug/hero-*` delete deny on `marin-us-east-02a` with\n71 protected path globs so that 17 superseded hero checkpoint\ndirectories can be removed from 02A after they are copied to\n`s3://marin-us-east-01a` under the same keys. This frees 72.96 TB\n(425,066 objects) in the 02A zone, which was at 948.9 of 1000.6 TB on\n2026-11-09. `marin-us-east-01a` is ad hoc storage in zone US-EAST-01A\n(100 TiB quota) outside the `marin-buckets` stack; how long it will be\nkept is not decided.\n\nDeletable step directories, under\n`marin-us-east-02a/marin/grug/<run>/2026.08.19.2/checkpoints/`:\n\n| Run | Steps | Reason |\n|---|---|---|\n| hero-ctx65k-step372k | 385500 through 390000, every 500 (10) | Inputs\nto `hero-ctx65k-merge-hb-avg11/checkpoints/step-390251`, which is saved\nand is the current handoff |\n| hero-lce-global184-step390k | 390500, 391000, 391500, 392000, 392500,\n393000, 393491 (all 7) | The Global 1.84 262K finalist; #8435 chose log\nfloor 65536² |\n\nhero-ctx65k-step372k keeps 378000, 384000 and 390251 (the GB200 canary\ncheckpoint), plus its executor and tracker files. Every other hero-* run\nthat existed on 2026-11-09 (64 runs) stays fully protected, including\nthe merged handoff and the log floor 65536² finalist. #10218 left\nnon-lineage hero-* runs unprotected; this list covers them. hero-* runs\ncreated while this is applied are not protected.\n\nChecked against a listing of all 2,318,740 objects under\n`marin/grug/hero-*` taken 2026-11-09: the new deny leaves exactly the\nmanifest's 425,066 objects undenied. Manifest sha256\n`c0244dc53b624cbb05aa0158bcadb8e3f05cd2ad84459453fe9cd18631b52db9`, one\n`marin/grug/<run>/2026.08.19.2/checkpoints/step-N` per line, in table\norder. Each directory is a self-contained OCDBT checkpoint, so\nwhole-directory copies restore from their new path and deleting whole\ndirectories leaves no dangling references. The archive copy is a plain\nrecursive copy. Before any 02A delete, every key and size under the 17\narchived directories must match the 2026-11-09 listing of the source.\nVersioning is suspended on 02A, so the deletion there is permanent.\n\nSequence: merge; copy all 17 directories and check them against the\nlisting; only then an operator posts the credentialed preview and\napplies it; delete exactly the manifest prefixes from 02A; then revert\nthis change to restore the wildcard deny by 2026-11-13. #10245 applied\nits revert with a targeted `pulumi up --target` on the 02a bucket policy\nresource; check the preview for unrelated drift before a plain `up`.",
+      "sha": "8d8e0e6111b0d5f9b9a51626062248d29a5b26db",
+      "url": "https://github.com/marin-community/marin/commit/8d8e0e6111b0d5f9b9a51626062248d29a5b26db",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-11-09T22:50:48Z",
+      "committed_at": "2026-11-09T22:50:48Z",
+      "message": "[inference] Add an optional Parallel web search tool to the dashboard (#11068)\n\nThe serve dashboard can give the model a `web_search` tool backed by\nParallel's search API. The tool exists only when the serving process\nholds a\nParallel API key. Then `/info` reports `web_search: true`, the Chat view\nshows\na Web search checkbox, and `POST /web-search` forwards each call to\nParallel\n`/v1/search`.\n\nThe key stays on the server. It reaches the job as the Iris secret\n`PARALLEL_API_KEY`, which `parallel_web_search_from_secret()` reads in\n`_register_dashboard`. `marin-serve iris` gains `--secret NAME SOURCE`,\nthe\nform `iris job run` uses, so\n`--secret PARALLEL_API_KEY env:PARALLEL_API_KEY` resolves the reference\non the\nclient and attaches the value to the job, not to the job command. A\nlauncher\nthat calls `build_dashboard_app` directly must submit the same secret\nand pass\n`web_search=parallel_web_search_from_secret()`. Inference jobs submitted\nfrom\na serving task get its other forwarded secrets as an explicit map\nwithout\n`PARALLEL_API_KEY`, because they may run remote model code. In direct\nmode the\nmodel server shares the dashboard's task and can read the key file.\n\nThe route validates `objective` and `search_queries` with a Pydantic\nmodel and\ndrops other fields, so a holder of the capability URL cannot select\nother\nParallel options. Invalid arguments return 422 without a Parallel call.\nParallel's status and body are returned unchanged, and the browser gives\nany\nerror body to the model. A transport failure returns 502 without a\nretry. A\nlive search returned 10 results, about 11 KB, in 2.3 s.\n\n`/info` adds `web_search` next to the `ServingInfo` fields because the\ndashboard app owns the route. A `ServingInfo` field would make each\ncaller keep\nthe flag and the `web_search` argument in agreement.",
+      "sha": "c4d2afb669c8e73e20ea5485c5a49316fe23352b",
+      "url": "https://github.com/marin-community/marin/commit/c4d2afb669c8e73e20ea5485c5a49316fe23352b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-09T22:28:58Z",
+      "committed_at": "2026-11-09T22:28:58Z",
+      "message": "[ops] Keep CoreWeave runtime logs off the root filesystem (#11079)\n\nRedirect CoreWeave shim and gVisor logs to\n`/mnt/local/iris-runtime/runsc` when the Iris node-agent DaemonSet\nstarts. An init container preserves provider runtime options and backs\nup the configuration before replacing it atomically. Replacement nodes\nget the same setup automatically. Existing shims keep their original\ndestinations; historical log cleanup remains an operator action.\n\nPublish root and `/tmp` filesystem gauges and alert below 5% free for\nfive minutes, independently of the NVMe cache gauge. Deploy the updated\nnode agents and Grafana to enable the fix and alert. Task and Shellbox\nsandbox `/tmp` already use private disk-backed Kubernetes storage.\n\nShorten `OPS.md` to common commands and pointers, with detailed runbooks\nin focused reference pages and incident evidence in\n[Echo](https://marina.oa.dev/echo/wiki/947).\n\nPart of #11075.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "aace3e74fd3db53fa9510b5c4d22ef5b06c85b83",
+      "url": "https://github.com/marin-community/marin/commit/aace3e74fd3db53fa9510b5c4d22ef5b06c85b83",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-09T21:30:19Z",
+      "committed_at": "2026-11-09T21:30:19Z",
+      "message": "[rl] Score fixed references with the serving policy (#10614)\n\nScore fixed, pretokenized references through the trainer evaluation\ncallback, after serving weights are synchronized. Emit NLL averaged\nwithin each example and then across examples, alongside token-weighted\nNLL by domain, plus per-step JSONL with exact token IDs, answer-start\ntoken offsets, and chosen-token log probabilities.\n\nMissing or misaligned scores fail that step's scoring rather than\nlogging a wrong value. Because this is a diagnostic, the failure logs a\nwarning, omits the step's metrics and JSONL, and training continues. To\nsupport that, the trainer now applies each callback's `error_behavior`\nto `collect_evaluation`, which it previously awaited directly; the\nexisting evaluation callbacks use `RAISE` and still fail the run.\n\nNLL is a distribution diagnostic, not a generated-answer correctness\nmetric. This callback does not select checkpoints, enforce preservation\nthresholds, or stop training. The CPU cases run in the skyrl-wheel CI\njob.\n\nAlso give the `test_iris_monitor.py` sequential-child fixture a running\ntask. Since #10909 the monitor requires one before it drops the queue\ndeadline, so the test from #10860 failed on main whenever CI selected\n`tests/ci`.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "2c9334ba88f8cc1bb0ac103381722b362284be30",
+      "url": "https://github.com/marin-community/marin/commit/2c9334ba88f8cc1bb0ac103381722b362284be30",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-09T21:11:22Z",
+      "committed_at": "2026-11-09T21:11:22Z",
+      "message": "[grug] Make the log-scaled 262K run the hero's recipe and current run (#11044)\n\nMake log floor 65536 squared the hero's 262K recipe and\n`hero-lce-log65536sq-step390k` the current hero run. `HERO_MODEL` drops\n`qk_mult_long_scale=1.108` (global 1.84) and scales each global-layer\nquery that sees `n` keys in its document by `(1 + 0.1 ln(n/65536))^2`,\nup to 1.296 at 262K. `CURRENT_HERO_RUN_ID` names the log run, so\n`hero_checkpoint_paths()` and `trigger_hero.sh` now follow its lineage.\n\nThe run trained from launch commit `0454bdd609`, tagged\n`hero-lce-log65536sq-step390k`, and ended at\n`s3://marin-us-east-02a/marin/grug/hero-lce-log65536sq-step390k/2026.08.19.2/checkpoints/step-393491`,\nthe starting point for downstream training. The training config built at\nthis head matches the one built at `0454bdd609`. Against the global 1.84\nrun at step 393491, the clean macro at 262K tied (1.6434 vs 1.6433), and\nMRCR full-context NLL fell from 0.0252 to 0.0223 (Holm p < .001 at all 7\ncheckpoints). Each recipe has one seed. See the [#8435\nresult](https://github.com/marin-community/marin/issues/8435#issuecomment-6748198431),\n[W&B](https://wandb.ai/marin-community/marin_moe/runs/hero-lce-log65536sq-step390k),\nand [marin-logbooks\n#37](https://github.com/marin-community/marin-logbooks/issues/37).\n\n- The vLLM and CPU exporters and the Hugging Face upload refuse log\nscaling, so they cannot convert this run's checkpoints yet. The README\nsays so.\n- The vibe check samples at 4K context with the native model, below the\nfloor, so its output does not change.\n- The daily hero canary trains the recipe from step 390251, so it\nswitches from global 1.84 to log scaling.\n- Unset log scaling options in `launch_diagnostics.py` keep the hero's\nvalues, so `--no-log-scaling` turns log scaling off for a control arm\nsuch as global 1.84.\n\nPart of #8435",
+      "sha": "77f205bd2e114a62deadcf689b0fd129f4bace84",
+      "url": "https://github.com/marin-community/marin/commit/77f205bd2e114a62deadcf689b0fd129f4bace84",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-09T20:40:29Z",
+      "committed_at": "2026-11-09T20:40:29Z",
+      "message": "[grug] Make the hero log scaling slope required and add a power (#10986)\n\nReplace the fixed slope of the hero's log scaling with a required\n`log_scaling_alpha` field on `GrugModelConfig`, and add a\n`log_scaling_power` field that defaults to 1. `launch_diagnostics.py`\ngets `--log-scaling-alpha` and `--log-scaling-power`. The factor is now\n`(1 + alpha * ln(max(n / n_floor, 1))) ** power`. Setting only one of\nthe floor and the slope raises `ValueError`, as does a power other than\n1 without a floor, and there is no default slope.\n\n#10923 added the optional scaling with `LOG_SCALING_ALPHA = 0.1`, the\nvalue in Inkling's released configs, where it is paired with a floor of\n128000. The same coefficient sets the hero's YaRN-style QK schedule.\nNeither source tested that slope at the hero's floors or at 262K, and a\nslope other than 0.1 could not launch without a config value. The field\nuses Inkling's name but has no default, so a run that enables log\nscaling must state its slope.\n\nThe power lets a run square the factor: floor 65536, slope 0.1 and power\n2 give 1.296 at the end of a 262K document. At power 1 the code skips\nthe pow.\n\nThere is no effect with log scaling off, which remains the default.\nAgainst the code before this PR on CPU, a tiny model's logits were\nbitwise equal with scaling off and with slope 0.1 at the default power,\nand so were factors at floor 65536. `to_hf_config` still refuses log\nscaling, so exports and upload still raise, and SkyRL behavior does not\nchange. No hero constant changes.",
+      "sha": "709a9669b68deacaa0193554f4ba204bdd71c769",
+      "url": "https://github.com/marin-community/marin/commit/709a9669b68deacaa0193554f4ba204bdd71c769",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-09T19:57:31Z",
+      "committed_at": "2026-11-09T19:57:31Z",
+      "message": "[iris] Prefer the image's Python in the default task setup (#11017)\n\nSet `UV_PYTHON_PREFERENCE=system` on the default setup's `uv sync`, so a\ntask venv uses the image's `/usr/local/bin/python3.12` when it matches\nthe requested version. uv's default preference chose any managed 3.12\nbuild in the node-local `/uv/cache/python` first. Nodes on `cw-rno2a`\nhad cached different builds. Older python-build-standalone builds lack\n`os.pidfd_open` and `signal.pidfd_send_signal`; upstream fixed this in\nastral-sh/python-build-standalone#1163. Three of four workers of\n`/rav/agentic-drafts-ramp-4` failed in Shellbox's `LocalMachineFactory`\non such a build.\n\nOn one `cw-rno2a` node, 8 tasks with the default preference ran the\ncached managed 3.12.13, which lacks both APIs. 8 tasks with\n`UV_PYTHON_PREFERENCE=system` ran the image's 3.12.16, which has both.\nuv still uses a managed build when the image has no matching Python.\n\nThe setting is part of the client-rendered setup script, so it applies\nto jobs submitted from this revision and to their children without an\nIris rollout.\n\nIncident: https://marina.oa.dev/echo/wiki/937\n\nFixes #11014\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "119c3a623a18077b288fe991f0d81512dcea764d",
+      "url": "https://github.com/marin-community/marin/commit/119c3a623a18077b288fe991f0d81512dcea764d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-11-09T19:55:27Z",
+      "committed_at": "2026-11-09T19:55:27Z",
+      "message": "[datakit] Read the Tier 3 ferry input from normalized Nemotron-CC (#11098)\n\nThe Tier 3 Datakit ferry now reads the normalized Nemotron-CC v1\n`hq_actual` split at\n`gs://marin-eu-west4/normalized/nemotron_v1/hq_actual_d6502d2c` and\nnormalizes it again. It read the raw Common Crawl dump at\n`gs://marin-eu-west4/raw/nemotro-cc-eeb783` before. That dump is gone:\nits prefix holds only the `.executor_info` and `.executor_status` that\nthe failed run wrote. The `raw/` prefix is also gone from us-central1,\nus-central2, us-east1, and us-east5, and soft delete is off, so GCS\ncannot restore it. Who deleted it is unknown. The [2026-11-09\nrun](https://github.com/marin-community/marin/actions/runs/42578325577)\nfailed at its input check.\n\nThe last good raw-input run (2026-10-26) normalized 1,000 `kind=actual`\nfiles, 301M documents, into 1,382 shards. Normalize hash-partitions by\ndocument ID, so each `hq_actual` file is a uniform sample of the split,\nat about 188K documents per file. `FERRY_TEST_MAX_FILES=1600` selects\nabout 301M documents (655 GB). A 448 MiB partition target gives about\n1,390 shards of 216K documents. The normalize step reads `source_id`\n(the WARC record ID) as its ID field, so its output columns match the\nraw-input runs. Before the DAG starts, the ferry checks the split's\n`SUCCESS` status and Parquet files. The input step is then a cache hit,\nso StepRunner writes nothing into the split's directory, which other\npipelines also read.\n\nAn Iris job in europe-west4 ran the input and normalize steps with\n`FERRY_TEST_MAX_FILES=4`. The input step was a cache hit, and normalize\nwrote 753K unique records to 3 shards with the expected columns at a\npeak worker memory of 3.7 GB. The full DAG has not run on this input\nyet; the next weekly run is the first.\n\nIncident record: https://marina.oa.dev/echo/wiki/955\n\nFixes #11096",
+      "sha": "beaef03f7bc11cb38c95af07de0cda5643f728b3",
+      "url": "https://github.com/marin-community/marin/commit/beaef03f7bc11cb38c95af07de0cda5643f728b3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-09T18:45:36Z",
+      "committed_at": "2026-11-09T18:45:36Z",
+      "message": "[tests] Move misplaced tests to the packages they cover (#10993)\n\nMove tests that live in one package but only test another package's code\ninto the package they test, and delete the copies that duplicate tests\nalready there, so each behavior is tested once in the place its owners\nlook.\n\nThe shard-cache consolidation tests in\ntests/test_consolidate_metadata.py exercised only Levanter, so they now\nlive in lib/levanter/tests/test_shard_cache_consolidation.py; its\nrelative_shard tests were dropped because test_new_cache.py's\nrelative_shard_path tests already cover them, with two new parametrize\nrows for the cases they missed (a doubled separator on the output-path\nside and a local sibling path). The loopback-trust unit tests of\nrigging.server_auth move from lib/iris/tests/test_auth.py to\nlib/rigging/tests/test_server_auth.py, leaving Iris with its controller\nintegration tests.\n\nDuplicates were removed rather than moved: Iris's loopback-admin and\ntokenless-rejection resolve_auth tests (covered by rigging's\ntest_resolve_auth_loopback_admin_when_no_assertion and\ntest_resolve_auth_rejects_tokenless_without_assertion), and fray's\nwrap_multiprocess GPU-validation tests (covered by Iris's\ntest_build_multigpu_hook_requires_gpu and _requires_divisible_gpu_count,\nwhich fray delegates to). The helper module tests/test_utils.py is\nreplaced by tests/vllm/tpu_availability.py, holding skip_if_no_tpu for\nits two vLLM importers; its unused check_load_config and\nskip_if_module_missing are deleted.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "edf93126edc67dc48aaaeafc5ea94a08716938e3",
+      "url": "https://github.com/marin-community/marin/commit/edf93126edc67dc48aaaeafc5ea94a08716938e3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-09T17:49:38Z",
+      "committed_at": "2026-11-09T17:49:38Z",
+      "message": "[haliax] Index NamedRef with Python integer lists (#10978)\n\nReading or writing a NamedRef with a Python list of indices, such as\n`ref[{\"x\": [2, 4]}]` or a list selector on a sliced view, now selects\nthose positions. Before, every such call failed with `ValueError: too\nmany values to unpack`.\n\nThe combined list went straight into the `jax.Ref` index tuple, and JAX\nreads a Python list there as several separate indices. Combining a list\nwith the view's prefix now produces an int32 `NamedArray` on the indexed\naxis, after the same bounds checks and negative-index handling, so the\nresult keeps that axis as list indexing of a `NamedArray` does. A bare\nindex array would instead take the name of any other axis of the same\nlength and read or write the wrong elements on a multi-axis ref. The\nlist-index test that #10883 marked as an expected failure now passes,\nand new tests cover direct list reads and writes, including a list whose\nlength equals another axis's size.\n\nOnly `lib/haliax/tests/test_named_ref.py` was run locally; CI covers the\nrest of the Haliax and Levanter suites.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>",
+      "sha": "3fba4c9f68818298d4c66eda4ea52a8bdc6bcf1e",
+      "url": "https://github.com/marin-community/marin/commit/3fba4c9f68818298d4c66eda4ea52a8bdc6bcf1e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-09T15:31:22Z",
+      "committed_at": "2026-11-09T15:31:22Z",
+      "message": "[rl] Surface declared counts and independent QC in the Atlas (#10924)\n\nInventory-only campaign-release rows in the RL Data Atlas showed no\nexample count, no curriculum area, and only *Not assessed*: the\ncurriculum release carries sources with curated outputs, and no field\nexisted for the QC a pinned release performed on itself.\n\nPublication now joins inventory declarations with a pinned row count as\n*declared*-basis source rows. Release totals, placement statistics and\nthe processed-examples summary stay matched-only, so declared rows count\nwithout claiming curriculum placement. Re-running `--corpus` merges\ncurrent dataset declarations over the recorded inventory, so a refreshed\nrelease picks up new or edited declarations without re-curation; the\ninventory build also dedupes by declaration ID, which the merge made\nobservable.\n\n`SourceInfo` gains a typed `independent_qc` block — verdict, method,\nreviewed and admitted counts, pinned evidence URL — that projects into\nthe catalog declaration and reaches the UI unchanged through the loader\nand sources API. The Atlas lists it under its own **Independent QC**\ncolumn and detail section, beside and distinct from the sampled curation\ngrade. The five Smartie campaign releases state their manifests' facts:\nthe SWE-Smith cohort reports *good* with 8,045 reviewed and admitted on\nDaytona-oracle and Good-verdict retention, the repaired shared\nenvironment reports *good* with 324 admitted of 2,205 reviewed, the\nCalibForge admitted cohort reports *some issues* (oracle skipped,\npublication pending), and the staged archives report their reviewed\ncounts and verification limits without an admitted claim.\n\nTo surface the counts and QC after merge: publish a fresh curriculum\nrelease from the completed campaign corpus (`driver --corpus\ns3://marin-us-east-02a/marin/rl-data/campaigns/campaign-releases-2026.11-04-9/corpus.json\n--embed coverage` with the campaign's pool flags), load it with\n`load_curriculum.py`, and rerun the Atlas loader after the declaration\nedit reaches production (a metadata-only campaign selecting the five\nsources republishes them). The app needs a Marina release for the UI\nchange.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "91047452650428cb0663c466692f7cffc9299942",
+      "url": "https://github.com/marin-community/marin/commit/91047452650428cb0663c466692f7cffc9299942",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "muchanem",
+      "author_name": "Mark Muchane",
+      "authored_at": "2026-11-09T15:19:49Z",
+      "committed_at": "2026-11-09T15:19:49Z",
+      "message": "[iac] Grant the Marin Dev role to a new OA developer (#11105)\n\nGrant `projects/hai-gcp-models/roles/marindev` on `hai-gcp-models` to a\nnew OA developer (registered as `human-087`) for day-to-day Marin\ndevelopment. Iris IAP access already comes from the\n`domain:openathena.ai` member on both controller backends, so no IAP\nchange is needed.\n\nThe grant is not applied yet. A reviewer should run `review-grant` to\nconfirm the decrypted principal, then merge and run `pulumi up` on the\n`marin` stack.",
+      "sha": "cd9b21ee127af8cb862542bbe1c19e6dd097ccbe",
+      "url": "https://github.com/marin-community/marin/commit/cd9b21ee127af8cb862542bbe1c19e6dd097ccbe",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-10T00:00:00Z",
+    "start": "2026-11-09T00:00:00Z"
+  }
+}

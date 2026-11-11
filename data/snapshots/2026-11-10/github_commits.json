@@ -1,0 +1,274 @@
+{
+  "commit_count": 24,
+  "commits": [
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-10T23:10:17Z",
+      "committed_at": "2026-11-10T23:10:17Z",
+      "message": "[rl] Refresh inventory-only declarations at catalog publication (#11167)\n\nCatalog publication now takes the current code declaration for a source\nthat has no pipeline and no attempt in the campaign. Previously every\nsource without an attempt carried its prior snapshot row forward\nunchanged. An inventory-only source can never have an attempt, so an\nedit\nto its declaration never reached production.\n\nThe five Smartie campaign releases show this. #10924 added their\n`independent_qc`, but the production catalog still serves the\ndeclarations published on Nov 4, so the Atlas Independent QC column is\nempty for them. A local catalog reproduces it: a second publication with\nthe edited declaration kept `independent_qc` empty. The new test covers\nthat case.\n\nRunnable sources keep their prior declaration when unselected, because\ntheir grade is pinned to the declaration it assessed. The refresh also\nrequires that the prior row had no pipeline, so a source that loses its\npipeline in code keeps its graded row.\n\nAfter merge, one FULL campaign on\n`snowball-v01-structure-closure-validation`\nwith `--publish-catalog` and an Atlas loader run will bring the five\nreleases' QC into the Atlas.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "e581f387f0e243b18b6a79e52851f2d17b4c4020",
+      "url": "https://github.com/marin-community/marin/commit/e581f387f0e243b18b6a79e52851f2d17b4c4020",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-10T20:26:45Z",
+      "committed_at": "2026-11-10T20:26:45Z",
+      "message": "[skyrl] Preserve remote completion token IDs and logprobs (#10354)\n\nUse the completion endpoint's returned token IDs and aligned\nsampled-token logprobs instead of re-tokenizing response text. Raise\nHTTP failures before interpreting a response, and reject mismatched\nbatch or token evidence.\n\nThis preserves token identity when multiple IDs decode to the same text.\nIt does not enable remote engines in Marin's artifact topology or add\nremote pause and publication support.\n\nTransplanted from https://github.com/marin-community/MarinSkyRL/pull/905\nby @dlwh. Original discussion and reviews remain at that URL.\n\nSource base: `5cb37254f40f45fffc0e3184dec43cd930c5bce3`; source head:\n`f70905dc7f5bd0c357892657d71cccf4452f957d`.\n\n<!-- skyrl-migration: source=marin-community/MarinSkyRL#905\nhead=f70905dc7f5bd0c357892657d71cccf4452f957d -->\n<!-- skyrl-port-patch:\ncf0a188ed4959b2d738d0d3f359f4ccaaa7fa0e3d780e1fbb2e1069cd73d3fce -->\n<!-- skyrl-destination: f71daf9ee4f21a85f5fc7c587a7fd43f230a2ab8 -->\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "8f6bb9e5514bb6a161ffc46d742fd51efe742089",
+      "url": "https://github.com/marin-community/marin/commit/8f6bb9e5514bb6a161ffc46d742fd51efe742089",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mminutoli",
+      "author_name": "Marco Minutoli",
+      "authored_at": "2026-11-10T19:51:42Z",
+      "committed_at": "2026-11-10T19:51:42Z",
+      "message": "[grug] Let the June synthetic benchmark repeat a pool of batches (#11140)\n\nThe June synthetic benchmark gives every step fresh uniform-random\ntokens, so the loss stays at ln(vocab_size) and run-to-run differences\nnear that floor are noise. `--repeat-batches N` draws the sequences from\na pool of N batches that the mixture's restart strategy cycles through,\nso the model can memorize the pool, the loss falls, and two\nconfigurations' loss curves can be compared. The default, 0, keeps fresh\ntokens every step.\n\nThe dataset holds only the pool, so long runs are not limited by\nMixtureDataset's 2^16-sequence block cap (127 steps at batch 512 with\nfresh tokens); a pool of 2^16 or more sequences still hits it, and the\nbenchmark now rejects it up front. We used it to compare kernel options\nover 600 steps on 2 MI355X nodes: the loss falls from 11.79 to about\n1e-4.",
+      "sha": "7f0ed8cb52910546952b70a792cd3d9154beaf40",
+      "url": "https://github.com/marin-community/marin/commit/7f0ed8cb52910546952b70a792cd3d9154beaf40",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-10T19:16:34Z",
+      "committed_at": "2026-11-10T19:16:34Z",
+      "message": "[levanter] Make the Snowball MoE capacity a setting and count drops (#10685)\n\nMake `SnowballConfig.moe_capacity_factor` a checked runtime setting, and\nadd a Snowball forward that counts dropped MoE assignments. The factor\nmust be positive. At the expert-axis size it keeps every routed\nassignment. HF metadata does not carry it, so `train_lm` now keeps the\nrequested value across `use_hf_model_config`. June's training config\nraises when it is set, like `router_dot_fp32`.\n\n`SnowballLMHeadModel.activations_with_stats` takes a boolean\n`token_valid` mask over the token axes. It returns the hidden states and\na `MoeForwardStats` with the routes and the per-layer sender and\nreceiver drop counts. Invalid positions, such as padding, are skipped\nand are not counted as drops. The counts are per call, so callers sum\nthem across microbatches. Forwards without `token_valid` call the expert\nMLP as before.\n\nThe ordinary training forward passes no validity mask, so padding uses\ncapacity there. Zero drops in the stats forward prove that training\ndropped nothing only at dropless capacity or on a batch with no padding.\n\nThe first full parity gate failed 21 checks. Levanter's expert choices\nmatched the torch reference at only 41.5% of positions, and the gap grew\nwith depth. Levanter's expert-parallel ring used capacity 1.0 and\ndropped overflow assignments without a report. vLLM never drops. On the\nreal model the [drop\ndiagnostic](https://gist.github.com/karansag/2ac0c5798b18bfdbec9a81b7090361d2#file-diag-moe-drops-r2-reading-chukar-md)\nmeasured drops of 8–23% of assignments per layer. With no drops\n(capacity 4.0), the p99 log-prob gap against vLLM fell from 2–4 nats to\n0.45–0.65, and route agreement rose from 0.42 to 0.89.\n\nPart of #10695\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "cae189b2e6b3d08f0b83fbf95e3100a8c8806998",
+      "url": "https://github.com/marin-community/marin/commit/cae189b2e6b3d08f0b83fbf95e3100a8c8806998",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-10T19:16:33Z",
+      "committed_at": "2026-11-10T19:16:33Z",
+      "message": "[levanter] Add a Snowball route observer and FP32 router dot (#10684)\n\nAdd two opt-in options to the Snowball forward.\n`SnowballLMHeadModel.activations_with_routes` returns the activations\nand each layer's selected expert ids, shape `[L, B, S, K]`. The ids come\nfrom the forward as it runs; routing is not recomputed.\n`SnowballConfig.router_dot_fp32` casts the router input and weight to\nfloat32 before the router dot. It changes neither parameter storage nor\nHF metadata. Both are off by default, and then the forward is unchanged.\n\nThe marin vLLM fork (`01911be3`, `grugmoe.py:596,713`) keeps the router\nprojection in float32 and casts the input to float32 before the router\ndot. Levanter did this dot in bfloat16. In a torch test on the gate's\ninputs, moving the dot to float32 changed about 3,900 expert choices.\nThe route observer lets the identity experiments compare Levanter's\nexpert choices with a torch reference, layer by layer ([amendment\nG1](https://gist.github.com/karansag/2ac0c5798b18bfdbec9a81b7090361d2#file-precision-preflight-amendment-g1-shoveler-md)).\n\nWith `router_dot_fp32`, `train_lm` refuses to start unless\n`trainer.field_dtype_overrides` maps `router_bias` to `float32`, so the\nrouter bias also stays float32. HF metadata carries neither\n`router_dot_fp32` nor `moe_implementation`. After `use_hf_model_config`\nreloads the architecture, `train_lm` now copies both from the requested\nconfig. It also keeps the requested `reference_checkpoint` and\n`tokenizer`, which the reload used to reset. Non-Snowball configs reload\nas before.\n\nPacked document masks change in two ways. Query segment ids follow the\ntoken sharding over batch and context. Key segment ids are sharded over\nbatch only, so every context shard sees the full key sequence. A\n`key_position` axis on the key ids must have the length of the input\nposition axis, or the forward raises.\n\n`JuneSnowballConfig.training_config` now passes only the fields that\nJune's `GrugModelConfig` has. A Snowball-only setting such as\n`router_dot_fp32` raises when set, since June's kernels do not implement\nit. Without this, the new field broke `GrugModelConfig(**fields)`.\n\nPart of #10695\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "454b21618091c32793bd3904ce72be167e31f29f",
+      "url": "https://github.com/marin-community/marin/commit/454b21618091c32793bd3904ce72be167e31f29f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-10T19:16:32Z",
+      "committed_at": "2026-11-10T19:16:32Z",
+      "message": "[levanter] Keep named fields at a configured dtype through HF export (#10683)\n\nAdd `TrainerConfig.field_dtype_overrides`, a map from a model attribute\nname to the floating `jnp.dtype` that field keeps under the\nmixed-precision policy. A name matches that attribute at any depth, so\n`{router_bias: float32}` in YAML covers every layer. An unknown dtype\nname fails when the config is decoded, and a non-floating dtype raises\nwhen the trainer state is built. The default is empty. Then `Trainer.mp`\nreturns `mp` unchanged.\n\nSnowball stores its 26 router biases in float32, and vLLM routes with\nthem in float32. Levanter rounded them to bfloat16 twice: when it stored\nfrozen parameters in the compute dtype, and when it cast the model for\nthe loss. The fine-tuned model therefore routed with different biases\nfrom the served model. The [block-0 dtype\ncomparison](https://gist.github.com/karansag/2ac0c5798b18bfdbec9a81b7090361d2#file-l0-dtype-boundaries-marten-md)\nlists each router operand on both sides.\n\nWith overrides set, `Trainer.mp` is a `jmp.Policy` subclass whose param\nand compute casts give each overridden field its own dtype. Code that\nuses the trainer's policy follows it: the training and eval loss,\nlabeled evaluation, and the eval-harness and logit paths in `train_lm`.\nHF load in `train_lm` and in the DPO policy and reference loads reads\ntensors at their stored dtype before the param cast. HF export,\nincluding the DPO export, writes each overridden field in its own dtype\nwhen the rest of the model is saved in bfloat16. `lora_lm` loads its\nbase the same way, and its merged export, the LoRA adaptor's merged\nexport and `export_lm_to_hf` pass the overrides too. An overridden name\nthat matches no floating-point array raises when the trainer state is\nbuilt.\n\nThe new `frozen_parameters` adaptor trains every field except the named\nones and exports the full model. Its checkpoints omit the frozen fields,\nso a resume must load them from the same pinned base.\n\nPart of #10695\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "c52307f3b08b0e8abd241c45ea1c4fa5a99a5dc9",
+      "url": "https://github.com/marin-community/marin/commit/c52307f3b08b0e8abd241c45ea1c4fa5a99a5dc9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-10T19:05:05Z",
+      "committed_at": "2026-11-10T19:05:05Z",
+      "message": "[finelog] Raise the default query deadline to 30 seconds (#11087)\n\nRaise the server's default Query and FetchLogs deadline from 10 to 30\nseconds. The `finelog query` CLI now waits 35 seconds by default, so it\nstill outlasts the server and reports the server's error instead of a\nbare\nclient timeout.\n\nDay-sized log scans on the `marin` hub do not fit in 10 seconds. A\n60-day\npull of `levanter.model_cache` lines in 12-hour windows lost 58% of its\nwindows to `snapshot read deadline exceeded`, even after three retries\nper\nwindow (see #9233).\n\nThe 10-second value came from #7312 and #8010, which bounded runaway\nscans\nthat held the visibility lock and delayed compaction. #10929 removed the\ncache visibility contention. The server still caps each read at the\nearliest\nof this default, the caller's Connect deadline, and the table's\n`max_query_time_ms`. The Grafana bridge sends a 20-second deadline, so\ndashboard reads keep their current bound. Admission still allows two\nconcurrent Query RPCs, so a slow ad-hoc query without a deadline can now\nhold\na slot for up to 30 seconds.\n\nThe new default takes effect when the hub is redeployed.\n\nPart of #9233",
+      "sha": "3b99ff18bcf11839987b39eca833d55b2df1006d",
+      "url": "https://github.com/marin-community/marin/commit/3b99ff18bcf11839987b39eca833d55b2df1006d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-10T18:14:08Z",
+      "committed_at": "2026-11-10T18:14:08Z",
+      "message": "[iac] Restore the hero-* checkpoint deletion deny (#11165)\n\nRevert the temporary carve-out from #11137. The 17 superseded CoreWeave\nhero checkpoint directories it opened up (425,066 objects, 72.96 TB)\nwere copied to `marin-us-east-01a` under the same keys, checked object\nby object against the source, and then deleted from `marin-us-east-02a`;\nnone of those prefixes have objects left. The retained checkpoints are\nintact, including `hero-ctx65k-step372k` steps 378000, 384000 and\n390251, all seven `hero-lce-log65536sq-step390k` checkpoints and\n`hero-ctx65k-merge-hb-avg11/checkpoints/step-390251`.\n\nThis restores `DenyHeroCheckpointDeletion` on `marin-us-east-02a` to the\nfull `marin/grug/hero-*` wildcard. `coreweave.py` and the bucket README\nare byte-identical to their state before #11137. Until this is applied,\nhero-* runs created after 2026-11-09 are deletable.\n\nApply with a targeted update. A plain preview from main also creates the\nHugging Face bucket resource and updates the `marin-na` R2 lifecycle\nrules, which are unrelated pending changes:\n\n```\npulumi -C infra/buckets up --stack marin-buckets --target 'urn:pulumi:marin-buckets::marin-buckets::marin:buckets:DataBuckets$marin:buckets:CoreweaveDataBuckets$coreweave:index/objectStorageBucketPolicy:ObjectStorageBucketPolicy::policy-marin-us-east-02a'\n```\n\nPart of #11137",
+      "sha": "0e38fe6d1621456f7ef56da21a5221403b3e800d",
+      "url": "https://github.com/marin-community/marin/commit/0e38fe6d1621456f7ef56da21a5221403b3e800d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-10T16:38:38Z",
+      "committed_at": "2026-11-10T16:38:38Z",
+      "message": "[sft] Keep only the final native checkpoint by default (#10782)\n\nChat SFT now keeps one rolling native recovery checkpoint and saves a\npermanent native checkpoint only when training finishes. The recovery\ncheckpoint is saved every 30 minutes and holds the full training state,\nincluding optimizer state and the step counter. Before this change,\nLevanter SFT kept a permanent checkpoint every 5,000 steps, and the\ntwo-stage Grug recipe kept one every 1,000 steps.\n\n`SFTSpec` now has a `checkpointer` field, a Levanter\n`CheckpointerConfig`, and both the Levanter and native Grug backends use\nit. Set `keep` to retain intermediate permanent checkpoints. Set\n`keep_last_temporary_checkpoints` to change how many recovery copies\nremain. The Grug `save_interval_minutes` and `checkpoint_keep` options\nare removed. The Grug smoke run sets `keep` so that it still exercises a\nmid-run save.\n\nRecovery checkpoints go under Marin's TTL scratch prefix, where cloud\nstores expire objects after 14 days. Automatic resume searches both the\ntemporary and the permanent roots. After the final native save commits,\nthe remaining temporary checkpoints are removed. The Levanter backend\nstill writes its final HF export.\n\nA Snowball native checkpoint takes hundreds of GiB, and the identity\nruns share the cw-rno2a storage quota. On 2026-10-29 the bucket filled\nand was write-suspended. Running exports sat idle on their GPUs until\nspace was freed.\n\nPart of #10695\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "2b3b0a0420c28b54e94e019bba9a09fd2808af84",
+      "url": "https://github.com/marin-community/marin/commit/2b3b0a0420c28b54e94e019bba9a09fd2808af84",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-11-10T15:13:11Z",
+      "committed_at": "2026-11-10T15:13:11Z",
+      "message": "[grug] Count MoE routing assignments in int32 (#11166)\n\n`moe_routing_stats` and `moe_routing_stats_local` now count each\nexpert's assignments in int32. They used a float32 one-hot reduced in\nfloat32, and float32 holds integers exactly only up to 2**24, about\n16.8M.\n\nOn 11 hero racks, a layer makes 176 x 262,144 x 8 = 369M assignments, a\nmean of about 961K per expert. With the router bias frozen for SFT, hot\nexperts take 15-35 times the mean, so their counts round. The valid\ncount then misses the batch size. The trainer's drop-metric check\n(`valid plus skipped assignments must equal the padded batch size`)\nstopped the first production SFT attempt at its first step ([run\nrecord](https://github.com/marin-community/marin/issues/8089#issuecomment-6761658823)).\nOne-rack runs and pretraining, where the bias kept experts near the\nmean, stayed below 2**24.\n\nThe largest global count, 369M, fits in int32. Fractions, entropy and\nthe load-balancing loss still divide in float32, so training is\nunchanged. The new test routes 2**24 + 1 assignments to one expert;\nwithout the change it reads 16,777,216.\n\nPart of #8089",
+      "sha": "b448fb962dd02c284080ba078866b60285979b15",
+      "url": "https://github.com/marin-community/marin/commit/b448fb962dd02c284080ba078866b60285979b15",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-10T09:01:57Z",
+      "committed_at": "2026-11-10T09:01:57Z",
+      "message": "[rl] Preserve per-example chat-template options in answer tasks (#10596)\n\nCarry each answer-task row's chat_template_kwargs into the rollout\nprompt. This preserves enable_thinking for mixed thinking/nonthinking\ndatasets instead of losing the per-example setting at session\npreparation.\n\nA regression lowers prompt-only source rows through the task/session\nboundary and checks both thinking modes.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "4aab2cff9e0a7d105928ba0bdc575ee5c43c6610",
+      "url": "https://github.com/marin-community/marin/commit/4aab2cff9e0a7d105928ba0bdc575ee5c43c6610",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-10T08:55:52Z",
+      "committed_at": "2026-11-10T08:55:52Z",
+      "message": "Remove unsupported Harbor agents from vendored runtime (#11080)\n\nMarin can launch only six Harbor agents. Vendored Harbor still included\nunsupported agent implementations, simulated-user bridges, and an AIME\nsmoke policy that selected a removed agent. Those paths could pass\nconfiguration parsing and fail later during evaluation.\n\nLimit the vendored runtime to Pi, Mini-SWE-Agent, Codex, OpenCode,\nTerminus-2, and Terminus-Kira, selected by name. Delete the unsupported\nagents, the bridge and local-mode runtimes, simulated-user configuration\nand CLI options, the agent `import_path` and `mode` fields, and their\ntests. Remove the obsolete AIME smoke policy, the SOTOPIA cohort job\nfield, and the Tau3 Pi and ACP image recipe.\n\nEvery job and trial must select a supported agent, which the agent\nfactory checks before construction. Unknown config fields are rejected\nwhere a policy enters: Marin preflight and Harbor's `jobs start` and\n`trials start` config files. The stored `JobConfig` and `TrialConfig`\nmodels still ignore unknown fields, so job directories written before\nthis change, which carry null `user_agent` and `sotopia_cohort` fields,\ncan still be resumed and read.\n\nMarin preflight validates the selected agent and environment before\nsubmission. The trial driver resolves the agent class once and applies\nagent-specific settings from it. An offline test checks every active\nHarbor policy without downloading remote datasets. The integration\npreflight still exercises a representative policy. Documentation uses\nthe supported AIME policy with a task limit.\n\nThe September 24 verified policy keeps its `tau3-pi` and `sotopia-hard`\nentries so recorded results still validate against it. Their campaign\nconfigs remain as records and fail preflight if relaunched. Archived\nSOTOPIA score readers remain available for past results. The\nprocess-reaping work remains in #10735, which is stacked on this PR.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "4042c548a47a6554487c049807f43d7449a87c8d",
+      "url": "https://github.com/marin-community/marin/commit/4042c548a47a6554487c049807f43d7449a87c8d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-10T08:42:49Z",
+      "committed_at": "2026-11-10T08:42:49Z",
+      "message": "[skyrl] Apply task-scoped Harbor trial policy (#10845)\n\nOriginal Harbor tasks can need different resource limits, MCP servers,\nand verifier environment values. SkyRL's\n`InstalledAgentRuntime.run_original_trial` did not apply these settings\nby task ID. `RolloutEngine` could also apply the agent deadline to the\ncomplete Harbor trial. This could stop the trial before Harbor finished\nverification.\n\nSelect a task binding by canonical task ID. Apply its resource\noverrides, agent MCP servers, and literal verifier environment values to\nthe original trial. For original Harbor trials, clear\n`model_turn_timeout`, `tool_turn_timeout`, and `total_turn_timeout` on\nthe `RolloutEngine` task specification. Harbor keeps the agent and\nverifier phase deadlines. `RolloutEngine` keeps the full-attempt\ndeadline so verification can finish after the agent phase ends.\n\nShellbox Daytona prepares the task image. Selecting a saved snapshot by\nname and expanding host variables in verifier settings need separate\nbackend support.\n\n---------\n\nCo-authored-by: Benjamin Feuer <penfever@gmail.com>\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "aa65e0021a5f28bac38081e97d08c3e588ca6b1a",
+      "url": "https://github.com/marin-community/marin/commit/aa65e0021a5f28bac38081e97d08c3e588ca6b1a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-10T08:33:48Z",
+      "committed_at": "2026-11-10T08:33:48Z",
+      "message": "[evaldash] Show a run's declared metrics ahead of the raw map (#10971)\n\nRun pages now lead with the benchmark's declared protocol metrics and\nkeep the evaluator's raw metric map in a collapsed \"All raw metrics (N)\"\nsection. The run payload resolves the declared rows through the\nevaluation adapter, so task directories match as the statistics engine\nmatches them, values come from canonical_metrics, and a missing\ncanonical value falls back to the raw source metric under the same\nextraction-filter priority (`flexible-extract` first) that ranking uses.\nThe primary metric leads each task. Tasks without benchmark metadata\nkeep their raw rows in the top table, and records that declare no\nbenchmark protocol show the raw table unchanged.\n\nThe NUPA5K-Loose record for this run declares accuracy, digit_match, and\nformat_valid_rate but stores 1,125 raw keys: base metrics, four length\nbuckets, and a per-task bucket for every operator. The page rendered all\nof them as top-level rows and never showed the declared accuracy name.\n\nThe run's zero accuracy and all-incorrect samples are the stored\npolicy-scorer result, not a display defect. Under the strict NUPA rule\nfrom #10876, Snowball and Grug NUPA cells score near 0 unless they are\nserved with think markers preserved (`skip_special_tokens: false`, or\nthe `grug` reasoning parser); the #10197 discussion covers the serving\nsetting. EvalDash reads the recorded per-item zeros unchanged.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom-oa-dev[bot] <298838646+loom-oa-dev[bot]@users.noreply.github.com>",
+      "sha": "98ffb95ab69f4b085f64bb3e99314cd197d6b1dc",
+      "url": "https://github.com/marin-community/marin/commit/98ffb95ab69f4b085f64bb3e99314cd197d6b1dc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-10T06:40:58Z",
+      "committed_at": "2026-11-10T06:40:58Z",
+      "message": "[grug] Export hero log scaling at artifact schema 3 (#11128)\n\nThe hero model multiplies each query in its global-attention layers by\n`(1 + 0.1 · ln(max(n / 65536, 1)))²`, where `n` is the query's position\nin its document. The factor is 1 up to position 65,536 and 1.296 at\nposition 262,144. The current hero checkpoint,\n`hero-lce-log65536sq-step390k`, trained with this factor (#10923,\n#10986).\n\nBefore this change, `GrugModelConfig.to_hf_config` raised an error for a\nconfig with this \"log scaling\". Thus we could not export the checkpoint\nto Hugging Face format or upload it.\n\nThis change raises `grugmoe_artifact_schema_version` to 3 for every hero\nexport. It always writes the three settings (`log_scaling_n_floor`,\n`log_scaling_alpha`, `log_scaling_power`) to `config.json`, as null when\nlog scaling is off. `from_hf_config` reads them back, and treats them as\noff when they are absent from a schema-1 or schema-2 artifact. Exports\nalready written keep their schema-2 `config.json`. `upload_hf` and an\ninterrupted export compare against the config that the current code\nbuilds, so upload or resume an older export with the exporter revision\nthat wrote it.\n\nSchema 3 prevents a silent error. The current vLLM and SkyRL Grug models\nignore unknown config keys and apply only a fixed scale per layer. But\nthey reject a schema other than 1 or 2. Thus they refuse every new hero\nexport, with or without log scaling, until they support schema 3, and\nnever run a log-scaled export with the wrong attention scale after\nposition 65,536.\n\nServing needs a change to our vLLM fork and a new wheel pin. RL needs a\nSkyRL change. #11127 tracks both.\n\nPart of #11127",
+      "sha": "468c3103dda82971b1c643f67c00502d118419bd",
+      "url": "https://github.com/marin-community/marin/commit/468c3103dda82971b1c643f67c00502d118419bd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-11-10T06:28:46Z",
+      "committed_at": "2026-11-10T06:28:46Z",
+      "message": "[grug] Default the hero SFT capacity factor to 1.625 (#11164)\n\n`--capacity-factor` in `launch_hero_sft.py` now defaults to 1.625\ninstead of being required. At CP4 x EP16 with the default remat slop,\n1.625 is the highest routed capacity factor that fits. At 1.6875 the\nfirst all-to-all runs out of HBM, and at 1.75 and 2.0 the\nrematerialization check fails during compile.\n\nWith the router bias frozen, a one-rack, 100-update run from step-393491\ndrops 3.60% of expert assignments at 1.625 and 0.56% with the\nstep-393491 expert placement. Peak memory and step time match capacity\nfactor 1.5. The sweep and the runs are in the [#8089 plan\ncomment](https://github.com/marin-community/marin/issues/8089#issuecomment-6760446807).\n\nPart of #8089",
+      "sha": "9eae7664821d44a7a03f81806b5ef46dec9d7b7c",
+      "url": "https://github.com/marin-community/marin/commit/9eae7664821d44a7a03f81806b5ef46dec9d7b7c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-10T05:59:22Z",
+      "committed_at": "2026-11-10T05:59:22Z",
+      "message": "[grug] Balance hero SFT expert load with a static expert placement (#11149)\n\nWith a frozen router bias, SFT data sends most load to a few hot\nexperts, and the ragged all-to-all drops tokens at their capacity\nblocks. This change renumbers the routed experts of each layer, so that\neach capacity block gets a similar load.\n\n- The smoke run `hero-sft-smoke-v2` (frozen bias, capacity factor 1.5,\nCP4 x EP16, one rack) dropped 5.0% of routed assignments. Pretraining on\nthe same mesh dropped about 3e-4.\n- `expert_placement.py` builds a placement from the per-expert routing\nhistograms of a W&B run, by greedy longest-processing-time. The\n`--expert-placement` launcher option reads it.\n- The trainer applies the placement one time, when it restores the\nsource checkpoint of the placement. It moves the router columns, router\nbias, pending QB betas, expert weights, and their optimizer state\ntogether. The model computes the same function.\n- The trainer does not apply the placement again to checkpoints of the\nrun, which the launcher writes below `expert-placement-<fingerprint>/`.\n- Weight merging against the pretraining checkpoint must apply\n`ExpertPlacement.inverse()` first.\n- The Levanter change only moves `capacity_block_experts()` into a\nfunction.\n- One-rack test, 26 steps, same data and start checkpoint as v2:\n\n| Metric | v2 | Placed |\n| --- | --- | --- |\n| Drops | 5.0% | 0.77% |\n| Mean loss | 0.5831 | 0.5757, lower at each shared step |\n| s/step (median) | 23.9 | 23.5 |\n| Peak HBM | 130.77 GiB | 130.77 GiB |\n\n- At step 0, before any update, the loss was 3.45% lower, so the drops\nalone cost about 3.5% loss.\n- Measured drops agreed with the histogram projection to within 0.0005\nper step. The placement took 13 s.\n- The test is in-sample: the placement came from the same 25 v2 steps.\nWith held-out steps, a placement from 5 steps projects 0.71% at capacity\nfactor 1.5.\n\nPart of #8089\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "7521ea658fd53ad6fad28d44b4b7b9a2a0a98fa5",
+      "url": "https://github.com/marin-community/marin/commit/7521ea658fd53ad6fad28d44b4b7b9a2a0a98fa5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-10T05:43:26Z",
+      "committed_at": "2026-11-10T05:43:26Z",
+      "message": "[levanter] Share layer-axis selection across scanned callers (#11027)\n\nShare the rule that identifies array leaves with a leading layer\ndimension across ArrayStacked.vmap_via, scan_aware_tree_map and\nper-layer statistics. Each caller retains its existing array predicate,\nincluding its treatment of NumPy arrays, abstract shapes and\nshaped/dtyped custom leaves.\n\nAll 26 existing stacking, serialization, shared-leaf statistics and\nscan-aware optimizer tests passed on four logical CPU devices. Layouts,\nserialization and numerical operations are unchanged.",
+      "sha": "1ce3bd4ebca91849d42477a18123540c00f7df14",
+      "url": "https://github.com/marin-community/marin/commit/1ce3bd4ebca91849d42477a18123540c00f7df14",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-10T03:48:17Z",
+      "committed_at": "2026-11-10T03:48:17Z",
+      "message": "[evaldash] Open links without a cohort on the newest scores (#11133)\n\nA link without `?cohort=` now opens on the newest admissible result per\nbenchmark across cohorts, shown with the mixed-settings warning. Before,\na missing cohort meant `eval-policy-2026-09-24-verified`. The Panel,\nCompare and model pages also wrote that default into the URL.\n\nLinks posted before the cohort was part of the URL, and every run of the\n2026-10-16 policy, therefore opened on an empty view. Those runs carry\nno version label, and no verified cohort exists for that policy.\nExamples are the compare and model links in #10695, #9920, #9984 and\n#10213.\n\nFor existing links:\n\n| Link | Before | After |\n|---|---|---|\n| no `cohort` | 09-24 cohort, often empty | newest per benchmark, all\ncohorts, with the warning |\n| `cohort=<label>` | that cohort | that cohort (unchanged) |\n| `cohort=eval-policy-2026-09-24-verified` written in by the old default\n| 09-24 cohort | 09-24 cohort (unchanged; switch the selector to see\ncurrent runs) |\n\n`/meta` reports `default_cohort: \"all\"`. The Panel drops its separate\n\"Default\" entry, which is now the same as \"all cohorts\". The change\ntakes effect when EvalDash is next released.\n\nStacked on #11132. Fixes #11089",
+      "sha": "f6c200af77357342016df8f8a559b1503f571ddc",
+      "url": "https://github.com/marin-community/marin/commit/f6c200af77357342016df8f8a559b1503f571ddc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-10T03:48:17Z",
+      "committed_at": "2026-11-10T03:48:17Z",
+      "message": "[evaldash] Select unversioned runs as their own cohort (#11132)\n\nRuns launched without a version label (`version: null`) are now a cohort\nof their own, selected with `cohort=unversioned` on the Panel, Compare\nand model views. The cohort selector lists it whenever such runs exist,\nwith a warning that they have no settings contract.\n\nBefore, the selector listed only named versions, and the API read a null\n`cohort_version` as \"all cohorts\". The runs of the current eval policy,\nlaunched from the campaign script without `--version`, could therefore\nbe reached only through the all-cohorts view. Selection now reads the\ncohort mode (`latest_valid` or `single_cohort`), so a single cohort can\nbe the null version.\n\n`panel_request` takes the `cohort` query value (`all`, `unversioned` or\na version label) instead of `cohort_version`. The model and run pages\nalready linked to `?cohort=unversioned`. Those links now resolve the\nsame way on the Panel and Compare.\n\nStacked on #11131. Part of #11089",
+      "sha": "5bb35cbe5f022827be28eb1268629fe67c9080a1",
+      "url": "https://github.com/marin-community/marin/commit/5bb35cbe5f022827be28eb1268629fe67c9080a1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-10T03:48:16Z",
+      "committed_at": "2026-11-10T03:48:16Z",
+      "message": "[evaldash] Compare models across cohorts behind the mixed-settings warning (#11131)\n\nCompare now answers for every cohort selection, including \"Newest per\nbenchmark (all cohorts)\". Before, `/compare` answered that selection\nwith a 400, and the Panel and Compare pages disabled model selection.\nRuns without a version label could only be reached through that\nselection, so they could never be compared.\n\nThe existing warning that all cohorts may mix evaluation settings stays\non the Panel and on Compare. A comparison across cohorts can rest on\nruns with different settings, and the reader is told so. Each cell still\nnames the cohort it came from.\n\nExisting links are unchanged: a link that names a cohort compares within\nit, as before. This is the first of three stacked changes for #11089.\nThe next two add a cohort for unversioned runs and change what a link\nwithout `?cohort=` opens on.\n\nPart of #11089",
+      "sha": "040e33cc64682c94caec9eb26166baec17ece898",
+      "url": "https://github.com/marin-community/marin/commit/040e33cc64682c94caec9eb26166baec17ece898",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla",
+      "author_name": "Rafal Wojdyla",
+      "authored_at": "2026-11-10T00:25:07Z",
+      "committed_at": "2026-11-10T00:25:07Z",
+      "message": "[grug] Add full-model SFT for the hero on the 10.05 mix (#11136)\n\nAdd `launch_hero_sft.py`, which continues a hero checkpoint on the SFT\nrecipe of `open-athena/Grug-67B-A2B-Datakit-SFT-262K-2026.10.05`. The\nrecipe has five parts:\n\n- one packed epoch of the 216 full A/B stores in complete mixture\nblocks;\n- about 20% replay from the hero's 262K Harrier mix;\n- the resumed pretraining optimizer with SFT learning rates;\n- the seven chat-token LM-head reseeds;\n- a √32 learning-rate scale on those rows.\n\nThe store manifest points at the CoreWeave copies in the hero's region.\nThe hero trainer gains a router-bias mode and the special-token reseed\nwith its update scale; the defaults leave pretraining unchanged.\n`LmDataConfig.mixture_start_step` now accepts multi-stage mixtures and\ncounts their stage steps from that step, so the SFT epoch starts at its\nfirst sequence on the restored step.\n\n10.05 froze the router bias. It trained with expert axis 1, where\n`capacity_overflow_rate_mean` is 0. The hero runs EP16 at capacity\nfactor 1.5. On one hero rack from step-393491, 20 updates with a frozen\nbias dropped 5.8–8.1% of expert assignments; with the bias updating,\ndrops stayed near 3e-5. The frozen bias had lower loss over those 20\nupdates: 0.646 against 0.698 train loss on the same batch, and 1.712\nagainst 1.742 dropless Paloma eval loss. `--router-bias` defaults to\n`frozen`, as in 10.05, and `--capacity-factor` is required. A frozen\nbias at capacity factor 2.0 fails XLA compilation of the train step.\n\nThe one-rack smoke tests\n([frozen](https://wandb.ai/marin-community/marin_moe_sft/runs/hero-sft-smoke-v2),\n[updating](https://wandb.ai/marin-community/marin_moe_sft/runs/hero-sft-smoke-v3-update))\nran on the pre-merge head of #11044, which computes the same model as\nmain. Each restored step-393491 and reseeded the special-token columns\non all 64 ranks. Each trained at 23 s per step with the pretraining peak\nmemory of 130.77 GiB. The frozen run saved its checkpoint and resumed\nfrom it without a second reseed. Export and serving still refuse log\nscaling (#11056 B5).\n\nPart of #8089.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "cf45fe55d59f64b403287a50da70a216bfc3c947",
+      "url": "https://github.com/marin-community/marin/commit/cf45fe55d59f64b403287a50da70a216bfc3c947",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-10T00:18:25Z",
+      "committed_at": "2026-11-10T00:18:25Z",
+      "message": "[grug] Apply fa4_bounds windows in reference attention (#11135)\n\nReference attention now applies the per-query key lower bounds carried\nin `AttentionMask.fa4_bounds`, so it keeps only keys at or after each\nquery's bound.\n\nGrug models that scan their layers (`moe_hero_ep`, `moe_hero_fsdp`,\n`moe_hero_pipeline`, `fast_track`) cannot vary the static\n`sliding_window` field inside the scan. They pass every layer a\nfull-causal mask and carry each layer's window only in `fa4_bounds`,\nthrough `with_fa4_bounds`. `materialize_mask` ignored those bounds, so\non the reference path, which `attention()` uses by default on CPU and\nany non-TPU backend, the Hero's local layers attended to every earlier\ntoken instead of the last 2,048. The FA4 and AMD Triton kernels already\nread the bounds, so production GPU training and evaluation are\nunchanged.\n\nThis surfaced while checking SkyRL's Megatron Grug model against a tiny\nJAX Hero oracle. Megatron diverged from the oracle at exactly position\n16, the window. With this fix, the two agree to bf16 noise at every\nprobed layer (logits 0.58% relative).\n\nExisting Hero CPU tests compare variants run on the same path, so they\npass before and after this change. The new tests fail without the fix.\nTPU splash and `xla_flash` also ignore `fa4_bounds`; no Grug model\nselects them for these variants today.\n\nPart of #11127",
+      "sha": "57738e8019bafe4f4446d22072fbb173cc70eeae",
+      "url": "https://github.com/marin-community/marin/commit/57738e8019bafe4f4446d22072fbb173cc70eeae",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-10T00:15:31Z",
+      "committed_at": "2026-11-10T00:15:31Z",
+      "message": "[loom] Replace the gdoc profile with a Loom artifact doc profile (#11060)\n\nAdd a `doc` Loom profile whose record of the work is the branch artifact\n`doc`, and remove the `gdoc` profile and its Google Doc tool. People\nread the doc in the session, comment on selected text, and edit its\nsource. The agent keeps the doc current and posts progress updates to\nthe artifact `progress`.\n\nThe profile sets `docArtifact: doc`, which marin-community/loom#421\nadds. With it, Loom opens the session on a Doc tab that shows `doc`, and\nsends the agent a message that starts with \"A person edited the doc\"\nwhen a person saves an edit. The instructions describe that behavior,\nand Loom ignores the setting until the change is deployed, so merge this\nPR after marin-community/loom#421 is rolled out to loom.oa.dev.\n\nThe instructions keep the Gates section directly below the Objective.\nThey tell the agent that a single comment arrives as soon as the person\nwrites it, and that it continues the work a review stopped.\n\nThe Docs API stays enabled for the pm profile's goals doc. The Drive API\nleaves the Pulumi stack because only the gdoc tool used it; with\n`disable_on_destroy=False`, it stays enabled in the project.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "0537244f3a13c1f0d387ec814f3689a2b00f4b00",
+      "url": "https://github.com/marin-community/marin/commit/0537244f3a13c1f0d387ec814f3689a2b00f4b00",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-11T00:00:00Z",
+    "start": "2026-11-10T00:00:00Z"
+  }
+}

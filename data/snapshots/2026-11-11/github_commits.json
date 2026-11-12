@@ -1,0 +1,318 @@
+{
+  "commit_count": 28,
+  "commits": [
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T22:02:26Z",
+      "committed_at": "2026-11-11T22:02:26Z",
+      "message": "Sort installed distributions without comparing None to a string (#11219)\n\nCanonical verification identity sorts `(name, version)` pairs from the\ninstalled distributions. An editable or partly removed install reports a\nmissing name or version, and sorting a mixture of `None` and `str`\nraises `TypeError: '<' not supported between instances of 'NoneType' and\n'str'`.\n\nThat failure is unrelated to the source being verified: it aborts every\nstep that computes a verification identity, which is why task-curation\npipeline tests on `main` fail with `RuntimeError: 1 step(s) failed`.\n\nBoth fields are now normalized before sorting, so a missing name or\nversion sorts as an empty string. Reproduced on `origin/main` (the file\nis unchanged there); with this patch\n`experiments/post_training/task_curation/tests/test_pipeline.py` goes\nfrom 55 failing to 41 passing.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "04cee3398e60b9d879396b9bd10be089d56c6f10",
+      "url": "https://github.com/marin-community/marin/commit/04cee3398e60b9d879396b9bd10be089d56c6f10",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-11T21:07:23Z",
+      "committed_at": "2026-11-11T21:07:23Z",
+      "message": "[sft] Save permanent checkpoints every 500 steps (#11217)\n\nSave a permanent hero SFT checkpoint at every 500th training step. These\ncheckpoints make intermediate SFT behavior available for evaluation and\nlater runs. The existing hourly temporary checkpoints continue to\nsupport crash recovery.\n\nAt the documented 4,750-step full-run length, this retains about 10–11\nfull checkpoints, including the final one. A [measured full-size Hero\nMuonH\ncheckpoint](https://github.com/marin-community/marin/issues/10388#issuecomment-6299979623)\nwas 4.88 TiB, implying roughly 49–54 TiB total storage. The SFT\ncheckpoint size has not been measured directly here.\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "89a267e03d11bac1427652420c603f3b8d985bc2",
+      "url": "https://github.com/marin-community/marin/commit/89a267e03d11bac1427652420c603f3b8d985bc2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "GarlGuo",
+      "author_name": "Wentao Guo",
+      "authored_at": "2026-11-11T20:41:36Z",
+      "committed_at": "2026-11-11T20:41:36Z",
+      "message": "[iris] Grant submitter access to the shared H100 clusters (#11192)\n\nGrant an additional submitter federation access to the shared H100\nclusters, cw-us-east-02a and cw-rno2a, using the existing submitter\npolicy. The submitter already has IAP access to the Marin submission\nhubs and GB200 federation access.\n\nThe allowlist is loaded at controller startup, so activate the grant\nwith controller rollouts on both H100 clusters after merge.\n\nFollows #10056 and #10186.",
+      "sha": "550c7d2ceed59c46b99b1c96b50097b7087fb411",
+      "url": "https://github.com/marin-community/marin/commit/550c7d2ceed59c46b99b1c96b50097b7087fb411",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T18:14:50Z",
+      "committed_at": "2026-11-11T18:14:50Z",
+      "message": "Gate best-checkpoint selection on preservation metrics (#10651)\n\nSelect the best checkpoint using a configured score in [0, 1], with\nlarger values preferred. Optional preservation gates limit absolute\ndrops from step-zero metric values. Delay trained-checkpoint selection\nuntil a configured fraction of training has elapsed; retain the initial\nmodel as a candidate and reload the original preservation baseline on\nresume. Keep slash-containing metric names intact through Iris path\nresolution and serialize OmegaConf-provided gate settings as plain\nmappings.\n\nThe selection code comes from the identity-repair experiment. Defaults\nretain the existing selection metric and impose no preservation gates.\nPreservation-gated runs require an eligible step-zero evaluation.\n\nPart of #10491.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "11307246720536581307a02347a52c23f21ba5d1",
+      "url": "https://github.com/marin-community/marin/commit/11307246720536581307a02347a52c23f21ba5d1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T17:27:06Z",
+      "committed_at": "2026-11-11T17:27:06Z",
+      "message": "Handle small CoreWeave multipart copy promotion (#11204)\n\nPromote small CoreWeave S3 objects without ETag-preserving\n`UploadPartCopy`, which CoreWeave rejects for a single-part multipart\nupload. The existing destination read-back verifies the bytes before\npublishing the completion marker. Larger objects retain ETag-preserving\npromotion.\n\nThis follows the multipart promotion fix in #10639.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "813e943b615c74c137429e0a8b3685b3ca137a09",
+      "url": "https://github.com/marin-community/marin/commit/813e943b615c74c137429e0a8b3685b3ca137a09",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-11T17:15:05Z",
+      "committed_at": "2026-11-11T17:15:05Z",
+      "message": "[shellbox] Keep Daytona control commands in a stable directory (#11212)\n\nRun Daytona bookkeeping commands from / after a task deletes and\nrecreates its workdir. Output collection previously ran `wc -c` without\na cwd and could parse provider `getcwd` diagnostics as an integer,\nraising `ValueError` after the task command completed.\n\nEmit a marked byte-count line and parse it separately from diagnostics\nin the SDK result. The 47 Daytona machine tests pass, including\nregressions that failed before this fix. The affected-test runner passed\n1,915 Harbor tests and failed one unchanged local containment test\nbecause this Python lacks `os.pidfd_open`. The regression uses a local\nprovider fake; a live Daytona sandbox was not tested.\n\nFixes #11205\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Ben Feuer <bf996@nyu.edu>",
+      "sha": "e1ca8d80f7456a07feba5a4693b2242c88ae69af",
+      "url": "https://github.com/marin-community/marin/commit/e1ca8d80f7456a07feba5a4693b2242c88ae69af",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T16:59:03Z",
+      "committed_at": "2026-11-11T16:59:03Z",
+      "message": "Grade relation chains and unequalities consistently (#11208)\n\nCompare relation chains as complete sets of constraints when math-verify\ncannot handle their deduplicated lengths, while retaining whole-chain\nset and interval comparisons. Compare two unequalities through their\ncorresponding equalities, and treat an undefined reference as an invalid\ntask rather than a failed candidate.\n\nRecover trailing variables that unit normalization removed, including a\nspaced final term in a relation chain or subtraction. Clock-time\ninterpretation remains outside this change because a ratio and a time\nrequire an explicit task type to distinguish them.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "f94cf87bea4293aff534a41821d787f4d6d3a2c1",
+      "url": "https://github.com/marin-community/marin/commit/f94cf87bea4293aff534a41821d787f4d6d3a2c1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-11T16:40:32Z",
+      "committed_at": "2026-11-11T16:40:32Z",
+      "message": "[ci] Use kernel.org for sandbox-tool apt installs (#11214)\n\nUse kernel.org's Ubuntu mirror as the primary apt source for Harbor and\nShellbox's sandbox-tool installs. On GitHub-hosted Ubuntu 26.04 runners,\nthe Azure and Canonical mirror hosts failed DNS resolution and `apt-get`\nstopped before the test steps. The existing archive and security sources\nremain lower-priority fallbacks.\n\nThe affected local suite passed 1,915 tests and failed one unchanged\nHarbor containment test because the local Python 3.12 build lacks\n`os.pidfd_open`.\n\nFixes #11213\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "49bec3f7986daac22777c11bc2a0b9680474a35c",
+      "url": "https://github.com/marin-community/marin/commit/49bec3f7986daac22777c11bc2a0b9680474a35c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T16:09:57Z",
+      "committed_at": "2026-11-11T16:09:57Z",
+      "message": "Forward evaluation temporary storage prefix to child jobs (#11209)\n\nForward `MARIN_TEMP_PREFIX` from the evaluation launcher to its child\njobs alongside `MARIN_PREFIX`. Explicit regional routing otherwise loses\nthe temporary-storage setting at the coordinator boundary, so children\nmay write to the cluster default bucket.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "3fb194dd8acf053a3bfa7171950e566fed924f26",
+      "url": "https://github.com/marin-community/marin/commit/3fb194dd8acf053a3bfa7171950e566fed924f26",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T16:03:19Z",
+      "committed_at": "2026-11-11T16:03:19Z",
+      "message": "[sft] Define versioned candidate mix inputs in their own experiment (#10988)\n\nAdd a versioned candidate SFT source map under `experiments/sft_new_mix`\nthat replaces only the four Nemotron science components with a frozen\naccepted subset. The shared source registry, historical caches, and\nexisting training launches are unchanged; future materialization must\nexplicitly use\n`experiments.sft_new_mix.sources.candidate_sft_sources_v1()`.\n\nThe subset retains 99,453 of 268,164 rows: 70,387 unchanged passes and\n29,066 approved repairs. The 168,711 excluded rows include holds,\nfailures, reserved rows, and unprocessed rows; exclusion is not a\nscientific-error verdict. Exact serialized text, content duplicates,\nsource keys, rough token weights, and all other source components are\npreserved.\n\nThe [private dataset and\nprovenance](https://huggingface.co/datasets/open-athena/Nemotron-SFT-Science-v2-GLM-Accepted-2026.11.05/tree/1583049c1df02b418e07d14047eb37db9df46eba)\nare pinned at `1583049c1df02b418e07d14047eb37db9df46eba`; all 827\nuploaded files matched the local manifest hashes. It retains NVIDIA\nattribution and [CC BY-SA\n4.0](https://creativecommons.org/licenses/by-sa/4.0/) terms.\nMaterialization requires authorized Hugging Face credentials. Of the\naccepted rows, 31,984 have model-only audits and 67,469 used the\noptional-web path; acceptance does not guarantee factual correctness.\n\nThe directory keeps its behavior test beside the source definition and\ndocuments the unchanged control and versioning policy. Matched-token\ncontrol and candidate training recipes in the snowball_h100 style remain\nlater work.\n\nPart of #10788.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "fb21fc3030dd80146e636ed7e70a52a241191761",
+      "url": "https://github.com/marin-community/marin/commit/fb21fc3030dd80146e636ed7e70a52a241191761",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T15:47:10Z",
+      "committed_at": "2026-11-11T15:47:10Z",
+      "message": "[skyrl] Reuse pinned Harbor task downloads across cohorts (#10867)\n\nConcurrent inline Harbor validation trials re-downloaded and overwrote\ntheir shared pinned task inputs on every `Job.create`. A worker now\nprepares each immutable cohort's remote tasks once before its trials\nstart, grouped by overwrite policy and download directory so cohorts\nwith per-task cache settings still pass Harbor's mixed-settings check.\nLater requests for the same cohort reuse the downloaded inputs with\noverwrite disabled. Download failures attach the subprocess stderr so\nGit errors survive the worker traceback.\n\nThis is the narrow re-port of the cohort cache behavior and stderr\nhandling from #10364 onto the current main inline-Harbor path.\nRegression tests cover shared downloads under uniform and mixed per-task\ncache settings and stderr preservation for a failed pinned-repository\nfetch; both pass in a Linux container against the vendored Harbor\nruntime, as does the full skyrl-wheel lane.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "4830e39020bea05773bd3aa21254365732238e05",
+      "url": "https://github.com/marin-community/marin/commit/4830e39020bea05773bd3aa21254365732238e05",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T15:35:41Z",
+      "committed_at": "2026-11-11T15:35:41Z",
+      "message": "[rl] Delay checkpoint writes until a configured training fraction (#10595)\n\nAdd save_after_fraction to periodic checkpoint, HF-export, and\nbest-checkpoint callbacks. Suppress writes before the configured\nfraction of planned updates, including early termination, while leaving\nevaluation active. The default preserves existing save timing.\n\nIgnore unsaved early improvements when selecting the best saved\ncheckpoint, so a later eligible improvement can still be retained. Tests\ncover rounded halfway boundaries, early termination and best-checkpoint\nselection.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "1500271381f0e694f787abae1ca4fe165e2a7e8e",
+      "url": "https://github.com/marin-community/marin/commit/1500271381f0e694f787abae1ca4fe165e2a7e8e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T14:30:23Z",
+      "committed_at": "2026-11-11T14:30:23Z",
+      "message": "[evaldash] Use item-level uncertainty for repeated scores (#10967)\n\nRepeated Evalchemy grades now use distinct benchmark items for\nuncertainty and show the item and repeat counts in scored views. The\nreported AIME24 run has 30 items × 10 repeats and an accuracy of 0.7367.\nIts item-level standard error is 0.0818 under the frozen September\ncampaign formula; the evaluator's across-repeat value is 0.00994. Run,\npanel, model, and comparison intervals now use the former.\n\nA catalog migration reprojects existing repeat runs, including\nhistorical item-count, trial-count, ungraded, and absent coverage forms,\nwhile retaining the source record and raw evaluator metrics. The sample\nreader also maps the aggregate `accuracy_avg` to per-trial `accuracy`,\nrestoring AIME24 sample browsing. The app release is deferred.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "9d95272d732cb0ac62cf4e3ad69577556ecb6855",
+      "url": "https://github.com/marin-community/marin/commit/9d95272d732cb0ac62cf4e3ad69577556ecb6855",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "XiaoyuanWang111",
+      "author_name": "Xiaoyuan Wang",
+      "authored_at": "2026-11-11T14:14:18Z",
+      "committed_at": "2026-11-11T14:14:18Z",
+      "message": "[agents] Add a skill for auditing eval and reward graders (#10422)\n\nAdd audit-grader, a skill for measuring how often a grader contradicts\nits task text before its scores are trusted. It covers programmatic\ncheckers, LLM judges, and RL reward functions, and estimates a grader's\nerror rate with a blinded review of frozen samples by two reviewers. The\nworkflow catalog lists it, as #10462 asked.\n\nThe worked example is the #10060 audit of Marin's 58 IFBench checkers.\nThat audit found 43 checker findings, 9 of which depend on an\ninterpretation decision. On held-out responses, Marin's checkers under\nstrict grading contradicted the consensus of two Claude Opus 5.5\nreviewers on an estimated 6.1% of constraint verdicts (95% CI 3.9 to\n10.1). The audit's validated checkers with IFBench's official readings\n(fixes only) contradicted it on 3.2% (1.0 to 7.2), a paired difference\nof 2.9 points (95% CI 2.4 to 3.4). Both reviewers are the same model, so\nthey may share blind spots. The fixtures and review records are in the\nHugging Face dataset at revision ceaba90:\nhttps://huggingface.co/datasets/xiaoyuanwang/ifbench-audit/tree/ceaba90ba6a2acac8fd8b51368a37e27c0ba688f.\nThe skill's reviewer prompt is adapted from the audit's.\n\nPart of #10060.",
+      "sha": "a945e3fc5991ad67782f24d6ec0ae0a97f5610e8",
+      "url": "https://github.com/marin-community/marin/commit/a945e3fc5991ad67782f24d6ec0ae0a97f5610e8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T13:37:29Z",
+      "committed_at": "2026-11-11T13:37:29Z",
+      "message": "[catalog] Deprecate the CalibForge cohorts (#11197)\n\nBoth pinned CalibForge cohorts are now marked `Deprecated` in the\ncatalog, per\nthe campaign oversight decision, ahead of a snapshot-safe rebuild from\nthe V1\ncandidates.\n\n**Mechanism.** The `deprecated` tag projects to a `Deprecated` catalog\nstatus\n(overriding `excluded`), the Atlas details panel surfaces the status\nbeside the\ncatalog, and the notes carry the deprecation reason. Publication rides\nthe\ndeclaration JSONB as before.\n\n**V1 admitted cohort** (`smartie-continuation-20261016/calibforge`\n@`6a6429cc`):\ncounting snapshot identities the way shellbox does (`image_source_key`\nover the\nbuild context + resources), the pinned `tasks.parquet` holds **2,181\ndistinct\ncontexts across 2,205 tasks** — each task bakes its data files into its\nown\n`environment/` subtree — plus 10 distinct FROM bases including floating\ntags\n(`ubuntu:24.04`, `python:3.11-slim`). Far over the ten-snapshot budget,\nand\noracle solution execution was skipped. **This corrects the `safe`\nverdict in\n#11196**, which was inferred from the V2 manifests rather than V1's own\npayloads; it is `unsafe` now.\n\n**V2 shared environment** (`calibforge-shared-20261017-v2` @`3b6c5b55`):\nthe\ncampaign's admission-time records report **23 image/resource snapshot\nvariants\n(19 on the training split)**, so it is deprecated as not snapshot-safe\npending\nthe rebuild. For the record: the *public* lowered payloads pin only two\nverifier identities (273 tasks on the digest-pinned verifier-base\ncontext, 51\non the smartie-grader context, all machine specs default), which is how\nthe\nearlier flag read safe — the discrepancy between the private accounting\nand the\npublic payloads is stated in the notes and tracked with the rebuild.\n\n\n**Correction riding the same PR** (`9befe3493e`): the\n`smartie-swesmith-admitted`\ncontinuation release @`0e8137a6` flips `unsafe` → `safe`. Counting\nidentities\nthe way shellbox does, all 8,045 pinned task tars share **five distinct\nbuild\ncontexts** (6,972/534/272/221/46 tasks; two floating\n`python:3.10/3.11-bookworm`\nFROM bases) with default resource shapes and no per-task shapes in\n`task.toml` —\nfive snapshots, within budget, matching the campaign capacity check that\nbudgets\nexactly these five. The earlier unsafe verdict had been transferred from\nthe\nstaged per-parent releases without counting this cohort's own payloads;\nthose\nstaged releases remain unsafe. The shared-v2 note now cites the\nprovisioning\nrecord (`snapshot-capacity-check.json`) and states explicitly that the\npublic\npayloads carry no per-task resource shapes, which is why the variants\nare\ninvisible there.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "2bd0d1d3cb6e250631e74ad9f1bce5f2f05b5f7e",
+      "url": "https://github.com/marin-community/marin/commit/2bd0d1d3cb6e250631e74ad9f1bce5f2f05b5f7e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-11T11:49:10Z",
+      "committed_at": "2026-11-11T11:49:10Z",
+      "message": "[atlas] Add a Daytona-safe flag to RL data sources (#11196)\n\nThe curation inventory now records whether running a source fits the\nDaytona\nsnapshot budget: at most ten unique snapshots. Sources without the\nagentic\ntag are safe automatically because they never provision a sandbox;\nagentic\nsources carry an authored `DaytonaSafety` verdict that stays\n`unassessed`\nuntil assessed. Atlas renders Safe, Unsafe, or a dash and sorts and\nexports\nthe column like the others; the sources API serves\n`DAYTONA_SAFE_SNAPSHOT_LIMIT` so the UI quotes the canonical budget. The\nfield rides the declaration JSONB through catalog publication and the\nloader without schema changes.\n\nAll 133 agentic sources carry an assessed verdict: 108 safe, 25 unsafe.\n\n- Converted TaskTrove sources run on digest-pinned agent images with\n  worker-placed graders, so each needs one or two snapshots.\n- Native TaskTrove releases publish per-source environment groups in\ntheir\n  pinned provenance. Sources with more than ten distinct environments\n  (OpenSWE, R2E-Gym, SWE-Gym, MiMo code, cyber and general, native\n  CalibForge, Harbor Hub skill2env, toolscale) are unsafe.\n- Nemotron Ultra SWE-pivot components run per-instance SWE-Gym and\n  SWE-rebench-V2 environments and are unsafe; their tool-use and\n  judge-graded components are safe.\n- The Smartie SWE-Smith campaign releases stage one image per parent\ntask\n  (600 and 1683 distinct parents) and are unsafe; the CalibForge cohorts\n  share one environment and are safe.\n- The converted repository sources build per-task Docker contexts: swe\nrebench provisions 15 actor and 17691 grader builds, swesmith 5 actor\nand\n  12927 grader builds. Both are unsafe.\n\nThe flag counts unique snapshots, following the Daytona preflight\nrunbook.\nWhere a pinned release's own snapshot-safety verdict also weighs tag and\ndependency mutability (MiMo music and webdev: one shared environment\neach\nwith mutable contents), the flag stays safe under the count rule and the\nrelease rationale remains in the release README.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "07f2c7179fa0249f628564b5063f5e7ab56c97e1",
+      "url": "https://github.com/marin-community/marin/commit/07f2c7179fa0249f628564b5063f5e7ab56c97e1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-11T07:45:14Z",
+      "committed_at": "2026-11-11T07:45:14Z",
+      "message": "Belay: sortable ideas table, current-recipe toggle, ladder ideas reach running (#11195)\n\nTwo Status page improvements and a run-sync fix for ladder ideas.\n\nThe ideas table sorts by any column: clicking a header sorts by it and a\nsecond click reverses it, with an arrow on the sorted column. It opens\nnewest first by date. A first click sorts descending (newest, best\nverdict or highest potential first), except Author, which starts A to Z;\nties fall back to newest first. On phones the header row, previously\nhidden, stays as a wrapped strip of sort buttons. This replaces the\nthree-option Sort menu. An \"In the current recipe\" checkbox beside the\nfilter shows only the ideas the live recipe has adopted.\n\nA ladder idea never left `planned`. Run sync stored a rung run's\nexperiment (`X0221d512`) as the run's `registry_id` and set the idea\nwith that id to `running`, which matched nothing, so CPLM Plus showed as\nplanned with a Re-queue button while its four rungs trained. A run's\n`registry_id` is now its idea's registry id (`X0221`), parsed once from\nthe run name, and the rung-tagged id moves to a new `experiment` column.\nA one-time migration splits existing rows. Every run-to-idea match (run\nsync, the idea's runs on the Status page, the running list) is now a\nplain equality; the speedrun gate only counts a live run of the idea\nitself, not of its rungs. Sessions read runs by name only, so they are\nunaffected; events still carry the rung-tagged experiment.\n\nChecked the table in headless Chromium against the live public state at\ndesktop and phone widths: default order, a Potential sort and its\nreverse, an Idea sort, and the recipe toggle (225 ideas, 24 in the\nrecipe). New tests cover a live rung marking its idea running and the\nmigration of older rows.\n\nRelease after merge: `uv run marina release apps/belay --base-version\n<live>`.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "2844da1a234485545902f4f93e287bb53a57461d",
+      "url": "https://github.com/marin-community/marin/commit/2844da1a234485545902f4f93e287bb53a57461d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-11T07:04:45Z",
+      "committed_at": "2026-11-11T07:04:45Z",
+      "message": "Belay admin: re-queue or decline any planned idea (#11194)\n\nThe admin page could not re-queue a planned idea once any Belay run\nexisted under its registry id, failed runs included. Five Belay ideas\n(2, 5, 6, 7 and 8) are stuck: their Nov 5 runs all failed on the old\ntokenizer block, or their earlier speedrun finished, so Re-queue\nanswered 409 \"has Belay runs\", and non-escalated plans showed no button\nat all.\n\nRe-queue now accepts approved, planned or recorded ideas, and Decline\naccepts pending, approved or planned ones. The admin page lists every\nplanned idea with both actions. The maintainer decides; re-queuing a\nplan whose runs are still live can double-launch, which the page's run\nlist makes visible.\n\nRelease after merge: `uv run marina release belay --base-version\n<live>`.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "13dfe3a255e8dce5458b5a3d6aed8e5176b19ed2",
+      "url": "https://github.com/marin-community/marin/commit/13dfe3a255e8dce5458b5a3d6aed8e5176b19ed2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-11T05:10:49Z",
+      "committed_at": "2026-11-11T05:10:49Z",
+      "message": "[rl] Typed recipes (1/4): Test that every RL launch document loads (#9717)\n\nAdd a test that builds the SkyRL launch document of every RL experiment\nand loads each one with the vendored SkyRL launcher. It covers the\ncurriculum arms, the async presets, Iceball, the mismatch probe, Canary,\ninventory training, both port-smoke stages, task-session validation, and\nthe online EAGLE presets. The test fails if an experiment cannot build\nits document or if the launcher rejects it.\n\nThe loader runs in a subprocess under `uv run --project vendor/skyrl`,\nbecause Marin and SkyRL have separate environments and the launcher only\nruns in SkyRL's. The next three PRs change how these documents are\nwritten and checked, and this test shows that every existing experiment\nstill builds a document the launcher accepts after each of them.\n\nPart of marin-community/MarinSkyRL#933.",
+      "sha": "b0ded5c7dda234b5ee61c1fe47204c72bb166ceb",
+      "url": "https://github.com/marin-community/marin/commit/b0ded5c7dda234b5ee61c1fe47204c72bb166ceb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "XiaoyuanWang111",
+      "author_name": "Xiaoyuan Wang",
+      "authored_at": "2026-11-11T03:21:54Z",
+      "committed_at": "2026-11-11T03:21:54Z",
+      "message": "[rl] Cut the stop token from assistant-prefix replies before grading (#11058)",
+      "sha": "3d5310a14519f6ddd5ba8652299f8049a6797f09",
+      "url": "https://github.com/marin-community/marin/commit/3d5310a14519f6ddd5ba8652299f8049a6797f09",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-11T03:08:56Z",
+      "committed_at": "2026-11-11T03:08:56Z",
+      "message": "[sft shootout] Add harness-faithful recovery rows for agent SFT (#10888)",
+      "sha": "c5a9473f7c62f15c204d6b0b24c2dcf82834a12d",
+      "url": "https://github.com/marin-community/marin/commit/c5a9473f7c62f15c204d6b0b24c2dcf82834a12d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-11T03:08:17Z",
+      "committed_at": "2026-11-11T03:08:17Z",
+      "message": "[inference] Prepare Hugging Face weights before starting inference (#10277)\n\nPrepare uncached Hugging Face checkpoints on CPU before reserving\nserving accelerators. The coordinator checks the shared cache first when\nits cluster and region can be proven to match serving; a complete\nsnapshot skips the prepare job. Cache misses and other placements use a\nCPU job with the serving placement constraints. GPU children inside an\nIris job keep preparing without a cluster pin because child jobs stay on\ntheir parent cluster. Root GPU submissions without a cluster pin skip\npreparation with a warning. TPU placement without a cluster pin also\nskips when regions are unrestricted, or unset at the root; one explicit\nregion or an inherited parent region keeps preparation enabled.\n\nPreparation and serving use the same model resolver. The served model\nand speculative draft each keep their own pinned commit across both\nstages. Each prepare job gets one failure retry within a four-hour\npreparation wait budget. Preparation timeouts fail pending evaluations\nwithout entering the serving-startup retry loop.\n\nAn explicit CoreWeave `target_cluster` on the serving resources still\nsubmits a CPU job when warm: the local controller reports its cluster as\n`local`, which cannot prove a named match. Eval children leave that\nfield unset, inherit their orchestrator’s cluster, and can reuse a warm\ncache in-process. A warm `Qwen/Qwen3-0.6B` probe on cw-rno2a\n(`/karan/task380-warm-prepare-7777b7b37f`) took 64.7 s client-observed,\nincluding a 4.8 s submit RPC. Controller timestamps show 25.0 s from\nsubmission to code start (including about 1.7 s setup), 9.7 s for\nimports and cache checks, and 18.3 s from code completion to terminal\nstatus. The warm resolver itself took 0.12 s. This probe included a\nfederation hop from marin; a local CoreWeave orchestrator skips that\nhop. No serving accelerators were reserved.\n\nSee the [evaluation\nguide](https://github.com/marin-community/marin/blob/agent/20261019-fix-9233/docs/tutorials/run-lm-evals.md)\nfor cache-placement limits and hosted-judge preparation behavior, and\nthe\n[design](https://docs.google.com/document/d/1-rRhP9mB4hpbzXwxUfPUTejwUVk1w68BOIs9TWdsBFk/edit)\nfor the broader pre-caching plan.\n\nThe latest affected run completed all 893 selected cases: 888 passed, 5\nfailed, 0 skipped, 0 xfailed, and 0 unfinished. The five task-driver\nfailures also reproduce on main because the local Python lacks\nos.pidfd_open. An earlier full-branch run reached the 600 s session\nlimit with 19 cases unfinished; CI provides the full check.\n\nFixes #9233\n\n---------\n\nCo-authored-by: Karan Sagar <1545121+karansag@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Karan Sagar <ksagar1030@gmail.com>",
+      "sha": "952ec154b1e78bc531c386092ad05f85da44b0f3",
+      "url": "https://github.com/marin-community/marin/commit/952ec154b1e78bc531c386092ad05f85da44b0f3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-11T02:43:57Z",
+      "committed_at": "2026-11-11T02:43:57Z",
+      "message": "[skyrl] Fix Softmax Collapse in trainer logprobs and entropy (#10682)\n\nConfident tokens in the trainer keep a small negative log-probability, a\npositive entropy and a gradient on the sampled token. Log-probabilities,\nentropy and selected-token distillation log-probabilities are computed\nin fp32 from logit margins, following [A Fix for Softmax and\nCross-Entropy](https://jonbarron.info/softmaxfix/): the vocabulary sum\nleaves out the top logit, and `log1p` and `expm1` add it back. The paper\nnames the failure this avoids Softmax Collapse. With a token's margin\ndefined as its top logit minus the log-sum-exp of all other logits,\nTransformer Engine's cross-entropy returns exactly 0 once the margin\nexceeds about 16.6 in fp32, and entropy computed in bf16 returns 0 once\nthe margin is about 6.\n\nOne module, `skyrl_train/stable_softmax.py`, serves policy\nlog-probabilities, entropy and distillation. On CUDA at tensor\nparallelism 1 it runs one Triton kernel; other layouts use the same\nformulas in chunked PyTorch. The k3 estimate of KL divergence, `exp(r) -\n1 - r` for log-ratio `r`, uses `expm1`.\n\nTests compare values and gradients with an 80-digit Decimal reference on\nCPU, H100 and GB200, with the top logit placed in every kernel block, at\nvocabularies 151,936 and 128,256. PR CI runs the CPU tests, and the\nnightly Grug lane on H100 runs the kernel test.\n\n| Measure | Main | This PR |\n|---|---|---|\n| Log-probability of a token whose margin is 20 or 30 (test rows, fp32)\n| 0 | within 5e-6 relative of the reference |\n| Entropy of a token whose margin is above about 6 (test rows, bf16\nlogits) | 0 | within 5e-6 relative of the reference |\n| Saved Qwen2.5-0.5B batch: active tokens with entropy exactly 0 | 20.0%\n| 0% |\n| Same batch: mean entropy | 1.1274 nats | 1.1328 nats |\n| Same batch, one PPO step: policy loss | 0.30847583 | 0.30847582 |\n| Same batch, one PPO step: gradient norm | 28.773 | 28.779 |\n\nThe entropy metric changes at this commit, because main's bf16 entropy\nreports 0 for confident tokens: on this batch it reads 0.5% higher.\nExpect that change when comparing entropy curves from before and after\nthis commit.\n\nH100, vocabulary 151,936, 32,768 tokens, median of ten repetitions;\nmemory is peak allocation above the inputs.\n\n| Pass | Main | This PR |\n|---|---|---|\n| Training: log-probabilities with gradient, entropy without | 67.4 ms,\n9.56 GiB | 29.6 ms, 9.27 GiB |\n| Scoring: log-probabilities without gradient | 7.42 ms | 7.65 ms |\n| Three training steps of the CatCount RL canary, seconds per step (two\nruns each) | 8.54–8.63 | 8.11 |\n\nBenchmark and replay programs:\n[marin-logbooks](https://github.com/marin-community/marin-logbooks/tree/3d94c84d0ae9ba6925b37de671760dc01f4fa6e4/logbooks/10682-softmax-numerics).\n\nWith `trainer.algorithm.batch_invariant=true` at tensor parallelism 1,\nthe kernel computes each row independently. Where vLLM returns exactly 0\nfor a confident token, the trainer log-probability is slightly negative,\nbelow 1.2e-7 in absolute value. An fp32 bit-mismatch count such as the\none in #10634 rises on those tokens.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "aae3c69b52c80936d90637577a14dabdcd255e96",
+      "url": "https://github.com/marin-community/marin/commit/aae3c69b52c80936d90637577a14dabdcd255e96",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-11T02:14:19Z",
+      "committed_at": "2026-11-11T02:14:19Z",
+      "message": "[skyrl] Apply Grug log scaling in the Megatron Grug model (#11129)\n\nThe current hero checkpoint uses log scaling: on global-attention\nlayers, each query is multiplied by `(1 + alpha * ln(max(n / n_floor,\n1))) ** power` on top of the fixed `qk_mult`, where `n` is the number of\nkeys the query sees in its own document. With the hero's floor of\n65,536, the factor is 1 up to that position and 1.296 at 262,144.\nSkyRL's Megatron Grug model, the only model SFT and RL train the hero\nwith, applied only the fixed scale, so it would train the long-context\ncheckpoint at the wrong attention temperature.\n\n`GrugMoeConfig` now reads `log_scaling_n_floor`, `log_scaling_alpha` and\n`log_scaling_power` and accepts artifact schema 3 as split experts; null\nfields apply no factor. The Megatron attention computes `n` per packed\ndocument. Under context parallelism it maps each rank's two zigzag\nchunks back to global document positions, matching the JAX model's\nper-segment count. The eager HF model, which cannot apply the factor,\nrejects a config with the fields set.\n\nOn 2 H100s, Megatron matched a tiny JAX Hero oracle with a 16-key floor\nunpacked, packed and under CP2, with the fields set and null, to bf16\nnoise; it was closer to the right oracle than to ones with an off-by-one\nkey count or a 10% parameter error. The CPU tests check the visible-key\ncounts against Megatron's packing on every CP rank and the factor at the\nHero's settings exactly.\n\nRL rollouts need a vLLM wheel with marin-community/vllm#121. SkyRL's\npinned wheel predates it and rejects schema 3, so RL on the log-scaled\nHero fails at load until the pin moves.\n\nPart of #11127",
+      "sha": "9b5116f4cb3b29f8cd3039ff1f1a7d4f293e44d4",
+      "url": "https://github.com/marin-community/marin/commit/9b5116f4cb3b29f8cd3039ff1f1a7d4f293e44d4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-11T02:08:01Z",
+      "committed_at": "2026-11-11T02:08:01Z",
+      "message": "Belay: re-queue a planned idea a session escalated before launching (#10951)\n\nA session can report an idea `planned` and then escalate before any run\nlaunches. Idea #5's registry write failed after its first rung's plan\nwas posted, for example. Re-queue accepted only `approved` or `recorded`\nideas, and the admin page didn't show such an idea, so it could be\nneither re-queued nor declined.\n\nA planned idea now counts as stalled only with proof that nothing\nlaunched:\n- it was escalated;\n- it has no Belay run under its registry id, ladder rungs included;\n- it has been quiet for 20 minutes, two watcher passes, so a run\nsubmitted just before the escalation would have been reported.\n\nRe-queue and Decline accept such an idea and refuse any other planned\nidea with the reason. The admin page lists planned escalations with the\nother ideas that need a maintainer.\n\n---------\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "c07dbdc56bbc46c7a4b866717eed62c80d0b14df",
+      "url": "https://github.com/marin-community/marin/commit/c07dbdc56bbc46c7a4b866717eed62c80d0b14df",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ClassicLarry",
+      "author_name": "Larry Dial",
+      "authored_at": "2026-11-11T02:02:48Z",
+      "committed_at": "2026-11-11T02:02:48Z",
+      "message": "[iac] Let Belay runs read the tokenizer mirror and the compilation and autotune caches (#10955)\n\nEvery run the first Belay sessions launched failed at startup. The Belay\nkey (#10931) is refused reads of `marin-us-east-02a/marin/tokenizers/`,\nwhere `levanter.tokenizers` stages `hero-bpe-v16384` through\n`mirror://tokenizers/`; the Hugging Face fallback then 401s. The same\nkey is refused the shared JAX compilation cache\n(`marin/compilation-cache/`) and the XLA autotune cache (`<temp\nbucket>/tmp/ttl=30d/xla-per-fusion-autotune/`). Those two only cost cold\ncompiles.\n\nThis adds all three to the Belay user's read prefixes, both in the\n`marin-belay` org policy grants and in the bucket-policy denies. The\ncaches stay read-only: a Belay run reuses compiled programs and autotune\nresults but can't write entries other runs would load, so its writes\nthere fail with a warning, as they do now. I scanned the failed runs'\nlogs; these were the only refused paths, but the runs died before data\nloading and evals.\n\nApply with `pulumi up --target` on `policy-belay`,\n`policy-marin-us-east-02a` and `policy-marin-us-east-08a`.\n\nCo-authored-by: ClassicLarry <“larry36d@gmail.com”>",
+      "sha": "0083cfc7b7a997dcd127019deea9e344a72f34a9",
+      "url": "https://github.com/marin-community/marin/commit/0083cfc7b7a997dcd127019deea9e344a72f34a9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "Min-Li",
+      "author_name": "Min Li",
+      "authored_at": "2026-11-11T01:24:40Z",
+      "committed_at": "2026-11-11T01:24:40Z",
+      "message": "[sft] Fix Open-SWE trace issues (#10881)\n\nRestore the \"Solution Originality\" section that the Open-SWE-Traces\nexport dropped from the task message of the two pinned Qwen3.8-27B\nmini-swe-agent partitions (`f967cba3`). The teacher was prompted with\nthe NeMo-Skills mini-swe-agent template at `592ebaec`, which puts this\nsection between `</CRITICAL>` and `</instructions>`. The released task\nmessages end with `</CRITICAL>\\n</instructions>`, yet the reasoning in\n16,035 of the 49,925 successful traces (32.1%) quotes the section's\nrules.\n\nThe transform now inserts the section for those two partitions. All\n107,267 rows of both partitions end with that anchor, and a row without\nit raises. On 60 real rows from both partitions, the rendered chat\ndiffers from the current output only by the inserted section. The other\n11 Open-SWE partitions are unchanged: in the first shard of each, none\nof the 5,225 successful traces quotes the section.\n\nThe same two partitions also drop the 8,614 resolved traces on a pinned\nexclusion list (`Min-Li/marin-sft-data-audit` at `fb186cd8`). In 8,610\nof them, seven regex detectors flag 8 or more assistant turns that\nreason about the hidden tests, the grader or the upstream fix; the other\n4 read the upstream fix from the environment. This removes 3,562\nscale-swe and 5,052 swe-rebench-v2 rows, 17.3% of the successful traces\nand 31.1% of their assistant tokens. The figure shows how much each\nguess-turn cutoff would remove; the list uses 8.\n\n<img width=\"1800\" height=\"1080\" alt=\"Share of successful traces and\nassistant tokens removed at each guess-turn cutoff\"\nsrc=\"https://github.com/user-attachments/assets/fa373b87-c848-4aec-a26b-f4febf02870e\"\n/>\n\nClaude Sonnet reviewed 20 random traces above the cutoff, blind-mixed\nwith 10 traces with at most 2 flagged turns, and labeled 18 of the 20.\nAll 18 reason about the tests or the upstream fix repeatedly, and in 9\nthat reasoning picks part of the final patch. None of the 10 controls\ngoes beyond brief mentions.\n\nThe list is a Parquet file downloaded at its pinned revision. On the\npinned shards, the filter drops exactly the listed rows, and a full\nlocal transform of one shard per partition keeps every other trace.\nWithout the list, the transform writes the same documents as before.\n\nThe other 11 partitions keep their step hashes and reuse their existing\noutputs; the two Qwen3.8 steps get new hashes from the exclusion list\ndependency. #10813 edits the same module, which merges cleanly; only the\ntests it and this PR add at the end of the test file conflict. The audit\ndata, detector code, exclusion list and review are at\nhttps://huggingface.co/datasets/Min-Li/marin-sft-data-audit/tree/fb186cd8902777e24cb4c433398aaec9af0ecd6b/open_swe.\n\nPart of #10865",
+      "sha": "3a3a2e1ab2780ed888be7f1e8c266eb27bd7d38d",
+      "url": "https://github.com/marin-community/marin/commit/3a3a2e1ab2780ed888be7f1e8c266eb27bd7d38d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mvanhorn",
+      "author_name": "Matt Van Horn",
+      "authored_at": "2026-11-11T00:53:51Z",
+      "committed_at": "2026-11-11T00:53:51Z",
+      "message": "resolve Grug multislice smoke dataset pins to a region that has them (#11070)\n\n## Background\n\nThe Grug multislice smoke dies while preparing datasets and never\nsubmits its TPU training job. Nemotron tokenization, together with\nStarCoder and ProofPile, exits because no training files match under the\nus-east5 raw bucket, and the parent reports nine failed steps.\n\nThe training sets are pinned as paths relative to the region the canary\nruns in. In us-east5 those copies are failed executor stubs, so the pins\nare rebuilt by tokenizing, but the raw corpora are not in that region\nand the rebuild finds no training files.\n\n## Summary of the fix\n\nEach pinned training cache is adopted from the first usable copy under\nthe local prefix and then the other GCS data buckets, and that copy is\nstreamed in place. A copy is usable only with a tokenizer record and\neither a success status or a finished train ledger; failed,\ndependency-failed, running, and stub-only copies are skipped, an\nunreadable prefix is skipped, and no usable copy raises\nFileNotFoundError. Paloma and uncheatable validation sets are removed,\nleaving a training-only mixture.\n\n## Verification\n\nRan `uv run pyrefly check` locally on macOS for the marin\nmultislice_smoke_resources change; it fails the same way on the base\nbranch, so the failure predates this change (it fails the same way on\nupstream/main). A run with the marin multislice_smoke_resources change\nreverted gave no clear result, so no test is shown to catch this bug.\nThe new test experiments/ferries/test_grug_multislice_smoke.py did not\nrun here: the test environment could not run it.\n\nFixes #11042\n\nAI was used for assistance.\n\n---------\n\nCo-authored-by: Matt Van Horn <455140+mvanhorn@users.noreply.github.com>",
+      "sha": "3acbd6837b9b24d5d6285eb375699784e102f36c",
+      "url": "https://github.com/marin-community/marin/commit/3acbd6837b9b24d5d6285eb375699784e102f36c",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-12T00:00:00Z",
+    "start": "2026-11-11T00:00:00Z"
+  }
+}

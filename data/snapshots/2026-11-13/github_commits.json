@@ -1,0 +1,318 @@
+{
+  "commit_count": 28,
+  "commits": [
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-13T22:41:11Z",
+      "committed_at": "2026-11-13T22:41:11Z",
+      "message": "[finelog] Stop housekeeping and query reads from starving L0 compaction (#11327)\n\nObject compaction on a backlogged table no longer waits behind\nhousekeeping or query reads:\n\n- A maintenance cycle that ends with compaction work remaining skips\nindex backfill and runs object collection at most once an hour.\n- Compaction reads its inputs through its own cache-read queue.\n\nAfter #11325, one visit compacted up to 2,048 L0s in about 20 s and then\nran object collection and index backfill while it still held the shared\nslot. On the marin hub those two steps took 47 to 1,300 s per visit, and\nthe net drain fell to about 8,000 L0s per hour with about 176,000\noutstanding.\n\nSkipping those steps raised the drain for about 8 minutes after a\nrestart. Then a 512-input merge that takes 1 s went up to 256 s and the\ndrain nearly stopped. Queries and compaction shared one 8-permit\ncache-read limiter. `FetchLogs` requests over about 24,000 L0s of `log`\neach opened roughly 1,000 files and kept that limiter's queue full. The\nmerge threads used under 0.03 s of CPU in a 5 s sample while they\nwaited. A merge makes several limiter trips per input, one input at a\ntime.\n\nWith the separate queue deployed on the hub, 512-input merges averaged\n1.4 to 3.7 s for the first 14 minutes and compaction removed 58,617 L0s.\nThe backlog fell from about 126,300 to under 60 L0s per table in 49\nminutes, and `FetchLogs` requests succeeded again.\n\nA table that has not collected since process start begins its one-hour\ninterval at its first backlogged visit, so a restart during a backlog\ndoes not send every table through a full collection.\n\nIndex backfill has no time limit under a backlog: a table builds no\nindex artifacts for new segments until its compaction catches up. A\nsingle query can still fill the query read queue for other queries.\n\nNo test covers either change. A cycle ends backlogged only after 20 s of\ncompaction, which is too large for a unit test.\n\nPart of #11265\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "a6ad3ba878e2ba1d8b897d4387d1a302c40a0920",
+      "url": "https://github.com/marin-community/marin/commit/a6ad3ba878e2ba1d8b897d4387d1a302c40a0920",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-13T22:27:12Z",
+      "committed_at": "2026-11-13T22:27:12Z",
+      "message": "[harbor] Stop Mini-SWE at engine rollout budgets (#11407)\n\nStop Mini-SWE at SkyRL's engine turn and token limits. SkyRL returns\nHTTP 400 with `error.type=\"generation_stopped\"` when an engine budget\nends a trial. The stop persists for the rest of the trial, so retries\ncannot succeed. Map this terminal response to Mini-SWE's existing\n`LimitsExceeded` exit so Harbor can continue verification and retain\nearlier tool actions and sampled-token records.\n\nPreserve `ContextLimit` for both context-rejection formats from #11328\nand keep unrelated request errors on their existing path. Harbor still\nrethrows original model failures after the trial, including failures\nsignaled through the same `generation_stopped` response.\n\nWith simulated HTTP, the installed SDK/CLI previously raised\n`BadRequestError` after a successful tool turn; it now exits normally\nand saves that turn's action, tokens, logprobs and usage. Separate CPU\nengine/worker checks exercise actual turn and cumulative token budgets\nand confirm that genuine model failures keep the existing failure and\nreward policy. These checks use a fixed Harbor grade; no live verifier\nwas run.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "624d182f2ec6b17c1a1dcb5b18c1d306e6b1a743",
+      "url": "https://github.com/marin-community/marin/commit/624d182f2ec6b17c1a1dcb5b18c1d306e6b1a743",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-13T22:23:10Z",
+      "committed_at": "2026-11-13T22:23:10Z",
+      "message": "[rl] Sample quick-loop evaluation at 0.6 with a seed (#11397)\n\nMake the quick-loop's evals line up with snowball's preferred sampling\nhypers.\n\n<details>\n<summary>:robot: Full description</summary>\n\nThe quick RL loop's before and after evaluation now samples at\ntemperature 0.6 and top-p 0.95 with seed 20261020. It previously\ninherited SkyRL's upstream evaluation default, greedy decoding with no\nseed, and sent the seed only under `--reproducible-serving`.\n\nGreedy decoding ran Snowball checkpoints to the token limit on 47 to 53\nof 300 IFBench prompts (#9558). 0.6 / 0.95 matches the Mini840\nevaluation policy and the export defaults proposed in #10906.\n\n`--reproducible-serving` keeps greedy evaluation with the seed. Its\nexact repeats were qualified with greedy decoding (#11007); seeded\nsampling on that profile has not been tested. Training rollouts still\nsample at temperature 1.0 and top-p 1.0.\n\nEvaluation scores from default-profile runs before this change were\ngreedy, so they are not comparable with later default-profile runs.\nScores are also not comparable across the two serving profiles.\n\nThe rendered configuration was checked for both profiles. No GPU run was\nmade with the new evaluation sampling.\n\n</details>",
+      "sha": "240a6248ab2032ef4c2e1426f436a9a036e7594f",
+      "url": "https://github.com/marin-community/marin/commit/240a6248ab2032ef4c2e1426f436a9a036e7594f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-13T22:22:50Z",
+      "committed_at": "2026-11-13T22:22:50Z",
+      "message": "Add a single-device Gated DeltaNet-2 TPU kernel (#9350)\n\nAdd an experimental single-device Gated DeltaNet-2 Pallas kernel for\nLevanter. Compute off-diagonal scores with boundary-centered matrix\nproducts and mask noncausal diagonal pairs before exponentiation. The\nAPI accepts FP32 or BF16 token inputs and returns FP32 outputs and\nrecurrent state.\n\nAn independent token recurrence checks the output, final state, and all\nseven input gradients. The benchmark, tuning cache, TPU stage probes,\nand historical measurement snapshots live in the GDN-2 research archive.\nRepresentative-shape performance and v4 memory fit remain unverified for\nthe refactored kernel.\n\n[Research\nissue](https://github.com/marin-community/marin-logbooks/issues/42) ·\n[Runnable\nnotebook](https://github.com/marin-community/marin-logbooks/blob/bc377bb875485b5170d8eb222b2ee5d228fb0933/logbooks/42-gdn2-tpu/notebook.md)\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "3ddce3402ea81c3c4462864975fdf17851995acb",
+      "url": "https://github.com/marin-community/marin/commit/3ddce3402ea81c3c4462864975fdf17851995acb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "hrl20",
+      "author_name": "Louisa H",
+      "authored_at": "2026-11-13T22:15:16Z",
+      "committed_at": "2026-11-13T22:15:16Z",
+      "message": "[iac] Let a registered developer impersonate the Finelog runtime account (#11365)\n\nGrant `roles/iam.serviceAccountTokenCreator` and\n`roles/iam.serviceAccountUser` on `iris-controller@hai-gcp-models` to\nthe developer registered as `human-082`. Finelog VMs run as this account\n(`lib/finelog/config/marin.yaml`), and the same two roles are already\nheld by 59 other developers.\n\nThe principal currently holds a console-added project-level\n`roles/iam.workloadIdentityUser`, which lets it impersonate every\nservice\naccount in the project. That binding is outside Pulumi and will be\nremoved by hand once this grant is applied.\n\nA reviewer should run `review-grant` to confirm the decrypted principal,\nthen `pulumi up` on the `marin` stack. The stack's current preview fails\nuntil the protected `contractor` account from #10063 is unprotected.",
+      "sha": "8544762cb1a7ca0219da53b5a9c7a4516c37374f",
+      "url": "https://github.com/marin-community/marin/commit/8544762cb1a7ca0219da53b5a9c7a4516c37374f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-13T22:13:44Z",
+      "committed_at": "2026-11-13T22:13:44Z",
+      "message": "[eval] Seed GPU evaluation runs by default (#11312)\n\nAdds a default seed (when applicable) for eval runs.\n\nPart of #9558\n\n<details>\n<summary>:robot: Full description</summary>\n\nThe evaluation launcher now gives curated runs seed 0 when neither\n`--seed` nor the selection's `run.seed` is set. Benchmarks are\nunchanged: none declares a seed or a temperature.\n\n#10957 kept the legacy launcher's behavior of sending no seed. A served\nmodel that samples then returns different replies on every run. In\n#9558, two runs of the same frozen Snowball checkpoint matched on 3 of\n164 HumanEval+ replies and scored 51.83% and 42.07%.\n\nThe seed is a property of the launch. A shared default makes standard\nruns repeat, so a surprising score can be regenerated and inspected. It\ndoes not make a score more accurate: a seeded score is still one draw,\nand decisions that rest on small differences still need several seeds or\npaired intervals.\n\nThe default applies only where the endpoint accepts per-request seeds.\nMarin's TPU vLLM rejects a request that combines a seed with a\ntemperature above zero (`tpu_inference/platforms/tpu_platform.py`: \"JAX\ndoes not support per-request seed\"), so TPU vLLM runs stay unseeded\nunless a seed is given. An explicit seed is sent on every platform.\n\nOn GPU the run seed changes from none to 0. The seed is part of each\nrun's identity, so existing GPU runs are executed again at their next\nlaunch instead of being reused. TPU run identities and all prepared\ncorpora are unchanged.\n\nThree launches of Qwen3-0.6B on HumanEval+ (one H100 each,\nbatch-invariant vLLM, cw-rno2a, sampling at the model's temperature 0.6)\ncheck that the seed reaches the server. Each run records the request it\nsent per sample.\n\n| Launch | Seed given | Seed in all requests | Result |\n| --- | --- | --- | --- |\n| A | none | 0 | 25.61% |\n| B | none | 0 | 164 of 164 replies and grades identical to A |\n| C | `--seed 7` | 7 | 24 of 164 replies identical to A; 29.88% |\n\nA and B ran on separate servers and agree exactly while sampling, which\nrequires the server to honor the seed. C shows the seed value changes\nthe samples.\n\nIdentical replies across runs also need deterministic serving:\nsingle-GPU batch-invariant vLLM as here, or the #10760 profile for\nmulti-GPU Snowball.\n\nEarlier commits on this branch declared seeds and temperatures in each\nbenchmark and set Snowball's temperature; later commits revert the first\nand move the second to #11398, so the net diff is the launcher default,\nits test and the docs. #11065 made a related fix in the launcher that\n#10957 deleted and is superseded by this change. A checked-in\nrepeatability command remains open.\n\n</details>",
+      "sha": "8e3c754c1452da32144772f061769873257fcad8",
+      "url": "https://github.com/marin-community/marin/commit/8e3c754c1452da32144772f061769873257fcad8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-13T22:13:13Z",
+      "committed_at": "2026-11-13T22:13:13Z",
+      "message": "[iac] Grant Iris controller impersonation to a second operator (#11406)\n\nGrant `roles/iam.serviceAccountTokenCreator` on\n`iris-controller@hai-gcp-models.iam.gserviceaccount.com` to the operator\nregistered as `human-007`. `iris --cluster=marin cluster controller\nrestart` reaches the hub controller VM over `gcloud compute ssh` while\nimpersonating that service account\n(`defaults.ssh.impersonate_service_account` in\n`lib/iris/config/marin.yaml`). Without the role the operator cannot\nrestart the hub, as happened during the federation-sync outage in\n#11389. The grant is permanent and adds a second operator alongside\n#11405.\n\nA reviewer should run `review-grant` to confirm the decrypted principal,\nthen merge and run `pulumi up` on the `marin` stack.",
+      "sha": "ca3836cfe920ad6bffc62b0e50ff683f42798b2d",
+      "url": "https://github.com/marin-community/marin/commit/ca3836cfe920ad6bffc62b0e50ff683f42798b2d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-13T22:01:42Z",
+      "committed_at": "2026-11-13T22:01:42Z",
+      "message": "[iac] Grant Iris controller impersonation to an operator (#11405)\n\nGrant `roles/iam.serviceAccountTokenCreator` on\n`iris-controller@hai-gcp-models.iam.gserviceaccount.com` to one operator\nwho is already registered (`human-075`). The `marin` hub controller\nrestart (`iris --cluster=marin cluster controller restart`) reaches the\ncontroller VM over `gcloud compute ssh`, impersonating that service\naccount (`defaults.ssh.impersonate_service_account` in\n`lib/iris/config/marin.yaml`). The operator needs this role to restart\nthe hub. The need came up when the hub's federation-sync threads stopped\n(issue 11389). The grant is permanent.\n\nThe principal was already in the registry, so the change is one line\nadded to the existing member list. A reviewer should run `review-grant`,\nmerge, and then run `pulumi up` on the `marin` stack.",
+      "sha": "5a2266f80598d84105fd9c916739c208c09582ff",
+      "url": "https://github.com/marin-community/marin/commit/5a2266f80598d84105fd9c916739c208c09582ff",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-13T21:49:50Z",
+      "committed_at": "2026-11-13T21:49:50Z",
+      "message": "[finelog] Drain object-backed L0 backlogs within one maintenance visit (#11325)\n\nObject-backed tables now drain an L0 backlog several jobs at a time. An\nL0 compaction job takes up to 512 inputs instead of 32, and one\nmaintenance visit repeats compaction while work remains, for up to 20\nseconds. L1 and L2 jobs keep the 32-input cap, and promotion still\nstarts at 32 segments.\n\nOn the marin hub, all 35 object-backed tables share two `QueryServing`\nmaintenance slots. Each visit ran one 32-input job, and the follow-up\nvisit that pending work requests queued behind every other table. From\n2026-11-12, busy tables added 600–700 L0s per ~12-minute round while\ncompacting 32. `log` reached 21,237 L0s averaging 135 KB. Each L0 spans\nthe whole key range, so every `FetchLogs` and time-bounded query opened\nthem all and failed with `snapshot read deadline exceeded`. Hub logs\nover 46 minutes showed 32-input jobs taking a median 9.5 s to merge and\n2.2 s to upload, all from cache, with slot waits of 12 minutes at the\nmedian.\n\nA cycle that runs at least 5 seconds now logs `slow maintenance cycle\nstep breakdown` with per-step wall time. The hub logs showed turns of\n324–893 s that the merge lines do not explain. The 512 cap bounds how\nlong one job holds a shared slot, since an in-flight job runs to\ncompletion.\n\nPart of #11265\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "1bee5c6c62c316668f90bf2b502f03180bc8790c",
+      "url": "https://github.com/marin-community/marin/commit/1bee5c6c62c316668f90bf2b502f03180bc8790c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-13T20:49:20Z",
+      "committed_at": "2026-11-13T20:49:20Z",
+      "message": "[harbor] Stop Mini-SWE after typed server context rejection (#11328)\n\nStop Mini-SWE through its existing `ContextLimit` exit when a server\nreports `context_length_exceeded` in `error.type` or `error.code`.\nSkyRL's installed-agent server uses `type`; Marin's evaluation relay\npreserves the identifier in `code`. After a successful tool turn, this\nerror previously triggered generic retries and could end in an agent\nfailure or timeout. Harbor's error policy can zero rewards for agent\nfailures. Local context-budget checks and unrelated HTTP 400 retries\nkeep their existing behavior.\n\nThe CPU regression runs Harbor's installed agent and the Mini-SWE CLI\nthrough the real OpenAI SDK with simulated HTTP. It checks normal exit\nwhile retaining the earlier tool action, sampled token IDs, logprobs and\nusage counts. It does not run a live sandbox or verifier. Harbor's\ntrajectory retention comes from #11235; its reward/error policy is\nunchanged.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "d20265cae772e68196684e0ecabed33176ff55fd",
+      "url": "https://github.com/marin-community/marin/commit/d20265cae772e68196684e0ecabed33176ff55fd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-13T20:31:25Z",
+      "committed_at": "2026-11-13T20:31:25Z",
+      "message": "[skyrl] Preserve exact chat retries without router capture (#10355)\n\nRetain the backend's original prompt IDs for chat continuations even\nwhen expert-router capture is disabled. Validate each partial response\nagainst the accumulated token context and completion usage, then retry\nwith the exact served IDs.\n\nPreserve the existing exact-prefix fallback for callers that supplied\ntoken IDs before the first response. This shared-client fix does not\nenable the deferred remote serving stack.\n\nTransplanted from https://github.com/marin-community/MarinSkyRL/pull/912\nby @dlwh. Original discussion and reviews remain at that URL.\n\nSource base: `5110e2c65e050bd9544cd01fd7973b5d9294d6e0`; source head:\n`b3e698207df268c0da769862a76e4af11a706e5d`.\n\n<!-- skyrl-migration: source=marin-community/MarinSkyRL#912\nhead=b3e698207df268c0da769862a76e4af11a706e5d -->\n<!-- skyrl-port-patch:\n648b4f463f332724ba9f514681de487fab0a1efe8816702b406c469f92d14c66 -->\n<!-- skyrl-destination: 88cfa76d82153d893ee0a8f05899f871a9496f0a -->\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "bce9ec5c20aeb6e7a9ff0eb64ab93f7e41d170b8",
+      "url": "https://github.com/marin-community/marin/commit/bce9ec5c20aeb6e7a9ff0eb64ab93f7e41d170b8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-13T18:38:44Z",
+      "committed_at": "2026-11-13T18:38:44Z",
+      "message": "[rl] Enable reproducible Grug prefix caching (#10760)\n\nAdd `--reproducible-serving` to the Snowball quick loop. It enables\nbatch-invariant serving, prefix caching with TRITON_ATTN, deterministic\nInductor and a fixed evaluation seed. The profile admits eight tasks\nacross eight serving ranks with one sequence per rank. Normal quick-loop\nruns retain their existing serving settings and concurrency.\n\nForward the chunked-prefill setting to vLLM. Preserve explicit OpenAI\nsampling fields and default unset fields without mutating the request.\n\nPin SkyRL to the published vLLM `5fa2e9bad66d` release with Torch 2.14.1\nand CUDA 13.2.2. Four fresh evaluations independently graded the same\n100 tasks on that runtime. All 400 results were finite and verified,\nwith exact agreement in per-task tokens, text, rewards and recorded\noutcomes. A separate 1,280-reply panel measured cache hits and\npause/clear/resume invalidation with exact tokens and logprobs. See the\n[serving reproducibility\nrecord](https://github.com/marin-community/marin/issues/11007).\n\nTraining throughput and weight updates with this profile remain\nunmeasured. Moving the profile to the runtime proposed in #11307\nrequires fresh reproducibility checks. Standalone GPU serving adoption\nis tracked in #11241.\n\nPart of #11007.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "acd9b1193678436b3c6b714b06f297ace586c50c",
+      "url": "https://github.com/marin-community/marin/commit/acd9b1193678436b3c6b714b06f297ace586c50c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-13T18:38:13Z",
+      "committed_at": "2026-11-13T18:38:13Z",
+      "message": "[levanter] Preserve packed Snowball attention across context shards (#11370)\n\nShard Splash kernel mask metadata with the query and head axes so\nSnowball can execute packed attention on four context shards.\nReplicating global query positions previously caused a lowering failure\nwhen 512 positions reached a 128-query shard.\n\nAdd Snowball packed-document hidden-state and loss isolation checks on a\nsingle device and four context shards. The segment-ID adapter correction\nalready landed in #10492; the missing coverage includes blockwise flash\nattention and hardware-gated FA4/CuTe and Splash paths.\n\nRequire exact isolation when another packed document changes. A\nsingle-segment mask must match unsegmented causal attention bit for bit,\nseparately on one device and four context shards. Compile the test\nforward with deterministic XLA operations: ordinary BF16 executions can\ndiffer by 0.0078125 even on identical inputs, which can obscure an\nattention-boundary regression. Keep the existing FP32 checks comparing\ncontext-parallel and unsharded values and gradients.\n\nThe broad affected suite finished with 1,144 passes, 331 skips and five\ncheckpoint-path failures; all five reproduce independently on unchanged\nmain at `6eb54e9d34`. The real FA4/CuTe case passed on four H100s at\nsequence length 1024. Splash value and gradient checks pass in CPU\ninterpretation; native execution is hardware-gated for TPU CI.\n\nCorrect stale packing guidance while retaining the recipes' `pack=False`\ndefaults. Enabling packing for a separate experiment requires\n`SFTSpec.pack=True` and a new `SFTSpec.version`; the launcher selects a\nseparate packed preprocessing cache.\n\nFixes #9029.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "622235c636c200cfe1874b3ff8941dedcc6219c2",
+      "url": "https://github.com/marin-community/marin/commit/622235c636c200cfe1874b3ff8941dedcc6219c2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-13T16:09:56Z",
+      "committed_at": "2026-11-13T16:09:56Z",
+      "message": "[marina] Add Qwen 3.6 and the finished smell-test runs to the model scorecard (#11369)\n\n🤖 Adds Qwen 3.6 35B-A3B to the model scorecard and fills the cells whose\nsmell-test runs finished. Qwen was run from the same commit as the other\nthree models (Marin main from Nov 11, plus the larger model-preparation\ndisk), so the four rows are comparable. All cells are unofficial.\n\nQwen's new scores match its earlier policy runs, which suggests the\nmain-branch numbers are trustworthy. 13 of 17 evals land within the\nrange of its late-September and October runs. MBPP+ is 0.8 points above\nthat range, within one standard error. AIME24 and OlympiadBench match\nwhen compared per problem. FinanceBench is the exception: 42 against\n62–74. Since Oct 30, main grades FinanceBench with a self-hosted MiniMax\njudge instead of `gpt-oss-120b`. Each FinanceBench cell now carries a\nnote saying so.\n\nFour Muse Glimmer cells are blank with a reason instead of a score:\nIFBench, MRCR, OlympiadBench and TriviaQA. Glimmer's outputs often\nrestate the prompt and reason in the answer text, and these graders\ndepend on the answer's format. For example, MRCR scored 0.0 because\nanswers didn't start with the required prefix. OlympiadBench left 227 of\n300 attempts with no extractable final answer. Glimmer's math, code and\nmultiple-choice scores look normal. GSM8K stays blank pending #11226.",
+      "sha": "246f795749166285a864e891e56facfbcf9127e7",
+      "url": "https://github.com/marin-community/marin/commit/246f795749166285a864e891e56facfbcf9127e7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-13T15:58:18Z",
+      "committed_at": "2026-11-13T15:58:18Z",
+      "message": "[iris] Preserve prepared sandbox image workdirs (#11366)\n\nPreserve a prepared sandbox image's `/app` when no bundle or workdir\ninputs are staged. The empty workdir volume previously hid the image's\napplications and task files. Explicitly staged inputs and non-sandbox\njobs keep their existing mounts.\n\nAdvertise `sandbox-image-workdir` through Kubernetes backend metadata so\nHarbor can reject older controllers before submission. gVisor\nstorage-limit enforcement has not passed sandbox overflow qualification,\nso `sandbox-storage-limit` remains unadvertised. Controller rollout\nrequires separate approval.\n\nExtract the controller-side behavior from #11336 for main. Part of\n#11277.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "785294c2403a87ea5de2a0447b3328ecae199877",
+      "url": "https://github.com/marin-community/marin/commit/785294c2403a87ea5de2a0447b3328ecae199877",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-13T15:15:59Z",
+      "committed_at": "2026-11-13T15:15:59Z",
+      "message": "Batch and throttle checkpoint uploads to respect Hub commit limits (#10898)\n\nCommit up to eight checkpoint shards at once and pace every Hub commit,\nincluding request and completion metadata. A 193-shard checkpoint needs\n25 weight commits instead of 193. With at most four concurrent uploaders\nand no other commit-producing writers, the 75-second interval before the\nfirst commit and after each commit response keeps the workers below the\nobserved 256-commits/hour repository limit.\n\nRepository commit-limit responses back off for at least one hour even if\ngeneric API headers specify a shorter delay. Each commit gets at most\nfour retries after its initial HTTP 429 response; other failures\npropagate. Eight largest Hero shards use about 58 GB of staging disk per\nworker.\n\nRequire the repository to match the configured expected visibility\nbefore preparing an upload and before every commit. Private remains the\ndefault; uploading to an existing public repository requires explicit\n`expected_visibility: public`. The uploader never changes repository\nvisibility. Expected visibility is a delivery setting outside the\nimmutable export and upload request identities, so verified checkpoints\ncan resume after an intentional visibility change.\n\nVersion-2 CPU export manifests validate the complete original export\nconfiguration; version-3 manifests retain artifact-only comparison.\nExisting Hub shards must match source size and SHA-256. The completion\nmarker follows weight verification at a pinned commit and exact\nmodel-card and license verification.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "6eb54e9d346c97976a5413c16f25efbf5d17bea9",
+      "url": "https://github.com/marin-community/marin/commit/6eb54e9d346c97976a5413c16f25efbf5d17bea9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-13T13:16:30Z",
+      "committed_at": "2026-11-13T13:16:30Z",
+      "message": "Restore dataset harness bindings for canonical tasks (#11324)\n\n#11062 removed `harness_by_dataset` when fixing assistant-prefix\nselection.\nHarbor trial tasks need `harbor_trial` and fail preparation under the\ndefault\nShellbox harness. The shared `harbor` tag does not distinguish original\ntrials from native Shellbox imports. Restore the mapping keyed by\n`task.source.dataset`. Tasks whose context ends in an assistant message\nkeep\nthe assistant-prefix harness. Unmapped datasets keep `default_harness`.\n\nThe new loader regression fails on main and passes with the fix.\nExisting\nHarbor preparation probes on the Mochi experiment branch used the same\nbinding correction and reached the HTTP model endpoint. The probes\nstopped\nthere, before inference; task completion remains untested.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "a922ffc740488a3aa82c8ac3f8cf8e9dd8d77ba7",
+      "url": "https://github.com/marin-community/marin/commit/a922ffc740488a3aa82c8ac3f8cf8e9dd8d77ba7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-13T13:14:03Z",
+      "committed_at": "2026-11-13T13:14:03Z",
+      "message": "Preserve task environments and require verifier execution evidence (#11221)\n\nRequire new agentic sources to ingest TaskCompendium or native Harbor\npackages, preserving the existing MarinSkyRL grandfather list. Retain\ndeclared environments through pinned images or archived build contexts\nand reject unsupported conversions per row. Derive Daytona safety from\nseparate agent and grader requirements and measured production snapshot\nidentities.\n\nCapture rebuilt CalibForge workspace outputs and provision its grader\nbefore applying candidate files. Preserve invalid-task and\ninfrastructure failures when classifying pytest imports; missing modules\ncount as candidate errors only with declared or editable-workspace\nprovenance. Prebuilt imports produce the corpus manifests and parquet\nviews consumed by selection and embedding.\n\nRetain historical rebuilt releases in the catalog but exclude\nreward-only cohorts pending qualification with verifier exit and\nexecuted-test evidence. SAMPLE and FULL oversight require recorded\nevidence; a numeric zero reward alone does not establish verifier\nliveness.\n\nTPU CI runner interruption: [incident\nrecord](https://marina.oa.dev/echo/wiki/972).\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "7e11f2ee6047a28ba7334f0d9db539d5ce535a5a",
+      "url": "https://github.com/marin-community/marin/commit/7e11f2ee6047a28ba7334f0d9db539d5ce535a5a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-13T12:43:30Z",
+      "committed_at": "2026-11-13T12:43:30Z",
+      "message": "[iris] Set exact sandbox disk limits and classify storage evictions (#11342)\n\nSandbox jobs with declared disk now use that exact byte count for\nKubernetes ephemeral-storage requests and limits, and get a CPU ceiling\nmatching their CPU request. Both ordinary and sandbox jobs without\ndeclared disk receive no storage request or limit. Ordinary jobs retain\ntheir existing rounded storage quantities, CPU bursting, and eviction\nretry behavior.\n\nNew sandbox pods are marked at launch so kubelet evictions caused by\ntheir own storage limit report `RESOURCE_LIMIT_DISK` as a task failure\ncharged to the failure retry budget. Existing pods and node-pressure\ndisruptions retain their previous classification.\n\ngVisor writable-layer accounting still needs qualification with a\nsandbox-profile overflow run. The `sandbox-storage-limit` capability\nadvertisement is deferred until that succeeds.\n\nA controller rollout from a clean main tree containing this change is\nplanned after merge; rollout is outside this PR. Part of #11336; this\nports its Iris portion.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "07e6eeaacdbeaf1a6d175e11bb36e2595f591dde",
+      "url": "https://github.com/marin-community/marin/commit/07e6eeaacdbeaf1a6d175e11bb36e2595f591dde",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-13T11:25:14Z",
+      "committed_at": "2026-11-13T11:25:14Z",
+      "message": "Detect routed-expert tensor layout in Grug checkpoints (#11206)\n\nChoose the Grug routed-expert weight mapping from the checkpoint's\ntensor names when loading an HF checkpoint. Some exports declare schema\n2 because their shared experts are split, while their routed experts\nremain stacked. Using the declared schema for both layouts leaves routed\nweights unmapped in the Megatron bridge. Reject checkpoints with missing\nor mixed routed layouts.\n\nThe declared schema remains the fallback for export paths without a\nloaded HF state. GPU parity has not been run for this change.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "3ce819c3154aac780f4debc13f72bdffb4f61702",
+      "url": "https://github.com/marin-community/marin/commit/3ce819c3154aac780f4debc13f72bdffb4f61702",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-13T10:59:00Z",
+      "committed_at": "2026-11-13T10:59:00Z",
+      "message": "[shellbox] Centralize Daytona snapshot identity and reclamation (#11202)\n\nMove Daytona snapshot source selection, resource rounding, naming and\npreparation out of Harbor's environment adapter and into Shellbox.\nHarbor's adapter maps its task configuration onto a `MachineSpec`\nthrough one validated helper, and Shellbox derives the snapshot identity\nand machine request from it. Account credentials live in a single\n`DaytonaConnection` with the API key hidden from `repr`; field\nvalidation happens when a client factory is built, so hosts that do not\nuse Daytona stay constructible and Harbor creates its provider client\nlazily.\n\nAdd `shellbox-daytona-snapshots` to inventory an account, compare it\nwith a required set, create missing snapshots and purge stale ones after\nrevalidating last use. One classification serves the inventory, the dry\nrun and the revalidation, and a snapshot whose last-use evidence\ndisappears between the inventory and the revalidation is recorded as\nunclassified instead of aborting the purge. The driver's\n`snapshot-specs` command emits the resulting `SnapshotRequest`\ninterchange, after applying the job's resource overrides and enforcement\npolicy and an optional runtime overlay, so preflight resolves the task\nset the run actually launches without provider credentials.\n`.agents/ops/daytona.md` records the one-hour account-wide purge policy\nand the exact commands.\n\nSnapshot names are unchanged: `shellbox-` plus the first 40 hex\ncharacters of `sha256(image_source_key(source) + json(resources))`, so\nexisting snapshots remain reusable. Registry images are identified by\nreference, so moving a tag keeps its snapshot name; Docker build\ncontexts are identified by their current contents. The task GPU count\nnow participates in the identity.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "56f6d6c70ce38b74f2b4625364f60b823be0d033",
+      "url": "https://github.com/marin-community/marin/commit/56f6d6c70ce38b74f2b4625364f60b823be0d033",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-13T08:23:44Z",
+      "committed_at": "2026-11-13T08:23:44Z",
+      "message": "[shellbox] Run local sandboxes on NixOS (#11311)\n\nRun local Shellbox sandboxes on NixOS with two read-only mounts: `/nix/store` and the system program profile at `/run/current-system/sw`. Host-program commands and transfers search the profile's `bin` directory; OCI image machines use their own environment. Managed Python requires `nix-ld` on the host.\n\nThe store mount exposes host configuration stored there by its store path. On the NixOS test host, the two-mount variant measured 45 ms median machine creation versus 620 ms for 567 dependency mounts, with warm caches and a quota of one CPU. See the [startup comparison](https://github.com/marin-community/marin/pull/11311#discussion_r4560581567).\n\nReplace the sandbox's read-only `/etc/hosts` copy before writing task hostnames. Factory failures retain bubblewrap's underlying startup error.",
+      "sha": "235f765e55acdfbc700828a50729716652c3069a",
+      "url": "https://github.com/marin-community/marin/commit/235f765e55acdfbc700828a50729716652c3069a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-13T08:23:08Z",
+      "committed_at": "2026-11-13T08:23:08Z",
+      "message": "Alert on idle GB200 cluster capacity (#11115)\n\nAlert when fewer than 10% of Ready GB200 GPUs have more than 10%\nutilization for 30 minutes. The bridge compares the last five minutes of\nnode-agent telemetry with Kubernetes GPU capacity per cluster and sends\nthe warning to the operator Slack route. A GPU counts as active when any\nsample in the window exceeds the utilization threshold. The notification\nincludes the active GPU percentage, the Ready GPU count, and an\naccelerator dashboard link.\n\nThe bridge decides idleness and reports it as a 0 or 1 alert value, so\nthe thresholds live only in `b200_utilization_alert.py`. Each cluster\nrow also carries a `state` label: `idle`, `active`,\n`telemetry_incomplete` (telemetry covers less than 80% of Ready\ncapacity), `capacity_unavailable` (the Kubernetes node listing failed),\nor `no_ready_capacity`. Only `idle` fires. Grafana shows the label, so a\ncluster that cannot be measured is distinguishable from an active one.\nReady capacity is a numeric annotation query, so node churn does not\nreset the pending timer; a change of `state` does.\n\nA count over the same five-minute window of `telemetry_v1.node_agent`\ntook about 11 seconds on the hub from a developer machine on 2026-11-12,\nagainst a 20-second bridge query timeout. A query that times out reports\n`telemetry_incomplete` and does not fire. The `$values` annotations in\nthe summary have not been rendered on a live Grafana.\n\nFixes #11114\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "8a0cf37a13902f907e6ad78ccd63d2aa5d23bc59",
+      "url": "https://github.com/marin-community/marin/commit/8a0cf37a13902f907e6ad78ccd63d2aa5d23bc59",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dependabot[bot]",
+      "author_name": "dependabot[bot]",
+      "authored_at": "2026-11-13T07:48:13Z",
+      "committed_at": "2026-11-13T07:48:13Z",
+      "message": "Bump basic-ftp from 5.3.1 to removed in /infra/grafana/marin-infra-panel in the npm-security group across 1 directory (#11297)\n\nBumps the npm-security group with 1 update in the\n/infra/grafana/marin-infra-panel directory:\n[basic-ftp](https://github.com/patrickjuchli/basic-ftp).\n\nRemoves `basic-ftp`\n\n\n[![Dependabot compatibility\nscore](https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=basic-ftp&package-manager=npm_and_yarn&previous-version=5.3.1&new-version=)](https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores)\n\nDependabot will resolve any conflicts with this PR as long as you don't\nalter it yourself. You can also trigger a rebase manually by commenting\n`@dependabot rebase`.\n\n[//]: # (dependabot-automerge-start)\n[//]: # (dependabot-automerge-end)\n\n---\n\n<details>\n<summary>Dependabot commands and options</summary>\n<br />\n\nYou can trigger Dependabot actions by commenting on this PR:\n- `@dependabot rebase` will rebase this PR\n- `@dependabot recreate` will recreate this PR, overwriting any edits\nthat have been made to it\n- `@dependabot show <dependency name> ignore conditions` will show all\nof the ignore conditions of the specified dependency\n- `@dependabot ignore <dependency name> major version` will close this\ngroup update PR and stop Dependabot creating any more for the specific\ndependency's major version (unless you unignore this specific\ndependency's major version or upgrade to it yourself)\n- `@dependabot ignore <dependency name> minor version` will close this\ngroup update PR and stop Dependabot creating any more for the specific\ndependency's minor version (unless you unignore this specific\ndependency's minor version or upgrade to it yourself)\n- `@dependabot ignore <dependency name>` will close this group update PR\nand stop Dependabot creating any more for the specific dependency\n(unless you unignore this specific dependency or upgrade to it yourself)\n- `@dependabot unignore <dependency name>` will remove all of the ignore\nconditions of the specified dependency\n- `@dependabot unignore <dependency name> <ignore condition>` will\nremove the ignore condition of the specified dependency and ignore\nconditions\nYou can disable automated security fix PRs for this repo from the\n[Security Alerts\npage](https://github.com/marin-community/marin/network/alerts).\n\n</details>\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+      "sha": "71cc9fb726c93380283be75365355ffe20f6418f",
+      "url": "https://github.com/marin-community/marin/commit/71cc9fb726c93380283be75365355ffe20f6418f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-13T03:05:04Z",
+      "committed_at": "2026-11-13T03:05:04Z",
+      "message": "[rl] Typed recipes (4/4): Validate every recipe path with typed classes (#10643)\n\nValidate a SkyRL recipe with the typed recipe classes in\n`lib/skyrlrecipe` on every path that builds one: the vendored launcher,\nthe local OPD runners, and the edits experiments make to a recipe. A\nwrong key, value type, or option value fails with an error that names\nthe field, before a GPU job starts.\n\nThe launcher validates the recipe in a training launch document with\n`SkyRLRecipe.from_document` before Hydra merges SkyRL's base config, so\nYAML recipes such as `vendor/skyrl/cloud/iris/configs/*.yaml` get the\nsame checks and error messages as recipes built by experiments. A\ntraining document with an empty `runtime.entrypoint`, which is what\nMarin submits, always takes this path; a document the launcher has\nalready composed is reloaded as written. The launcher reads the context\nbudget, engine options, and entrypoint from the validated recipe. The\nSkyRL entrypoint modules expose `run(cfg)` and have no command line of\ntheir own; the launcher, the OPD runners, and the tests call it. The\nlauncher checks the node count against the role plan and the runtime\nprofile against `trainer.strategy`, and it rejects a `trainer.placement`\nGPU count larger than the allocation's GPUs per node. A launch document\nmust set `inputs.data_kind`; the launcher rejects one whose value\ndiffers from the recipe's `data.kind`, and a recipe that sets\n`data.train_data` or `data.val_data` when the launch document supplies\ndata inputs. When a recipe does not set\n`generator.num_inference_engines`, the engine count is the allocation's\nGPUs divided by the inference tensor-parallel size, which defaults to 4.\nAn object-store draft model must name a `sha256:` identity, which the\ntask runtime compares with the model's manifest before staging it.\n\nThe schema covers the callback options at main `2af3f828aa`: the\ncheckpoint callbacks accept `save_after_fraction`, and `best_checkpoint`\naccepts `selection_metric` and `preservation_max_drop`. A test checks\nthat each declared callback's fields equal its constructor's parameters.\n`generator.backend` and the trajectory-retention `inference_backend`\naccept only `vllm`. A recipe that sets `checkpoint_export` is rejected\nwith a message that the launch document owns export settings.\n`Section.replace` returns a validated copy of a section with the given\nfields changed.\n\nThe H100 OPD nightly (`ci/marin_nightly/opd.py`, run by\n`run_opd_h100.sh`) and `examples/cat_count/gpu_opd.py` build a\n`SkyRLRecipe` with the declared teacher and routing types, and\n`examples/recipe.py` composes it with SkyRL's base config.\n\nExperiments keep a `SkyRLRecipe` through every edit, change it with\n`merge(RecipePatch(...))`, `with_settings`, or `Section.replace`, and\nconvert it to YAML where it is passed to `SkyRLSpec`.\n`experiments/post_training/snowball_online_eagle.py` builds its\ndraft-model training settings, Megatron geometry, and role plan directly\nfrom the typed classes. The launch-document census fails when an\nexperiment module that constructs a `SkyRLSpec` is missing from it.\n\nAfter loading, the launch and task documents from every experiment are\nidentical to those at main `2af3f828aa`. The bundled recipes in\n`vendor/skyrl/cloud/iris/configs` compose, load, and persist to the same\nconfigs as at main; `snowball_mopd_ultra_32k.yaml` leaves\n`trainer.max_ckpts_to_keep` to the launch document. The local OPD\nconfigs equal main's with three differences:\n`generator.use_conversation_multi_turn` and\n`generator.require_exact_chat_transport`, which the schema rejects and\nno runtime code reads, are absent; distillation and teacher fields are\nin schema order; and the nightly sets `trainer.resume_mode` to `none`\nwhere main's config has null, both of which start without resuming. On\nH100s, the OPD nightly lane passes on this branch and the cat-count\nlane's training job succeeds (Iris job\n`/runner/skyrl-nightly-cat-count-h100-43353780133-1-a1`).\n\nPart of marin-community/MarinSkyRL#933.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "80004cc0654537cb39f386539f91cd28db653e4e",
+      "url": "https://github.com/marin-community/marin/commit/80004cc0654537cb39f386539f91cd28db653e4e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-13T01:58:38Z",
+      "committed_at": "2026-11-13T01:58:38Z",
+      "message": "Complete migration to curated TaskSpec evaluations (#10957)\n\nRun the evaluation CLI, training checkpoint menus and the [September 25, 2026 publication campaign](https://github.com/marin-community/marin/tree/weaver/evalchemy-finish-migration/experiments/evaluation/campaigns/eval-campaign-09-25-unlabeled) against canonical TaskSpec corpora. Remove `vendor/evalchemy` and its execution, packaging and CI paths, completing the launcher and consumer handoff from #10757. Evaldash derives summaries from recorded protocol metadata and keeps historical Evalchemy scores available for comparisons without model reruns.\n\nEvaluation configuration owns supported protocols, shot counts and request formats. Dataset records contain pinned source populations and support files. Benchmark modules keep each dataset beside its evaluation bindings; shared curation code supplies acquisition and catalog integration. Callers select these settings through `EvaluationSelection`. Preparation binds them to the reusable TaskCompendium compilers before publication; runtime consumes the resulting immutable operations. GSM8K zero-shot and five-shot evaluations share the dataset declaration and acquisition artifact; evaluation preparation compiles separate immutable prompt corpora for each protocol. MMLU owns its subject partitions. Its launch configuration no longer enumerates 57 source IDs. Benchmark families declare chat-template policy, grading, metrics, sampling, trial seeds and context rules. Shared builders receive those settings explicitly. Evalchemy protocols inherit the serving model’s temperature and request seed unless the caller overrides them, preserving the legacy launcher’s sampling behavior.\n\n```mermaid\nflowchart TD\n    A[Benchmark data: pinned population and support examples] --> B[Evaluation configuration: protocol, shots, format and partitions]\n    B --> C[Acquire source rows and demonstration pools]\n    B --> D[Build locked grader environment]\n    C --> E[Evaluation preparation: compile final TaskSpec prompts and operations]\n    D --> E\n    E --> F[Validate complete population and protocol]\n    F --> G[Publish immutable corpus and manifest]\n    G --> H[Publish canonical catalog snapshot separately]\n```\n\nOrdinary benchmark defaults need no launcher YAML. One `configs/evalchemy.yaml` contains suite choices and run overrides; the publication campaign has its own selection document. Per-evaluation mapping files, source-name aliases, shot-group searches and dynamic checkpoint alias registration are removed. The shared choice compiler assembles requests from explicit layouts and sampling rules, including reversed Winogrande demonstrations. Named presets carry actual protocol choices or run policy, such as a smoke limit or judge deployment. Checkpoint pipelines pass typed selections directly to the shared launcher. Model-dependent prompt format is resolved once and recorded explicitly. Unsupported combinations fail before inference. Runtime limits never truncate the published population.\n\nThe launcher pins model and tokenizer revisions and materializes the selected corpus dependencies in the serving cluster's storage region before starting shared candidate inference. Corpus references include the publication recipe and version independently of storage placement. Executors receive resolved artifact roots. Catalog snapshot publication remains a separate curation operation. The driver reads the running server's context limit, admits source rows under the recorded cohort and context policies, expands the declared trials and executes likelihood, completion or chat operations. Python and instruction graders run through Shellbox. The orchestrator uses the privileged Iris container profile so grader children can inherit it; checkpoint pipeline parents need the same profile. Workers use the task image's Python 3.12 for namespace and pidfd interfaces.\n\n```mermaid\nflowchart TD\n    A[CLI, checkpoint or campaign: typed selections and model] --> B[Freeze supported protocol and prompt format]\n    B --> C[Materialize pinned corpus dependencies]\n    C --> D[Start shared candidate inference]\n    D --> E[Admit source rows and expand trials]\n    E --> F[Execute operations and packaged graders or configured judges]\n    F --> G[FineStore: configuration, selection ledger, attempts and samples]\n    G --> H[Evaldash: select terminal retries and reduce declared metrics]\n    H --> I[Protocol comparisons, coverage and sample browser]\n    G --> J[Resume completed work and retry infrastructure failures]\n    J --> E\n```\n\nWorkers persist raw observations and run references. Request concurrency affects scheduling without changing scoring or resume identity. Evaldash owns means, weighted means, classification rates, perplexity reductions and grouped summaries. Perplexity follows declared log-likelihood metadata. PIQA uses character-normalized likelihood accuracy as its headline. Local ingestion and PostgreSQL reconciliation share the importer; reconciliation tracks archive revisions so resumed results refresh without rewriting producer records. Summaries and sample browsing select the same latest finished attempt per logical trial, including failed grades. Valid zero scores remain scored, retries do not enlarge denominators, and coverage separates full population, selected trials and scored trials.\n\nPanels and comparisons expose benchmark protocol variants separately. A newer five-shot run cannot displace the same model's zero-shot result. Corpus comparison identities bind source, compiler, grader and protocol independently of regional paths and conversion timing; physical manifest hashes protect integrity and resume. Known differing corpus identities remain incompatible. Protocol metadata and recorded selections must agree.\n\nHistorical Evalchemy labels are interpreted at the reader boundary using their known protocol choices, recorded shot counts and prompt format. Shared metric normalization maps likelihood `acc,none`, code-task `pass@1`/`pass_at_1` and MRCR `mrcr_accuracy` to `accuracy`; `normalized_accuracy` and F1 stay distinct. Raw metric maps retain their original spellings and extraction filters. Compatible historical scores can join native protocol columns without rewriting archives or rerunning inference. Recorded shot counts and prompt formats must agree when present; missing historical values do not alone exclude a score. Existing native archives without semantic corpus identities use the same checks. Comparisons retain each score's cohort and the warning about differing evaluation settings. New curated runs must use new cohort labels: the verified Evalchemy cohorts pin the historical evaluator implementation, so reusing those labels would misstate how a score was produced.\n\nExternal judges require deployment identities and secret references. Provider-managed aliases identify the deployment/model without promising immutable provider weights. The publication campaign records its separately served policy judge and finishes an evaluation as `artifact_failed` when any benchmark scores fewer than 90% of selected logical trials. Harbor retains its separate runtime. Evaldash requires an application release to serve the new summaries and protocol comparisons in production.",
+      "sha": "2af3f828aa08cae6359fef4ba1c6ac9d81ccde61",
+      "url": "https://github.com/marin-community/marin/commit/2af3f828aa08cae6359fef4ba1c6ac9d81ccde61",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-13T01:14:54Z",
+      "committed_at": "2026-11-13T01:14:54Z",
+      "message": "[skyrl] Centralize backend validation and simplify remote inference (#11292)\n\n@penfever Sorry for the for the automerge of #11230, addressing your 2\nnits here!\n___\nMove the existing check for `generator.backend='vllm'` from Megatron\nvalidation to the start of shared generator validation. Unsupported\nvalues now raise a `ValueError` that names `generator.backend`.\nEvaluation already rejected unsupported backends before starting Ray;\nthe check's ownership and error are now explicit.\n\nRemove the remote HTTP client's unused backend selector and redundant\nbranches. OpenAI-compatible request forwarding, sampled token IDs and\nlogprobs, and vLLM management requests keep their existing behavior.\nFollow-up to the two review nits in #11230.\n\nThe frozen SkyRL CPU lane passed 448 tests, including six HTTP\nregressions; the affected launcher test also passed. Startup probes\nconfirm that training and evaluation reject unsupported backends before\nRay starts and that valid vLLM configuration passes generator\nvalidation.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "12f0ceff069a97591877deca4e30d548701a9c93",
+      "url": "https://github.com/marin-community/marin/commit/12f0ceff069a97591877deca4e30d548701a9c93",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "davidlundgren",
+      "author_name": "David Lundgren",
+      "authored_at": "2026-11-13T01:11:53Z",
+      "committed_at": "2026-11-13T01:11:53Z",
+      "message": "[rl] Add agent protocol probe tasks and an offline fetch tool (#11049)\n\nWe were seeing errors\n([marin-community/marin#10393](https://github.com/marin-community/marin/issues/10393))\nwith snowball v0.1 struggling a bit with tool-calling adherence (e.g.,\nnot making a required file and simulating tool execution without actual\ntool calling).\n\nThis PR adds a extra debugging and logging infra to monitor these\nseparately from answer correctness. We track:\n\n* required-file submission\n* tool execution\n* ~thinking disabled~\n* URL loading\n\nI evaled [snowball v0.1\nhere](https://github.com/marin-community/marin-logbooks/tree/codex/32-protocol-probes).",
+      "sha": "41ee48b5eca67bb0511eee2b4c731d618d7893f2",
+      "url": "https://github.com/marin-community/marin/commit/41ee48b5eca67bb0511eee2b4c731d618d7893f2",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-14T00:00:00Z",
+    "start": "2026-11-13T00:00:00Z"
+  }
+}

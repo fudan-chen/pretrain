@@ -1,0 +1,98 @@
+{
+  "commit_count": 8,
+  "commits": [
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-14T08:32:03Z",
+      "committed_at": "2026-11-14T08:32:03Z",
+      "message": "[iris] Release capacity held by superseded preempted attempts (#11313)\n\nKeep superseded worker-bound attempts in reconciliation until the worker\nconfirms termination. Preempted attempts previously disappeared from the\nreconcile plan after a retry was assigned, while their unset finish\ntimes kept worker capacity reserved and could block full-slice gangs.\n\nBuild each old attempt's stop or status-probe intent from its own state.\nA terminal or MISSING observation finishes only that attempt and\nreleases its capacity; the newer attempt remains unchanged. Retries\nassigned to the same worker wait for the old process to stop before\ndispatch.\n\nAll five new regressions fail on main and pass with the fix.\n\nThis fix is not yet deployed. After deployment, existing superseded\nPREEMPTED attempts with unset finish times re-enter reconciliation; a\nterminal or MISSING worker response finishes each old attempt and\nreleases its capacity without changing the retry. No separate operator\nmutation is needed for that state. [Worker logs for all 13 stranded\nattempts](https://github.com/marin-community/marin/issues/11289#issuecomment-6844342686)\nrecord KILLED after cleanup while controller finish times remain unset;\nthese are historical observations, not fresh container inspections.\n\nFixes #11289\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "e9ae26899c90512195e68f0edec808bb42b88bf3",
+      "url": "https://github.com/marin-community/marin/commit/e9ae26899c90512195e68f0edec808bb42b88bf3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-14T06:13:09Z",
+      "committed_at": "2026-11-14T06:13:09Z",
+      "message": "[rl] Match Hero EP MuonH updates and checkpoint recipes (#11301)\n\nMatch the MuonH updates used by Hero's Levanter trainer. For each\nlayer's gate, up and down projections, Hero preserves the combined\nFrobenius norm of all routed expert weights. The new\n`optimizer_kwargs.expert_normalization: all_experts` option applies this\nrule across GPUs. Each shared expert keeps separate norms for its\nprojections. Fused Q/K/V and gate/up weights are still updated as\nseparate matrices.\n\nPer-expert normalization remains the default. Whole-bank mode rejects\nrouted expert names it cannot recognize. Both modes now round\ncoefficients and sums of squares to BF16, and transpose square matrices\nbefore Newton–Schulz, matching the reference. Checkpoints record the\nnormalization mode and reject optimizer state saved with a different\nmode.\n\nCPU tests compare three updates with an independent JAX reference,\nincluding experts split unevenly between processes. Both modes pass. The\nlargest relative L2 error in parameter changes is `9.46e-6`, below the\n`1e-3` limit. The previous per-expert implementation fails both\nreference comparisons.\n\nA check on four GB200 GPUs saves a native Megatron checkpoint, restores\nit with momentum in pinned CPU memory, and applies another update.\nWeights, optimizer state and counters match an uninterrupted run bit for\nbit. This check uses a small Hero model with supplied gradients; it does\nnot test forward/backward or serving.\n\nExtracted from #11199 using main's dependency versions. The separate\nAdamW restore repairs and Mochi launcher remain outside this change.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "759017daa4d25e8edf403696cea879bb8f8c085c",
+      "url": "https://github.com/marin-community/marin/commit/759017daa4d25e8edf403696cea879bb8f8c085c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-14T05:21:05Z",
+      "committed_at": "2026-11-14T05:21:05Z",
+      "message": "Keep each SkyRL trainer and inference engine within one NVLink domain\n\nOn NVL72, keep the trainer within one rack and each vLLM inference engine within one rack when `iris.role_topology: nvlink.domain` is set. Each rack is one NVLink domain; different engines may occupy different racks. Iris admits the host groups as one job, and Ray pins each trainer or engine to its assigned group. The planner uses Iris’s schedulable-rack budget of 16 four-GPU hosts (64 GPUs); each trainer or engine must fit. Inference requires tensor and pipeline parallelism of one (TP=PP=1), with expert parallelism equal to data parallelism (EP=DP). Leaving the option unset preserves existing placement.\n\nUse the same locality checks in Marin and the launcher. Marin rounds each group's GPU demand up to whole hosts. Policy-only DPO and checkpoint export can plan trainer placement without an inference role.\n\nCarry the placement work from #11317 onto main after #11299. #11317 merged into `stack/cross-host-ep-11299`, leaving these changes off main. Two maintainers approved #11317 at 78974d46483a. The final Iris grouping changes and the planner fixes above followed those reviews. Use the admin override at the repository owner's request because GitHub does not transfer approvals to this follow-up PR. All required CI checks pass.\n\nDeploy an Iris controller that includes this commit before enabling the mode. The mode drops the soft preference for nearby InfiniBand racks. Live admission and communication between trainer and inference racks still need validation.",
+      "sha": "a2893e3c00f3244bacddfe54aca45ff98e57a3c8",
+      "url": "https://github.com/marin-community/marin/commit/a2893e3c00f3244bacddfe54aca45ff98e57a3c8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-14T04:37:34Z",
+      "committed_at": "2026-11-14T04:37:34Z",
+      "message": "Document per-task research logbook records (#11450)\n\nCreate a per-task index record after publishing the initial research\nnotebook. Update it when the research reaches a material result, changes\ndirection, ends, or its contribution links change.\n\nUse a stable issue link in each Marin contribution PR so reviewers and\nfuture automation can find the corresponding logbook. This follows the\nper-task file migration in marin-community/marin-logbooks#44.",
+      "sha": "eabef8fa4e7192385c6a147a9d8f09bced568c12",
+      "url": "https://github.com/marin-community/marin/commit/eabef8fa4e7192385c6a147a9d8f09bced568c12",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-14T03:32:41Z",
+      "committed_at": "2026-11-14T03:32:41Z",
+      "message": "Allow dev GPU sessions to pin their task image (#10773)\n\nDev GPU sessions now accept `--task-image`, so an experiment can keep\nits container image fixed when the cluster default changes. Omitting it\nkeeps the existing default.\n\nValidated by launching an eight-node, 32-GB200 session and checking that\nevery task pod used the requested image digest. Diff-scoped lint passed;\nthe affected-test selector found no affected test packages. Advisory\nreview found no issues.\n\nPart of marin-community/marin-logbooks#19.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "66351513549fe4f19a3da36a7d3c77942512b78c",
+      "url": "https://github.com/marin-community/marin/commit/66351513549fe4f19a3da36a7d3c77942512b78c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-14T03:25:44Z",
+      "committed_at": "2026-11-14T03:25:44Z",
+      "message": "Keep verified S3 copies stable across listing and HEAD metadata (#11432)\n\nKeep using the listing's ETag after a copy when S3 HEAD also returns a\nVersionId. Ignore `VersionId=null` when choosing a source identity; this\nunversioned marker otherwise hides same-size overwrites in completed\ncopies.\n\n`fsutil verified-copy` previously rejected an unchanged 13.8 MB fixture\nin CoreWeave storage. The fixture now copies with its pinned SHA256, and\nall 74 fsutil tests pass.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "c5c539321332f9651777f8ac654f51f4aa8762fa",
+      "url": "https://github.com/marin-community/marin/commit/c5c539321332f9651777f8ac654f51f4aa8762fa",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-14T02:58:56Z",
+      "committed_at": "2026-11-14T02:58:56Z",
+      "message": "[rl] Allow cross-host expert-parallel resource planning (#11299)\n\nAllow one vLLM inference engine to use GPUs on several machines when\ntraining and inference use separate GPUs. For example, 48 training GPUs\nand 12 inference GPUs need 15 machines with four GPUs each. Before this\nchange, both planners rejected this layout because the 12-GPU inference\nengine cannot fit on one machine, even though the runtime already\nsupports it.\n\nUpdate both Marin's launcher and SkyRL's resource planner to request\nenough machines for this layout. Each inference worker uses one GPU, and\nthe model's experts are spread across all workers in that engine. Tensor\nand pipeline parallelism must both be one (`TP=PP=1`). Expert\nparallelism (`EP`) must equal data parallelism (`DP`), which is the\nnumber of inference workers in this layout. Engines that fit on one\nmachine keep their existing placement rules.\n\nCPU tests cover all nine combinations of 32, 48 or 64 training GPUs with\n16, 32 or 64 inference GPUs, plus the demonstrated 48/12 layout and a\n72-GPU trainer. Both planners produce matching machine counts. These\nchecks do not guarantee that an expert-parallel group stays within one\nNVLink domain; it may communicate across the interconnect between hosts\nor racks. GPU evidence comes from the earlier 48/12 Mochi run in #11199,\nwithin one NVLink domain. Other layouts and the current dependency\nversions still need GPU testing; no new GPU runs were performed here.\n\nExtracted from #11199 at\n[108c2888c7](https://github.com/marin-community/marin/commit/108c2888c7aa66e771c802ba3a89ce374a1f331c).\n#10948 chooses how inference workers are launched and changes the same\nMarin planner, but keeps the one-machine limit. This fix does not depend\non it.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "7976d30da59c2e14388674bd55b65ddca53939f5",
+      "url": "https://github.com/marin-community/marin/commit/7976d30da59c2e14388674bd55b65ddca53939f5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-14T01:54:39Z",
+      "committed_at": "2026-11-14T01:54:39Z",
+      "message": "[rolloutengine] Let harnesses select context recovery (#11239)\n\nEach harness declares one context-recovery policy for an attempt. The\nshared model session applies it using its existing record of earlier\nresponses, while `start` and `reply` keep their previous signatures.\nSkyRL's worker no longer duplicates that state or selects recovery by\nharness name.\n\nSkyRL's model adapter reports context refusals as `ContextRejected`,\nretaining the original error. The session raises `ContextWindowExceeded`\nwhen the harness permits recovery. Native agents can recover on first\nand later requests; full Harbor trials can recover after a completed\nmodel turn. Harbor's initial generation-budget rejection produces a\nrollout with `stop_reason=\"length\"`, and an initial serving failure\nretains its original error. Grading, reward treatment, cleanup and\ncumulative limits keep their existing behavior.\n\nThe same thirteen [public worker\nchecks](https://github.com/marin-community/marin/blob/d574c58573fca2cc2c67524379dc9c16e2556814/vendor/skyrl/cloud/iris/tests/test_agent_context_recovery.py)\npass on the clean base and refactored code. Follow up on #11235.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "4c2dc26c35970e405d44adde54d3f0f5b0a816e2",
+      "url": "https://github.com/marin-community/marin/commit/4c2dc26c35970e405d44adde54d3f0f5b0a816e2",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-15T00:00:00Z",
+    "start": "2026-11-14T00:00:00Z"
+  }
+}

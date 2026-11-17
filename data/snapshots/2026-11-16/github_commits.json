@@ -1,0 +1,263 @@
+{
+  "commit_count": 23,
+  "commits": [
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-16T23:22:27Z",
+      "committed_at": "2026-11-16T23:22:27Z",
+      "message": " (#10662)\n\nLoad each Megatron rank's remote checkpoint weights in merged byte-range requests instead of one request per tensor. On Snowball (5×8 H100, same frozen checkpoint, inputs and seed, expert-block sync), policy-worker startup falls from 209.9 s with [per-tensor reads](https://iris.oa.dev/#/job/%2Fatqamar%2Fusers-ahmad-checkpoints-startup-readiness-snowball-per_key-2026.11.06.6201-coordinator-28a2edc9) to 75.3 s with [prefetch](https://iris.oa.dev/#/job/%2Fatqamar%2Fusers-ahmad-checkpoints-startup-readiness-snowball-prefetch-2026.11.06.6202-coordinator-79ece35a).\n\n`trainer.policy.model.remote_read_mode=prefetch` is the default for remote policy and reference weights; `per_key` reads one tensor per request. Prefetch reads only the tensors the rank owns, merges nearby byte ranges, and fetches windows of at most 1 GiB. A tensor larger than a window is fetched as a window of its own. A read that skips a planned tensor discards the buffered window and continues with range reads; closing the store logs a warning when any planned tensor was missed or left unused.\n\nAll 32 Snowball ranks read with no misses, no unused prefetched tensors and no individual reads. Each Qwen canary rank reads its checkpoint in 20 range requests with no misses. Tiny Hero loads tensors bitwise equal to its checkpoint with prefetch on [H100](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-startup-nov13-fixes-hero), and the nightly Grug Megatron lane runs that test.\n\n[MarinSkyRL review history](https://github.com/marin-community/MarinSkyRL/pull/943)",
+      "sha": "5a439b9c00f56ad6d20f1ef62bffb3d867b58ece",
+      "url": "https://github.com/marin-community/marin/commit/5a439b9c00f56ad6d20f1ef62bffb3d867b58ece",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-16T23:08:48Z",
+      "committed_at": "2026-11-16T23:08:48Z",
+      "message": "[taskcompendium] Exclude scheduler wait from Minerva timeout (#11428)\n\nMeasure Minerva's five-second symbolic comparison limit with CPU time\ninside the isolated grading worker. The nightly 48-worker regression has\nreturned 48 false results for equivalent answers on a four-vCPU runner;\nscheduler delay can exhaust the current wall alarm before parsing\nfinishes.\n\nKeep the existing wall alarm for direct main-thread grading. If the\nsubprocess exceeds its separate 35-second wall deadline, raise\n`GradingInfraError` so overload cannot record a zero score.\n\nThe focused safe tests pass (12/12). The 48-worker regression is\nslow-marked and awaits nightly CI. The broader package suite had 703\npasses and four fixture errors because this host's Python lacks\n`os.pidfd_open`; repository-wide type checking needs root dependencies\nabsent from this worktree.\n\nFixes #11424\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "3fc3aa87d98684abb37f31229a77f0f1e87a9172",
+      "url": "https://github.com/marin-community/marin/commit/3fc3aa87d98684abb37f31229a77f0f1e87a9172",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T22:23:01Z",
+      "committed_at": "2026-11-16T22:23:01Z",
+      "message": "Isolate test storage layouts from per-user cluster configs (#11557)\n\nShare Rigging's existing cluster-config fixture with Iris, root, and\nexperiment tests. Per-user connection files can override the\nrepository's data\nlayout, changing scratch buckets, checkpoint search roots, and\nrecognized\nsource prefixes. Exclude those overrides and clear discovery caches for\neach\ntest so storage assertions use the checked-in configuration.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "16d4e858cccb6e6058fa37d42ed1fad0b3d6262c",
+      "url": "https://github.com/marin-community/marin/commit/16d4e858cccb6e6058fa37d42ed1fad0b3d6262c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T21:26:27Z",
+      "committed_at": "2026-11-16T21:26:27Z",
+      "message": "Make taskforge tests a package so pyrefly resolves its imports (#11562)\n\nTaskforge's tests use relative imports (`from ..conftest import ...`),\nbut `lib/taskforge/tests` was a namespace directory. Since #11554 made\nthe repository-root `tests` a regular package, pyrefly resolves\n`tests.conftest` and `tests.sandbox` to the root package, and\n`taskforge-unit` fails its type check on main. An empty `__init__.py`\nmakes the taskforge tests directory a regular package, which pyrefly\nfinds first on its search path.\n\nWithout the file, `pyrefly check` in `lib/taskforge` reports the three\nCI errors; with it, zero. The taskforge suite passes (429 passed, 1\nskipped).\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "d83e7766c5a5b9bec43cdd26eccc71a54dcf9bfd",
+      "url": "https://github.com/marin-community/marin/commit/d83e7766c5a5b9bec43cdd26eccc71a54dcf9bfd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T20:52:16Z",
+      "committed_at": "2026-11-16T20:52:16Z",
+      "message": "Declare the editable-install fixture's build dependency (#11555)\n\nDeclare setuptools as a test dependency of the verifyit editable-install\nfixture so its isolated build does not fail when no setuptools is\npreinstalled.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "e6d48eb14dcd2b055936e9dc690fa24116c2f641",
+      "url": "https://github.com/marin-community/marin/commit/e6d48eb14dcd2b055936e9dc690fa24116c2f641",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T20:51:29Z",
+      "committed_at": "2026-11-16T20:51:29Z",
+      "message": "Serialize Harrier model initialization across local workers (#11553)\n\nEmbedding workers calling load_harrier concurrently could each trigger\nmodel\ndownload and construction. A module-level lock now serializes\ninitialization,\nand the constructed embedder stays cached per configuration.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "8775099db9bb86b6088d8dcf79c7904067f31394",
+      "url": "https://github.com/marin-community/marin/commit/8775099db9bb86b6088d8dcf79c7904067f31394",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-16T20:49:42Z",
+      "committed_at": "2026-11-16T20:49:42Z",
+      "message": "[rl] Faster RL startup (1/2): Start ranks and workers without waiting (#10661)\n\nRemove startup waits that do not depend on the model. On the Qwen2.5-0.5B-Instruct canary, training-job submission to the first evaluation falls from 391.0 s to 234.7 s (mean of two runs on 2×2 H100; main [1](https://iris.oa.dev/#/job/%2Fatqamar%2Fusers-ahmad-checkpoints-cat-count-canary-qwen2.5-0.5b-instruct-async-dry-b4e9ec7b-2026.11.06.6111-coordinator-1fc0f03b), [2](https://iris.oa.dev/#/job/%2Fatqamar%2Fusers-ahmad-checkpoints-cat-count-canary-qwen2.5-0.5b-instruct-async-dry-b4e9ec7b-2026.11.06.6115-coordinator-221bca17); this PR [1](https://iris.oa.dev/#/job/%2Fatqamar%2Fusers-ahmad-checkpoints-cat-count-canary-qwen2.5-0.5b-instruct-async-dry-b4e9ec7b-2026.11.06.6112-coordinator-587f8e3e), [2](https://iris.oa.dev/#/job/%2Fatqamar%2Fusers-ahmad-checkpoints-cat-count-canary-qwen2.5-0.5b-instruct-async-dry-b4e9ec7b-2026.11.06.6116-coordinator-78a87482)).\n\nThe driver creates every policy rank before it waits for rank 0's address, so rank constructors run concurrently. Rollout workers start together by default; a positive `start_interval_seconds` staggers them. If a worker fails to start, the started workers stay reachable for shutdown. The Megatron remote reader opens each shard once, without read-ahead, and closes it after loading. Datasets under 10,000 rows map and filter in the parent process. Bootstrap import checks run concurrently, readiness polls run every second, and the head rewrites its rendezvous file at most every five seconds.\n\nThe Qwen runs finish one training step with finite rewards and loss. A canary with a delayed second node shows rewrites about 5 s apart and both nodes joining. CPU tests cover the reader on Snowball's stacked and Hero's split expert layouts.\n\n[MarinSkyRL review history](https://github.com/marin-community/MarinSkyRL/pull/916)",
+      "sha": "4ebbb8a8ac16ce009039fc1eb52d48bda72d4dd3",
+      "url": "https://github.com/marin-community/marin/commit/4ebbb8a8ac16ce009039fc1eb52d48bda72d4dd3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T20:49:10Z",
+      "committed_at": "2026-11-16T20:49:10Z",
+      "message": "Make root tests importable and lift the Harbor preflight timeout guard (#11554)\n\nAdd tests/__init__.py so test modules can import helpers across the root\ntests\npackage, and give the Harbor preflight policy tests an explicit\n180-second\ntimeout. Each of those tests spawns Harbor's isolated runtime, which\ncosts tens\nof seconds even from uv's cache, so the default 60-second guard must not\nfire\nunder parallel workers.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "62ef183639c1f3380543e1504873461fe913ba45",
+      "url": "https://github.com/marin-community/marin/commit/62ef183639c1f3380543e1504873461fe913ba45",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T20:47:23Z",
+      "committed_at": "2026-11-16T20:47:23Z",
+      "message": "Handle Iris supervisor termination during child startup (#11551)\n\nInstall SIGINT and SIGTERM handlers before spawning child processes.\nRecord\nsignals received during startup and forward them once the child list is\navailable, then restore the caller's handlers when supervision ends.\n\nPreviously, SIGTERM arriving after a child printed readiness could kill\nthe\nsupervisor with -15 because handlers were not installed yet. The\ntermination\ntest covers signals immediately after launching a child and after both\nchildren print readiness.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "793ea5d10a4bc298f72b23004a899d5613bf95d7",
+      "url": "https://github.com/marin-community/marin/commit/793ea5d10a4bc298f72b23004a899d5613bf95d7",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T20:46:09Z",
+      "committed_at": "2026-11-16T20:46:09Z",
+      "message": "Fix taskforge image unpacking and registry manifest readback (#11550)\n\nClear the image-builder root before unpacking source images, and run\nkaniko\nwith --pre-cleanup while excluding /kaniko from that cleanup so the\nsource\ncontext survives bootstrap removal.\n\nRegistry manifest readback now handles a 401 Bearer challenge: it checks\nthat\nthe challenge realm points at the same registry, fetches a token there,\nand\nsends it as the Bearer credential. The default registry accepts writes\nwith\nBasic auth only, so unauthenticated readbacks failed.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "34bf754d9e48ffdd3444bdfd3bb7bc35350217a3",
+      "url": "https://github.com/marin-community/marin/commit/34bf754d9e48ffdd3444bdfd3bb7bc35350217a3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T20:44:50Z",
+      "committed_at": "2026-11-16T20:44:50Z",
+      "message": "Scope Iris test logging and E2E timeout markers (#11549)\n\nSet the worker logger to INFO in the worker startup test so its startup\nrecords reach the log sink whichever pytest config sets the ambient\nlevel. The\nroot config leaves the level at WARNING, so the test's check that worker\nlogs\nexist before controller registration failed outside lib/iris. Also\nrestrict the\nE2E timeout-marking collection hook to tests under lib/iris/tests/e2e.\nPytest\ninvokes collection hooks for the whole session, so collecting the E2E\ndirectory\nalongside other suites previously replaced their 60-second default\ntimeout with\nthe E2E 30-second limit. The regression test collects both directories\nin one\nsession while the default marker filter deselects cluster tests.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "84f56567c09114204e2440043f8cfe001aa1aea6",
+      "url": "https://github.com/marin-community/marin/commit/84f56567c09114204e2440043f8cfe001aa1aea6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-16T19:46:22Z",
+      "committed_at": "2026-11-16T19:46:22Z",
+      "message": "[rl] Keep Levanter out of RL launcher imports (#9706)\n\nImporting the RL launchers' command-line module or the CatCount launcher\nleaves Levanter, Transformers, Torch and W&B unloaded, so the RL\nlauncher submits its training job without waiting on training-backend\nimports it does not use.\n\nThe training implementation moves unchanged into\n`marin.training.levanter`; most of the diff is that move. Callers that\nrun or configure Levanter training import from\n`marin.training.levanter`. `LevanterCheckpoint`, the Levanter-free\nconfiguration classes and the checkpoint path helpers stay in\n`marin.training.training`, because execution records store\n`LevanterCheckpoint`'s type by module path.\n\nThe Snowball curriculum launcher\n(`experiments/post_training/curriculum_rl/launch.py`) still imports\nLevanter through its evaluation code.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "82cee32cfd5bd479aa0670ba1a92a9c0f96ec4bf",
+      "url": "https://github.com/marin-community/marin/commit/82cee32cfd5bd479aa0670ba1a92a9c0f96ec4bf",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-16T19:28:21Z",
+      "committed_at": "2026-11-16T19:28:21Z",
+      "message": "[rl] Start SkyRL attempt ids with a letter so YAML reads them as text (#11305)\n\nStart every SkyRL attempt id with a letter, so the launcher records each\nattempt under its own id.\n\nMarin writes the launch document with PyYAML and the vendored launcher\nreads it with OmegaConf. PyYAML leaves an id made of digits, one `e`,\nand digits unquoted, and OmegaConf reads it as a float: `104e63883176`\nbecomes infinity, so the launcher names the attempt record `inf.json`\nand returns `attempt_id: inf`, while Marin's run record carries the real\nid. About 0.36% of ids drawn as twelve hex digits have that shape. An\nattempt id is `a` followed by eleven hex digits, which both libraries\nread as a string. Fingerprint builds use the literal `<attempt_id>`.\n\nThe launch-document census pins the id to those hex digits and fails\nwhen the launcher loads `run.attempt_id` differently from how Marin\nwrote it.",
+      "sha": "77370821b41adb34ff9db4220a69c67d7cb96317",
+      "url": "https://github.com/marin-community/marin/commit/77370821b41adb34ff9db4220a69c67d7cb96317",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-16T18:21:23Z",
+      "committed_at": "2026-11-16T18:21:23Z",
+      "message": "[skyrl] Preserve requested turn terminators in chat replies (#11232)\n\nHonor `skip_special_tokens=False` in returned response text\n(`responses`) and assistant-message `content` for chat generation,\nincluding when continuing a supplied assistant prefix. For example,\n`answer<|eot_id|>` used to become `answer` before reaching the grader;\nnow it keeps the final marker, including after reasoning extraction.\n\nOmitting the flag or setting it to `True` still removes the final marker\nfor grading. Sampled token IDs and stop classification are unchanged.\n\nFollow up on [the review of\n#11229](https://github.com/marin-community/marin/pull/11229#discussion_r4545235159).\nRegression tests reproduce the text loss before the fix; all 433 tests\nin the SkyRL CPU lane pass with the fix.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "9cde3e5b69871ba733ccbe6ac84cd589d25b3003",
+      "url": "https://github.com/marin-community/marin/commit/9cde3e5b69871ba733ccbe6ac84cd589d25b3003",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-16T18:13:04Z",
+      "committed_at": "2026-11-16T18:13:04Z",
+      "message": "[deps] Upgrade Soup Sieve to 4.0 (#11533)\n\nRequire Soup Sieve 4.0 or newer in the Marin workspace and Harbor's\nstandalone\nenvironment. Both lockfiles select 4.0, the first release that fixes\nCVE-2026-126190, a CPU-exhaustion issue when matching CSS descendant\nselectors\nagainst untrusted markup. [GitHub\nadvisory](https://github.com/advisories/GHSA-mmhr-3c5m-f64f)",
+      "sha": "e05c5cc48c16792754fed5d8994f7095dd707891",
+      "url": "https://github.com/marin-community/marin/commit/e05c5cc48c16792754fed5d8994f7095dd707891",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T18:05:25Z",
+      "committed_at": "2026-11-16T18:05:25Z",
+      "message": "Reuse verified Hugging Face checkpoint exports on retry (#11210)\n\nA retried object-store HF export request verifies an existing published\nmodel and records the request complete without converting again.\nVerification checks completion markers, manifest files, indexed shard\nsizes, safetensors headers, and index agreement. A corrupt export is\nreconverted; a conversion that exits without a complete export returns\nthe request to pending.\n\nRequests that also publish to Hugging Face still run the exporter so a\nfailed Hub upload is retried. This makes object-store conversion safe to\nretry after Iris reports a finalization failure even when the model was\nalready published.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Benjamin Feuer <penfever@gmail.com>",
+      "sha": "3b3ee719f77ceafbcc7b40f94c197bca15de92b5",
+      "url": "https://github.com/marin-community/marin/commit/3b3ee719f77ceafbcc7b40f94c197bca15de92b5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-16T16:37:46Z",
+      "committed_at": "2026-11-16T16:37:46Z",
+      "message": "[shellbox] Add opt-in Daytona image builds for evals (#11410)\n\nDaytona sandboxes can now build their image per sandbox instead of\nstarting from a named account snapshot. `DaytonaMachineFactory` and\nHarbor's Daytona environment take `image_build`: `snapshot` (the\ndefault, unchanged) or `declarative`, which passes the registry image or\nDockerfile straight to sandbox creation and creates no snapshot. Harbor\nconfigs select it with `environment.kwargs.image_build: declarative`.\n\nSnapshot mode needs one snapshot per distinct task environment.\nSWE-bench Multilingual has 300 task images, and the eval account's\nsnapshot quota is 45. Declarative mode avoids the quota by rebuilding\nthe image for every trial, base-image pull included; repeat sandboxes\nfrom one task image started in 2–6 s, which suggests Daytona caches the\nbuilds. For the initial rollout, opt in only from evaluation policies\nrunning in the Daytona eval account. RL training uses snapshots.\nEnabling declarative builds in the RL account requires a separate change\nfrom Daytona. `snapshot-specs` and `DaytonaMachineFactory.prepare()`\nreject declarative configurations, since there is no snapshot to list or\nprepare.\n\nMarin keeps separate Daytona orgs for RL, data and evals, each with its\nown key and build permissions, and declarative builds belong to the eval\norg only. The eval launcher now reads only `DAYTONA_EVAL_API_KEY`\n(launch environment, then the `hai-gcp-models` secret). Before, an\nexported `DAYTONA_API_KEY` took precedence and could route evals into\nanother org. SkyRL's Harbor task settings reject `image_build`, and its\nHarbor evaluation callback rejects `image_build: declarative` when the\ntrainer is configured. RL configs that point Daytona at the eval-org\nkey, such as `experiments/post_training/inventory/train_quick_loop.py`,\nare left for a follow-up.\n\nBefore rebasing onto the snapshot refactor in #11202, this option ran\n`swebench_multilingual@1.0` in the eval account: gold patches scored 299\nof 300 (the remaining task fails its own gold patch), and 20-task\nterminus-2 smoke runs for Qwen3.6-35B-A3B and Qwen3.5-35B-A3B had no\nsandbox build or startup errors. After the rebase, a declarative sandbox\nbuilt from the `apache__druid-13704` task Dockerfile started in 36 s,\nran commands and was deleted on close. The SWE-bench Multilingual eval\nconfigs that use this option follow in a separate PR.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/11410#issuecomment-6866864463)\n<!-- marin-prose-cleanup -->\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "c52ca654a5537a9cba3373a09dd073ada19bfb3c",
+      "url": "https://github.com/marin-community/marin/commit/c52ca654a5537a9cba3373a09dd073ada19bfb3c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-16T16:36:22Z",
+      "committed_at": "2026-11-16T16:36:22Z",
+      "message": "[taskforge] Make shared test imports independent of pytest root (#11427)\n\nMake Taskforge's shared test helpers resolve from their own test package\nunder both repository-root and Taskforge pytest collection. The nightly\nslow job collects from the repository root, where `tests.*` resolved to\nMarin's top-level tests and stopped collection before tests ran.\n\nRoot-config collection now finds 418 Taskforge tests, and the 71 tests\nin the changed modules pass with Taskforge's config. A broader local\nTaskforge run stalled after its first test and was interrupted; CI's\ntaskforge-unit lane will run the full suite. The temporary CI skip is\nstill only in open #11426 and should be closed after this fix lands.\n\nFixes #11425\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "a07f49dd4bf9d87517b59194e428447aa5a629d1",
+      "url": "https://github.com/marin-community/marin/commit/a07f49dd4bf9d87517b59194e428447aa5a629d1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-16T16:21:13Z",
+      "committed_at": "2026-11-16T16:21:13Z",
+      "message": "[evals] Add SimpleQA Verified as a curated evaluation (#11393)\n\n### What\n\nAdds two curated evaluations of [SimpleQA\nVerified](https://arxiv.org/abs/2509.07968) (Google DeepMind). The\nbenchmark is 1,000 short questions, each with one factual answer, and\nchecks what a model knows without tools. An LLM judge grades each answer\nas correct, incorrect, or not attempted. SimpleQA Verified is a cleaned\nsubset of OpenAI's\n[SimpleQA](https://openai.com/index/introducing-simpleqa/), with\nduplicates, ambiguous questions, and wrong gold answers removed or\nfixed.\n\nData comes from\n[`google/simpleqa-verified`](https://huggingface.co/datasets/google/simpleqa-verified)\nat revision `0dc97e0d`. The judge prompt is Appendix A of the paper (CC\nBY 4.0), the same text as the [Kaggle starter\nnotebook](https://www.kaggle.com/code/nanliao7/simpleqa-verified-benchmark-starter-code)\n(v9). The judge is `openai/gpt-oss-120b` on Together; the leaderboard\nuses `gpt-4.1`.\n\n- `simpleqa-verified`: thinking off, 2,048-token cap.\n- `simpleqa-verified-thinking`: thinking on, 16,384-token cap. This is\nhow the leaderboard models were compared.\n\nBoth keep each model's own sampling defaults, as the notebook does;\ngreedy decoding sent gpt-oss into repetition loops. The `final_only`\nresponse selection from #11201 gives the judge only the model's final\nanswer, never its reasoning trace. Evaldash reports accuracy as the\nprimary metric, with F1 (the leaderboard's headline) beside it. Neither\nevaluation is part of a suite.\n\n### Why\n\n#10234 asks for a working SimpleQA to score models on. Short-form\nfactual recall is expected to correlate with our out-of-distribution\nAAII target, and the current SimpleQA implementation gives implausibly\nlow scores. SimpleQA Verified fixes the original's label noise. Its\nnot-attempted rate also shows how often a model abstains rather than\nguesses wrong.\n\n### Validation\n\nFull 1,000-question runs on this branch, in percent:\n\n| Model | Thinking | Accuracy | F1 | Not attempted | Truncated | Kaggle\nF1 |\n| --- | --- | --- | --- | --- | --- | --- |\n| gemma-4-26B-A4B-it | on | 8.0 | 8.9 | 20.9 | 50 | 9.1 |\n| gemma-4-26B-A4B-it | off | 6.5 | 6.9 | 10.7 | 2 | — |\n| gpt-oss-20b | on | 6.2 | 6.3 | 2.5 | 0 | 5.9 |\n| qwen3.6-35b-a3b | off | 17.9 | 18.0 | 0.6 | 14 | — |\n\nWith thinking on, both leaderboard models score within one standard\nerror of their leaderboard F1, despite the different judge. Every run\nalso agrees within one standard error with an earlier run through\nvendored Evalchemy. A truncated response has an empty final answer and\nis scored as not attempted.\n\nA check over all 4,000 items confirmed four things:\n- each model prompt is the bare question from the pinned dataset;\n- each judge prompt is the template filled with the question, the gold\nanswer, and the final answer only;\n- every judge reply is a single letter;\n- the per-item metrics match the label.\n\nAn earlier blinded audit of 386 answers put the judge's error rate at\n2.1% (95% CI 0.3–4.8%), leaning strict. In that audit, 99 of 100 gold\nanswers checked against web sources were confirmed and none were wrong.\nTwo blind reviewers (Opus and Sonnet) labelled all 194 answers on these\nruns where the judge's label disagrees with a gold-text match. They\nagreed on 187 (κ 0.93) and overruled the judge on 15, mostly answers\nthat name a wrong candidate and then correct themselves to the gold\nanswer, which the judge marks incorrect. Fixing those raises qwen3.6's\nF1 by about 0.5 and moves the others by less.\n\nOne deliberate difference from the notebook: its parser grades a judge\nreply of `NOT_ATTEMPTED` as correct. Marin accepts only a bare A, B, or\nC and records anything else as a judge failure. The prompt comes from\nthe paper, which is CC BY 4.0, and the dataset is MIT-licensed.\n\n### Cost\n\n| Run | GPUs | Eval time | Start to finish | H100-hours |\n| --- | --- | --- | --- | --- |\n| gpt-oss-20b, thinking on | 1 | 10 min | 15 min | 0.22 |\n| qwen3.6-35b-a3b, thinking off | 4 | 10 min | 55 min | 3.5 |\n| gemma-4-26B-A4B-it, off then on | 2 | 19 + 26 min | 58 min | 1.9 |\n\nEval times are slowed by #11391. The qwen3.6 server also sat idle for 43\nminutes before its first request. Each run makes 1,000 judge calls,\nabout 1.8M input and 0.13M output tokens.\n\nDepends on #11201; merge that first. The validation runs recorded this\nselection under its earlier name, `final`, with identical behavior.\n\nReplaces #11063, which targeted vendored Evalchemy before #10957 removed\nit.\n\nPart of #10234.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "93398b351ebf9ef8f0027020f9556401315fed60",
+      "url": "https://github.com/marin-community/marin/commit/93398b351ebf9ef8f0027020f9556401315fed60",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-16T16:20:44Z",
+      "committed_at": "2026-11-16T16:20:44Z",
+      "message": "[taskcompendium] Add a final-only response selection (#11201)\n\nAdd `final_only` to `ResponseSelection`. It grades only the response's\nfinal\ncontent, never its reasoning, including when the content is empty or the\nresponse hit the token limit. This matches Evalchemy's `final_only`\ncontent\npolicy.\n\nLLM judges need this option. The default, `combine`, prepends the\nreasoning\ntrace to the answer. The `final_or_complete_*` options fall back to a\ncomplete\ntrace when the content is empty. A judge reads the whole text, so in\nboth cases\nit grades the candidate answers inside the trace. In a SimpleQA Verified\nrun\nwith gpt-oss-20b and thinking enabled, the judge received 5,212\ncharacters of\nreasoning followed by a one-line answer.\n\nNo benchmark uses the option yet. SimpleQA, SimpleQAMini and\nFinanceBench keep\n`combine`, the Evalchemy default.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/11201#issuecomment-6798064036)\n<!-- marin-prose-cleanup -->",
+      "sha": "4976901dbb9734355623b95e1781792cfdfd5ddd",
+      "url": "https://github.com/marin-community/marin/commit/4976901dbb9734355623b95e1781792cfdfd5ddd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T15:43:17Z",
+      "committed_at": "2026-11-16T15:43:17Z",
+      "message": "Skip Linux host-dependent test cases on macOS (#11495)\n\nSkip 66 Iris and Shellbox test cases on macOS through shared\nhost-requirement markers in each package's conftest. The cases depend on\nhost setsid, Linux CPU sampling, arbitrary loopback-address binding, or\nLinux process APIs. Each failure reproduced on main at 6e09d9043e before\nmarking. Production code is unchanged.\n\nA collection audit matched all 66 marked cases to baseline failures and\nadded 66 skips on darwin, zero on linux or win32.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "0c04aa1ff031e8fb51bf883d176af89d5ac426e3",
+      "url": "https://github.com/marin-community/marin/commit/0c04aa1ff031e8fb51bf883d176af89d5ac426e3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-16T15:25:49Z",
+      "committed_at": "2026-11-16T15:25:49Z",
+      "message": "[shellbox] Extend Daytona output collection deadline (#11339)\n\nGive Daytona a shared 60-second deadline to collect stdout and stderr\nafter a command exits. The deadline is configurable through\n`DaytonaMachineFactory` and Harbor's Daytona environment. Command\nexecution and interrupt cleanup keep their existing timeouts.\n\nIn the 20-task Terminal-Bench 2.1 retest linked from #10735, six\nsingle-task trials failed with `Cannot collect Daytona command output`.\nThree expired while requesting a stream's byte count and three while\ndownloading a stream. All six had completed the command and then spent\nthe prior shared 10-second deadline awaiting Daytona HTTP response\nheaders. The successful trial archive contains 199 agent-visible\nterminal responses (mean 2.2 KiB, maximum 10,201 bytes), but those\nresponses are display-capped. Twelve verifier stdout files averaged 23.5\nKiB and reached 86.3 KiB. Raw per-command files are removed after\ncollection, so their historical sizes cannot be recovered from that\narchive.\n\nA CPU-only benchmark in the same CoreWeave RNO2A region used eight\nconcurrent Daytona sandboxes. Each held one `process.exec` request like\nthe terminal supervisor in the failed evaluation. At each raw file size,\nit recorded 24 direct transfers and 24 paired collections (288\nmeasurements total). Direct transfer fetched the whole file. Paired\ncollection followed Shellbox's count, optional clip, download, and\nclipped-file removal for both streams; it fetched at most 1 MiB per\nstream, Shellbox's default output limit. Command-directory cleanup\nremains separately bounded. This load test measures deadline headroom;\nit cannot identify the provider-side cause of the archived stalls. Times\nare seconds; P95 uses the nearest-rank sample.\n\n| Raw file size | Direct download mean / P95 | Paired collection mean /\nP95 |\n| --- | ---: | ---: |\n| 0 B | 0.54 / 1.01 | 2.53 / 3.76 |\n| 16 KiB | 0.69 / 1.23 | 2.60 / 3.73 |\n| 256 KiB | 0.67 / 1.19 | 2.41 / 3.50 |\n| 1 MiB | 0.66 / 1.07 | 2.49 / 3.36 |\n| 8 MiB | 0.82 / 1.36 | 5.83 / 7.37 |\n| 32 MiB | 0.76 / 1.13 | 3.44 / 5.02 |\n\nAll 288 measurements completed. Without held requests, paired collection\nat 8 MiB had a 1.10-second mean and 1.32-second P95. The held-request 8\nMiB maximum was 7.64 seconds, close to the former 10-second deadline;\nthe nonmonotonic size results limit extrapolation from this short\nsample. The 60-second limit gives that path headroom while remaining\nbounded. A live `DaytonaMachine.run` smoke with 8 MiB on each stream and\na held request passed, and the Linux deadline regression test passed on\nRNO2A. The broad Harbor suite passed 1,915 tests; three\nterminal-cancellation tests failed on macOS with the same failure on\nunmodified main.\n\nRaw [held-request\nmeasurements](https://filer.marina.oa.dev/#s3%3A%2F%2Fmarin-us-east-08a%2Fmarin%2Fbenchmarks%2Fshellbox%2Fdaytona-output-20261113%2Fload8-held.json)\n(`s3://marin-us-east-08a/marin/benchmarks/shellbox/daytona-output-20261113/load8-held.json`),\n[baseline\nmeasurements](https://filer.marina.oa.dev/#s3%3A%2F%2Fmarin-us-east-08a%2Fmarin%2Fbenchmarks%2Fshellbox%2Fdaytona-output-20261113%2Fload8.json)\n(`s3://marin-us-east-08a/marin/benchmarks/shellbox/daytona-output-20261113/load8.json`),\nand the [benchmark\nscript](https://filer.marina.oa.dev/#s3%3A%2F%2Fmarin-us-east-08a%2Fmarin%2Fbenchmarks%2Fshellbox%2Fdaytona-output-20261113%2Fbenchmark_daytona_output.py)\n(`s3://marin-us-east-08a/marin/benchmarks/shellbox/daytona-output-20261113/benchmark_daytona_output.py`)\nare retained for reproduction.\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "daed8f5e34d47d6df83c345c3aa3f8d8d4389d8d",
+      "url": "https://github.com/marin-community/marin/commit/daed8f5e34d47d6df83c345c3aa3f8d8d4389d8d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-16T00:49:37Z",
+      "committed_at": "2026-11-16T00:49:37Z",
+      "message": "Adopt published FlashAttention wheels and TE 2.21 in SkyRL (#11307)\n\nAdopt the published [vLLM 0ac9dcb\nrelease](https://github.com/marin-community/vllm/releases/tag/marin-vllm-gpu-20261113-0ac9dcb157ee)\nwith Torch 2.14.1/cu132, Megatron Core 0.18, Megatron Bridge 0.6 and\nstock Transformer Engine (TE) 2.21. Use published FA3 3.0.1 for H100/x86\ntraining and FA4 4.0.0b39 for GB200/ARM training, replacing custom FA2\nwheels. Replace Speculators wheel rewriting with the paired\n[Speculators/hs-connectors fork\nrelease](https://github.com/marin-community/speculators/releases/tag/v0.8.0%2Bmarin.1).\nStandalone serving and TPU adoption remain in #11241 and #11285.\n\nGrug BF16 selects FlashAttention. Native TE remains the expert-matmul\ndefault; Blackwell uses Torch for the first expert projection only with\n`batch_invariant=true`. Parameter names and checkpoint layout stay\nunchanged. Fix attention enum selection, let Core govern the GPU-test\nattention environment and remove the obsolete FA2 startup import. Retain\nSpeculators verifier compatibility; the EAGLE vocabulary-map checkpoint\nrepair remains separate as P1 in #11377.\n\nNumerical checks pass with unchanged tolerances on both GPUs; 457 CPU\nchecks pass. Full 535B Mochi qualification restored checkpoint 13,\ncompleted four updates through 17, consumed updated weights and saved\ncheckpoint 17 with matching trainer/optimizer/scheduler counters. Two\nupdates had nonzero gradients; the other two batches had zero\nadvantages. Sequences reached 65,360 tokens. The run used 48 training\nand 12 inference GPUs on [preserved source\nc2081d90](https://github.com/marin-community/marin/tree/c2081d90bf8b79005a8b3d60320b51128658131f).\nNewer loop, MuonH and publication refactors have only small-scale\ncoverage.\n\nThe Mochi test recipe disables CUDA graphs for DP12/EP12\n`allgather_reducescatter`, retaining compilation mode 3. This PR leaves\nserving graph defaults unchanged. The earlier graph-enabled run failed\nafter weight publication; its cause is unknown and the full-model\nperformance cost is unmeasured. TE's PyTorch binding still uses a source\nbuild, and existing dependency exceptions remain below.\n\n<details>\n<summary>Wheel builds and retained dependency exceptions</summary>\n\nTE's GPU library uses NVIDIA wheels. Its PyTorch binding is [built from\nunchanged\nsource](https://github.com/marin-community/marin/releases/tag/skyrl-native-te221-cu132torch2141-20261113-0821e3af):\nno CUDA 13 ARM wheel is published; the official CUDA 13 x86 binding\ntargets NVIDIA container 26.08 and has not been qualified with our\nstack. [Upstream\n#3310](https://github.com/NVIDIA/TransformerEngine/issues/3310) and\n[#3311](https://github.com/NVIDIA/TransformerEngine/pull/3311) address\nCUDA 13 wheel coverage; #3311 targets Torch 2.11. Core and Bridge need\nno internal patches.\n\nCPU Torch stays at 2.11 to preserve the existing CPU profile; the GPU\nupgrade does not require changing it.\n\nRetained exceptions: causal-conv1d/Mamba patches, Bridge's\nTransformers/FlashInfer overrides and omitted NVRx restart/Hadamard\nquantization dependencies, OpenTelemetry 1.44, Rigging below declared\nversion floors and the ARM cuSPARSELt tag workaround. Other Bridge\nadapters and learning quality remain unqualified.\n\n</details>\n\n<details>\n<summary>Numerical diagnostics and attention timings</summary>\n\nThe tested cuDNN path changed Grug BF16 train/eval log-probabilities by\n0.163 against a 0.001 limit; FlashAttention passes. Changing peer\nbatches moved native TE log-probabilities by 0.44; the Torch expert\nprojection kept them unchanged. Gradient and post-update trainer/serving\nchecks pass at existing tolerances.\n\n| Matched attention forward/backward | FA2 | Selected package |\n| --- | --- | --- |\n| H100: one packed 16K sequence and one 32K sequence | 73.50 ms | 40.64\nms (FA3) |\n| H100: same batch, 2,048-token window | 15.18 ms | 9.63 ms (FA3) |\n| GB200: near 65K, CP4 | 115.53 ms | 38.55 ms (FA4) |\n| GB200: windowed | 12.90 ms | 7.12 ms (FA4) |\n\nThe earlier H100 batch with 1,024/1,536-token sequences was 11% slower.\nThese attention timings do not measure full-model throughput.\n\n</details>\n\n<details>\n<summary>CUDA-graph failure and measured fallback cost</summary>\n\nGraph replay failed after weight publication to inference workers.\n[Upstream #59646](https://github.com/vllm-project/vllm/pull/59646)\nproposes disabling graphs for the same backend. Small cases passed both\ngraph settings, so the cause remains unisolated. A tiny serving test\ntook 4.47 seconds without graphs versus 1.87 with them; full-model cost\nis unmeasured.\n\n</details>\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "83ab8b902ec957bb58219e9d1a96db16c4619938",
+      "url": "https://github.com/marin-community/marin/commit/83ab8b902ec957bb58219e9d1a96db16c4619938",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-17T00:00:00Z",
+    "start": "2026-11-16T00:00:00Z"
+  }
+}

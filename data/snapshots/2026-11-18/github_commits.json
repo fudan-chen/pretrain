@@ -1,0 +1,274 @@
+{
+  "commit_count": 24,
+  "commits": [
+    {
+      "author": "mminutoli",
+      "author_name": "Marco Minutoli",
+      "authored_at": "2026-11-18T22:56:12Z",
+      "committed_at": "2026-11-18T22:56:12Z",
+      "message": "[grug] Report FLOPs, step time and MFU from the June synthetic benchmark (#11123)\n\nThe June synthetic benchmark now ends with the same summary as the\nSnowball harness: median step time over steps 2 through N-1, tokens/s,\nmodel TFLOP/s and MFU from the same device-peak lookup, then the\npeak-memory lines. The summary is `log_throughput_summary` in\n`levanter.callbacks._metrics`, next to `compute_instant_throughput`, so\nneither harness imports the other. The June benchmark takes its step\ntimes from the `throughput/duration` records the training loop already\nlogs, so `_run_grug_local` is unchanged. Both harnesses also log, from\nrank 0, the FLOPs per example that MFU charges and its attention-map\npart with and without causal masking, so a report can give a causal MFU\nnext to the standard one. The median includes gradient-watch steps\n(every 10 by default), so short runs should pass `--watch-interval 0`.\n\nThe FLOP counts now take the model's attention-head width (`head_dim`)\ninstead of deriving hidden_dim / num_heads. This changes only the tiny\npresets (hidden 64, eight 16-wide heads); the full and medium presets\ncount the same as before. `--profile-hlo` (off by default) saves HLO\nprotos in profiles so trace tools can tell `ragged_dot` lowerings from\ndense GEMMs.\n\nThe FLOP, parity and metrics tests pass.",
+      "sha": "fdf1f6ea503da2889c63da4984d9372cf18db6ff",
+      "url": "https://github.com/marin-community/marin/commit/fdf1f6ea503da2889c63da4984d9372cf18db6ff",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-18T21:25:38Z",
+      "committed_at": "2026-11-18T21:25:38Z",
+      "message": "[skyrl] Forward evaluation progress through the driver (#11685)\n\nEvaluation progress must reach the driver stream captured by Iris.\nForward the existing throttled `Evaluation Progress` records from the\nevaluation worker through a bounded Ray queue, then print them in the\ndriver while it waits for the result. Keep the worker logs and release\nthe queue after success or failure.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "4e4a35f8ae68a8a5a76626f2f323f16dabbd881d",
+      "url": "https://github.com/marin-community/marin/commit/4e4a35f8ae68a8a5a76626f2f323f16dabbd881d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-18T21:20:02Z",
+      "committed_at": "2026-11-18T21:20:02Z",
+      "message": "[skyrl] Import portable model metadata without the GPU runtime (#11683)\n\nCPU coordinators must validate model exports without installing the GPU\ntraining package. Resolve imports inside the vendored metadata package\nso importing `vendor.skyrl.marinskyrl.model_manifest` does not require a\nseparate top-level `marinskyrl` installation.\n\nThe regression round-trips an export manifest in an isolated subprocess\nwith that top-level namespace unavailable.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "c185e06c85a78eac1614fed7c64f20312ed0a737",
+      "url": "https://github.com/marin-community/marin/commit/c185e06c85a78eac1614fed7c64f20312ed0a737",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-18T20:19:40Z",
+      "committed_at": "2026-11-18T20:19:40Z",
+      "message": "Adopt vLLM 47a8e415bff1 for GPU serving (#11635)\n\n## Changes\n\n- Pin GPU vLLM to\n[`marin-vllm-gpu-20261118-47a8e415bff1`](https://github.com/marin-community/vllm/releases/tag/marin-vllm-gpu-20261118-47a8e415bff1),\nbuilt from\n[marin-community/vllm@47a8e415bff1](https://github.com/marin-community/vllm/commit/47a8e415bff17b9376f02d9b92edcc67e962eaee):\n`config/external/vllm/gpu.toml` and the generated pins, as written by\n`config/update-external.py --promote-gpu-release` from the release\nmanifest.\n\n| Architecture | Wheel SHA-256 |\n| --- | --- |\n| aarch64 |\n`d013b4815e17d0e642ec5965c09f73fc8703f068010240c9e0457d989768db17` |\n| x86_64 |\n`fc2a147c5d068d389f8094ed137b9f731d2fa81cfe143af575a4c3d2ce8a7962` |\n\n## Motivation\n\nThe release adds full decode graphs for GrugMoE ShortConv models and a\ntuned GB200 expert-GEMM configuration\n([marin-community/vllm#130](https://github.com/marin-community/vllm/pull/130)):\non Hero BF16 at TP1/DP16/EP16, single-request latency fell from about 62\nto 20 ms per token. Since the current pin (`0ac9dcb157ee`) it also\nincludes the fork's ShortConv output-buffer changes and FP8 loading\ntests. Configurations still select `PIECEWISE`; this PR only makes\n`FULL_AND_PIECEWISE` available.\n\n## Qualification\n\n- Fork build and wheel tests on H100 and GB200: [run\n44206509048](https://github.com/marin-community/vllm/actions/runs/44206509048).\nThe first GB200 attempt failed while collecting the result from a job\nthat had succeeded; the rerun passed.\n- Snowball cluster parity on H100 with these pins: the Levanter, vLLM\nPP1 and vLLM PP2 arms of\n`tests/cluster/vllm/test_snowball_backend_parity.py` passed (3 passed in\n17m42s). The TPU arm was not run, because this PR changes only the GPU\nwheel.\n\nPart of #11430.",
+      "sha": "139b752890939793937c00f3c1ec0605f5cae98c",
+      "url": "https://github.com/marin-community/marin/commit/139b752890939793937c00f3c1ec0605f5cae98c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-18T17:54:49Z",
+      "committed_at": "2026-11-18T17:54:49Z",
+      "message": "[eval] Bound Harbor campaign trial attempts (#10963)\n\nGive each Harbor campaign trial attempt a 90-minute deadline. The\nconfigured build, setup, agent, and verifier phase caps total 71\nminutes; the rest covers output sync and cleanup. Harbor selects a\nterminal `TrialTimeoutError` when an admitted attempt expires.\n\nStop retrying `TrialTimeoutError` in the campaign policies. With ten\nretries allowed, one timeout could otherwise repeat the stall eleven\ntimes. Campaign validation now requires both the deadline and this retry\npolicy.\n\nThe campaign preflight and focused Harbor tests pass. The broader local\ntest run stopped in `test_task_driver.py` because this sandbox's Python\nlacks `os.pidfd_open`. The original Daytona output-sync stall was not\nreproduced locally; cancellation-resistant provider work can retain a\nconcurrency slot until it terminates.\n\nFixes #10962\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "f65fe6eb5d5897adaaf445f5e95ed737c860993d",
+      "url": "https://github.com/marin-community/marin/commit/f65fe6eb5d5897adaaf445f5e95ed737c860993d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mminutoli",
+      "author_name": "Marco Minutoli",
+      "authored_at": "2026-11-18T15:11:31Z",
+      "committed_at": "2026-11-18T15:11:31Z",
+      "message": "[haliax] Add a cached GPU-family helper to jax_utils (#11543)\n\nMove ragged-dot's GPU-family classification into `haliax.jax_utils` as a\npublic, process-cached `gpu_family()` (plus `is_amd_instinct()`), and\nadd a cached `device_kind()` that the fused cross-entropy kernel's\n`_device_kind()` now reads instead of querying `jax.devices()` on every\ncall.\n\nThe family mapping preserves ragged-dot's device choices, and the\ncross-entropy GB10, H100 and AMD Instinct checks keep matching on the\ndevice-kind string, so tests can still stub `_device_kind()`. Tests that\nstub `jax.devices` or `jax.default_backend` must call `cache_clear()` on\nthe two helpers, as their docstrings say.",
+      "sha": "b5d2db5f178263fac27d914cc4ecc1bc8eba31ab",
+      "url": "https://github.com/marin-community/marin/commit/b5d2db5f178263fac27d914cc4ecc1bc8eba31ab",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "HRL9000",
+      "author_name": "HRL9000",
+      "authored_at": "2026-11-18T13:44:26Z",
+      "committed_at": "2026-11-18T13:44:26Z",
+      "message": "[finelog] Add the object_segments.column_bounds catalog column (#11579)\n\nAdd catalog migration 0007, a nullable TEXT column\n`object_segments.column_bounds` for a segment's recorded column ranges.\nNothing writes or reads it yet. #11394 will move its bounds there from\nthe extra `columnBounds` key in `source_json`.\n\nThe migration ships alone because of the catalog's version gate: a\nbinary refuses a catalog whose highest applied migration is newer than\nany it knows. Once this release is deployed, the release that fills the\ncolumn can roll back to this one without a catalog rebuild. Rolling back\nfrom this release to one without 0007 still needs a rebuild, and this\nchange is kept small for that reason.\n\nPart of #11172\n\n---------\n\nCo-authored-by: Louisa <54686345+hrl20@users.noreply.github.com>",
+      "sha": "b8a591ea535b9403ebc76f43dc0c652a6d4f1e0b",
+      "url": "https://github.com/marin-community/marin/commit/b8a591ea535b9403ebc76f43dc0c652a6d4f1e0b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-18T08:55:41Z",
+      "committed_at": "2026-11-18T08:55:41Z",
+      "message": "Replace the large-data guard with an advisory lint rule (#11548)\n\nCommitted data dumps make every clone big and the diff hard to review.\n\nReplace the large-data guard with the advisory lint-catalog rule\n`ml-committed-data`. A fixed byte limit cannot tell a dataset shard from\na\nsmall fixture, so the guard needed a pinned allowlist and lint-CI setup.\nThe\nrule flags datasets, run outputs, and result dumps, including shards and\nrenamed dumps, and asks the author to publish them to object storage or\na\nHugging Face dataset and commit a reference. Small test fixtures,\nlockfiles,\ndashboards, and config stay allowed. AGENTS.md tells agents\nnot to commit data and links the same page, so most dumps are never\nwritten.\n\nRemove the 100 KB per-file data limit, the 250 KB per-change budget, the\nshrink-only allowlist, and their tests and lint-CI setup. Keep the 500\nKB\nlarge-file limit. docs/dev-guide/large-data.md now describes publishing\ndata\nand committing a reference.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "47383aec90fd93895cf76ea9cad65b84717d8aae",
+      "url": "https://github.com/marin-community/marin/commit/47383aec90fd93895cf76ea9cad65b84717d8aae",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-18T08:19:13Z",
+      "committed_at": "2026-11-18T08:19:13Z",
+      "message": "[ops] List old Iris jobs in a Google Sheet for owner decisions (#11581)\n\n👨 The idea to use [Sheet\ndoc](https://docs.google.com/spreadsheets/d/1SfkYKDn4hnORr9vSVfRUlHYYJWnhOm-xSygbAlptELI)\nspecifically comes from Ahmad.\n\nThe concept is - we want some way to communicate jobs that are\npotentially running longer than expected without creating more work, or\nopening up a prompt injection vector (e.g. email). The owner should have\nan option to communicate to either cancel or keep the job.\n\n<hr>\n\n🤖 \n\nThe `old-iris-jobs` watch now keeps a Google Sheet of Iris root jobs\nolder than 7 days and cancels the jobs that their owners mark `Kill`. It\nposts to Slack only when a run fails.\n\nThe sheet has one tab per job owner; an email owner uses the part before\nthe `@`. Each row is one root job with its cluster, start date, age, and\nthe resources its active tasks hold. The owner sets the Decision cell\nfrom a dropdown. `Kill` makes the next run cancel the job. `Revisit in\n30 days` or `Revisit in 365 days` leaves the job alone until the Revisit\non date, then the run clears the decision so the owner decides again. A\njob with no decision stays listed and is never cancelled. A job that\nstops running leaves the sheet. The sheet is the only state, so the\nwatch state is removed.\n\nLoom marks a watch run OK when its script fails, so a failed run posts\none message to `#marin-alerts`. A cancel that Iris rejects does not stop\nthe sheet update: the script writes the error to the row's Status cell,\nexits with an error after the write, and the next run tries again.\n\nEvery person with edit access to the sheet can make the watch cancel a\njob, so the sheet's share list is an access control. A run reads each\nowner tab after the cluster scan and writes it again, so an edit that an\nowner makes in the seconds between the read and the write is lost.\n\nThe watch runs a new `ops-report` profile that runs Claude. Its first\ntwo runs on the Codex `ops` profile failed at `uv run` with `Read-only\nfile system (os error 30)` at `/home/app/.cache/uv`: the Codex sandbox\nmakes the uv cache read-only. Loom's architecture notes say the same\nsandbox permits network access only to Loom, so the script could not\nreach Iris or the Sheets API from that profile either. The `belay` watch\nruns `uv run` and Iris calls in a strict Claude profile.\n\nA run from a workstation as the Loom service account filled the sheet\nnamed in the watch prompt: 10 owner tabs and 61 rows, each tab with a\nfrozen header and the Decision dropdown. No row had a decision, so the\ncancel call has not run. The script has not run from a Loom session, so\nIris hub access from the session is untested.\n\nFollow-up to #11139.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "65afd9ecf9b785469849c57178f4f6dfe191a496",
+      "url": "https://github.com/marin-community/marin/commit/65afd9ecf9b785469849c57178f4f6dfe191a496",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-18T07:35:47Z",
+      "committed_at": "2026-11-18T07:35:47Z",
+      "message": "[finelog] Prioritize ingestion and unblock large relay batches (#11633)\n\nRun public SQL queries and log fetches on a separate server-owned worker pool, sized to the process's available parallelism, including CPU affinity and cgroup limits. Linux async and blocking read workers run at lower scheduling priority (process nice + 10, capped at 19) and can use all idle CPUs. This provides scheduling preference without CPU pinning or a hard CPU reservation; other platforms keep separate workers without changing priority. SQL queries and log fetches retain separate limits of two and four concurrent requests to bound memory use. Ingestion, scheduled flushes, maintenance, and cloud object-store HTTP I/O retain the ordinary runtime.\n\nPreserve forwarding scan batches until packing them below the outbound request byte limit. A dense log read can exceed Arrow's 2 GiB string-offset limit before request chunking, leaving the same cursor stuck on every retry. Combining small batches avoids extra requests to the destination hub without concatenating the entire read or changing delivery order and cursor advancement.\n\nIncident: https://marina.oa.dev/echo/wiki/1017",
+      "sha": "6589addcb84bca4c0ea20013c34af2e7474eb0f6",
+      "url": "https://github.com/marin-community/marin/commit/6589addcb84bca4c0ea20013c34af2e7474eb0f6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-18T05:39:01Z",
+      "committed_at": "2026-11-18T05:39:01Z",
+      "message": "[skyrl] Clear Megatron attention variables between GPU tests (#11641)\n\nClear Megatron's attention backend variables before every SkyRL GPU test, so a model built in the pytest process cannot pass them to Ray workers started by a later test.\n\nMegatron Core records the attention backend of each model it builds in `NVTE_FLASH_ATTN`, `NVTE_FUSED_ATTN` and `NVTE_UNFUSED_ATTN`, and asserts that a later model in the same process wants the same values. The Grug embedding-recompute tests build a model in the pytest process with Core's default backend, which sets all three to 1. `test_grug_megatron_forward_matches_hf` then starts a local Ray cluster whose workers inherit those values, while the BF16 Grug worker selects FlashAttention, and `init_model` fails with `NVTE_FUSED_ATTN set to 1, but expected 0 for attention backend type flash`. Since #11307, the GPU-test Ray environment does not set `NVTE_FUSED_ATTN`, and every Grug Megatron nightly since then has failed this way.\n\nThe fixture lives in the shared GPU conftest because `test_megatron_worker.py` also builds models in the pytest process. Requesting FlashAttention in the Grug test configuration, as in #11545, is not enough: the Ray environment then overrides only `NVTE_FUSED_ATTN`, and the worker fails on `NVTE_UNFUSED_ATTN` instead.\n\nOn H100x4 (cw-rno2a) with the nightly's `run_grug_megatron.sh`, the full Grug lane passed on this branch (52 passed in 48 minutes, Iris job `/atqamar/atqamar-grug-attn-env-final`). On main the lane failed in `test_grug_megatron_forward_matches_hf[pp1]` with the `NVTE_FUSED_ATTN` assertion, and on #11545's head it failed in the same test with the `NVTE_UNFUSED_ATTN` assertion.\n\nTracking issues: #11604, #10910",
+      "sha": "978f1e073f086b212bfde71b2585b213dc8c6c72",
+      "url": "https://github.com/marin-community/marin/commit/978f1e073f086b212bfde71b2585b213dc8c6c72",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-18T03:08:52Z",
+      "committed_at": "2026-11-18T03:08:52Z",
+      "message": "Verify cgroup delegation can enforce limits before choosing the parent (#11583)\n\nLOCAL sandboxes on privileged Iris pods do not enforce memory limits, so\ntasks can use more memory than they declare.\n\n## Why the limits do not apply\n\nEach LOCAL sandbox runs in its own child cgroup and gets its CPU and\nmemory limits from that cgroup. To set a memory limit on a child cgroup,\nthe parent cgroup must first enable the memory controller for its\nchildren.\n\nLinux cgroup v2 has a \"no internal processes\" rule: a cgroup that\ncontains processes cannot enable domain controllers, such as memory, for\nits children. On these pods the worker process runs directly in the\ncontainer's cgroup scope. The scope therefore refuses `+memory` (EBUSY).\nThe old code logged a warning and continued, so the sandbox ran without\na memory limit.\n\n## The fix\n\n`delegated_cgroup_parent` now moves the worker's own processes out of\nthe container scope into a child leaf group, `<scope>/worker`. The scope\nthen contains no processes and can enable the cpu and memory controllers\nfor its children. Sandbox cgroups are created as siblings of the worker\nleaf, so they always stay inside the container scope. They stay under\nthe container's limits, accounting and teardown. No group is created in\nthe pod slice or in any other cgroup above the container.\n\nWhen the worker already runs in a child group (an existing worker leaf,\nor the systemd `DelegateSubgroup` layout under an empty unit), discovery\nuses the enclosing unit and moves nothing. When the runtime does not\noffer the memory controller to the scope at all (ENOTSUP), discovery\nkeeps the scope for process containment and the limits log a warning at\nuse, as before.\n\n## Evidence\n\nOn privileged pods in cw-us-east-02a, writing `+memory` to the container\nscope fails with EBUSY on some nodes and \"Operation not supported\" on\nothers. EBUSY is the no-internal-process rule, which the leaf move\nresolves. A paired node probe on 02a records the cgroup layout and\nruntime of passing and failing nodes, and a pod-deletion test on 02a\nchecks that deleting a pod with a live sandbox leaves no sandbox process\nor `shellbox-*` cgroup on the node. Their results are in the PR\ncomments.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "aa7c097d2919a8965d17232415981f813944fcdc",
+      "url": "https://github.com/marin-community/marin/commit/aa7c097d2919a8965d17232415981f813944fcdc",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mminutoli",
+      "author_name": "Marco Minutoli",
+      "authored_at": "2026-11-18T01:40:15Z",
+      "committed_at": "2026-11-18T01:40:15Z",
+      "message": "[levanter] Keep caller-reduced weights reduced through grug shard_maps (#11544)\n\nKeep weights marked reduced over batch mesh axes reduced through Grug\nshard maps. Their gradients remain unreduced until the caller reduces\nthem after a layer scan or microbatch loop. Previously, the expert MLP\nand fused loss transposes reduced these gradients on each call. Weights\nwithout the marking retain their existing gradient behavior.\n\nThe JSON logger serializes NumPy arrays returned by `jax.device_get` as\nJSON numbers and lists. This provides the library behavior needed by the\nfollow-up AMD model work and replaces the library portions of #11151,\n#11154, and #11159.",
+      "sha": "3e8c7baa26a451b1f8c630bd6dc68a7135907a32",
+      "url": "https://github.com/marin-community/marin/commit/3e8c7baa26a451b1f8c630bd6dc68a7135907a32",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-18T01:34:19Z",
+      "committed_at": "2026-11-18T01:34:19Z",
+      "message": "[skyrl] Bound W&B final uploads during trainer shutdown (#11540)\n\nGive W&B's final SDK uploads a 30-second deadline in both the training\nentrypoint and remote node loggers. The entrypoint first waits up to 30\nseconds for remote loggers, then finishes its own uploads. These waits\ncan take up to 60 seconds, plus other cleanup. Upload timeouts warn and\npreserve successful training or the original training exception. W&B may\nshow the run as Crashed or Failed after a primary upload timeout, and\nsome records may remain unuploaded.\n\nOne completed training run ended with `WorkerCrashedError` 120 seconds\nafter `Training done` while uploads remained active. The timing points\nto the teardown watchdog; no final worker stack was captured. Other\ncleanup can still exhaust that unchanged watchdog.\n\nCPU regressions cover slow uploads in both logger roles and preserve\nhealthy closes and workload outcomes on W&B 0.29.0. A GPU run with this\nexact tracking file and W&B 0.27.2 succeeded after remote upload\ntimeouts, with about 43.7 seconds of cleanup. Dependency versions stay\nunchanged.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "dbac7175df2de17808315e68c1958c66efcf9ef9",
+      "url": "https://github.com/marin-community/marin/commit/dbac7175df2de17808315e68c1958c66efcf9ef9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-18T01:06:01Z",
+      "committed_at": "2026-11-18T01:06:01Z",
+      "message": "[export] Write complete generation_config.json for every HF export (#10906)\n\nEvery Hugging Face checkpoint export now writes a complete\n`generation_config.json`.\n\nLevanter owns the generic completion logic in\n`levanter.compat.hf_generation_config`. It preserves fields from an\nexplicit or source generation config, adds the tokenizer BOS id, and\nunions the tokenizer EOS id with end-of-turn tokens emitted by the\nexported chat template. This means a Llama 3 header template exports\n`eos_token_id: [128001, 128009]`. Token ids are validated against the\ntokenizer vocabulary before the file is written.\n\nSampling policy remains with the application. Marin's shared training\nboundary and standalone conversion/upload paths pass\n`marin.inference.generation_config.MARIN_GENERATION_CONFIG_DEFAULTS`,\nwhich sets `do_sample: true`, `temperature: 0.6`, and `top_p: 0.95`;\nexplicit or source values win, and `do_sample: false` suppresses\nsampling defaults. Standalone SkyRL keeps the equivalent policy in\n`marinskyrl` because its independently packaged runtime does not depend\non Levanter.\n\nExport sites updated by this PR:\n\n| Site | Behavior |\n| --- | --- |\n| `HFCheckpointConverter.save_pretrained` and its training, DPO, LoRA,\nand conversion callers | Completes and writes the file while preserving\na pinned reference checkpoint's existing fields. |\n| Marin LM/DPO training, SFT, and checkpoint-conversion boundaries |\nSupply Marin's sampling defaults, including direct `TrainLmConfig` and\n`TrainDpoConfig` callers. |\n| SkyRL HF export | Completes a source generation config when present\nand writes one when absent. |\n| Grug Hero upload | Writes the completed file from the uploaded\ntokenizer. |\n\nMerged checkpoints and MLX exports continue to inherit their source\ngeneration config. Requests that set sampling parameters explicitly are\nunchanged; vLLM uses these defaults only for omitted fields. Adding the\ninferred end-of-turn id prevents generated fake user turns, while\nexcluding Harmony's `<|end|>` message boundary avoids stopping between\nanalysis and final output.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: Benjamin Feuer <penfever@gmail.com>",
+      "sha": "7ecd2a9ad2493b79bffb26a7366d3ce92ea4af1d",
+      "url": "https://github.com/marin-community/marin/commit/7ecd2a9ad2493b79bffb26a7366d3ce92ea4af1d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-18T00:50:01Z",
+      "committed_at": "2026-11-18T00:50:01Z",
+      "message": "[docs] Limit Daytona deletions to logged IDs; fix mirror FS pointer (#11587)\n\nAgents need a clear rule about which Daytona sandboxes they can delete.\n\nThe Daytona operations guide now tells agents to delete only the\nsandboxes that their own run created. The agent must use the exact\nsandbox IDs from its own logs. It must not select sandboxes by name,\nlabel, state, age or an account-wide list. If the agent cannot get the\nIDs, it must not delete and must report the candidates.\n\nThe experiments guide referred to `lib/iris/src/iris/marin_fs.py`, which\nno longer exists. It now refers to `rigging.filesystem.mirror` and\n`rigging.filesystem.cross_region`.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>",
+      "sha": "33acacc263b7410e6d8d2e1806e1cff256079513",
+      "url": "https://github.com/marin-community/marin/commit/33acacc263b7410e6d8d2e1806e1cff256079513",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-18T00:49:53Z",
+      "committed_at": "2026-11-18T00:49:53Z",
+      "message": "[inference] Expose NCCL symmetric memory and document Hero tuning (#11492)\n\n## Changes\n\n- Add `serve.vllm_use_nccl_symm_mem` to model configs. `true` or `false`\nsets `VLLM_USE_NCCL_SYMM_MEM` for GPU vLLM workers; unset leaves the\nworker environment unchanged.\n- Record the setting in evaluation records. An unset value is omitted\nfrom the record, so existing configurations keep their config digests\nand comparison names.\n- Add two short README sections: the new setting, and Hero serving\nsettings (PIECEWISE graphs with the three split ops; `max_num_seqs` 128\nfor 1K outputs and about 96 for 4K).\n\n## Motivation\n\nEvals had no way to request NCCL symmetric memory, which the Hero\nserving stack uses for its MoE collectives.\n\nHero BF16 on 16 GB200 (TP1/DP16/EP16, `max_num_seqs=128`, full decode\ngraphs), same nodes, 1,024-token outputs:\n\n| Configuration | Single request, ms/token | 1,024 requests in flight,\noutput tokens/s/GPU |\n| --- | ---: | ---: |\n| Before: symmetric memory off | 20.2 | 1,421 |\n| After: `VLLM_USE_NCCL_SYMM_MEM=1` | 18.2 | 1,514 |\n\nAn earlier pair measured 1,321 to 1,399 (R15 in #11430).\n\n## Limits\n\n- The gain was measured with full decode graphs, which need\n[marin-community/vllm#130](https://github.com/marin-community/vllm/pull/130)\nand a wheel pin that includes it. No gain is established on the current\npin.\n- `true` is a request: batch-invariant mode, or a failed NCCL allocator\nbuild, disables symmetric memory.\n- No Hero preset is added, and RL serving is unchanged.\n\nPart of #11430.",
+      "sha": "37e25cae528cd25b1ac66f6da736b4f0de942f2a",
+      "url": "https://github.com/marin-community/marin/commit/37e25cae528cd25b1ac66f6da736b4f0de942f2a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-18T00:47:33Z",
+      "committed_at": "2026-11-18T00:47:33Z",
+      "message": "[harbor] Preserve task agent environments and non-root Pi cleanup (#11530)\n\nMerge task `[agent.env]` with run-level overrides when constructing\ninstalled agents, so task values such as `HOME` reach the agent.\nEnvironment and verifier settings remain separate. Reject unsupported\nper-step `agent.env` overrides with an error directing users to the\ntop-level setting.\n\nPi stages endpoint variables and its context-budget extension in private\ntemporary directories owned by the task user. The directories stay\noutside collected logs when staging fails or execution is killed; normal\nexits remove them. Before Pi consumes either file, assign its ownership\nto the task user and set mode `0600`. Normal cleanup remains available\nto non-root agents.\n\nThe task environment repair comes from #11120 at\n[9248dd74](https://github.com/marin-community/marin/commit/9248dd74d5464e75b3c686037c6ee55054292968).\n79 focused CPU checks pass. A native Linux check with distinct root\nuploader and non-root task identities verifies file ownership, `0600`\nmode, read access and normal cleanup for registration and execution.\n\nFixes #11610\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "1c2d5405ea3b5f2d23601cd00661acd74cdffeb8",
+      "url": "https://github.com/marin-community/marin/commit/1c2d5405ea3b5f2d23601cd00661acd74cdffeb8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-18T00:44:03Z",
+      "committed_at": "2026-11-18T00:44:03Z",
+      "message": "Pass Harbor scripts once through the shell adapter (#11584)\n\nPass the command as one positional shell argument when choosing Bash or\nsh. Quoting a copy into both branches could push verifier commands past\nLinux's per-argument size limit.\n\nPreserve cwd, environment, output and exit status. The regression runs a\nlong script containing apostrophes and shell substitutions; the existing\nLinux suites pass.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "3783a13d28a6eea9ac3ea7c92821b75f94be087c",
+      "url": "https://github.com/marin-community/marin/commit/3783a13d28a6eea9ac3ea7c92821b75f94be087c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-18T00:37:01Z",
+      "committed_at": "2026-11-18T00:37:01Z",
+      "message": "[rl] Worker batch assembly (2/3): Compute metrics from group records (#10667)\n\nThe driver computes reward, rollout and staleness metrics from each group's record instead of rereading the rollout payloads, and checks each group for admission once. Reward shaping writes its results into the same record. Checkpoints do not store the record; a resumed run rebuilds it from the rollout payloads.\n\nRollout-to-batch conversion on the driver takes 7.7% less time (median of five paired runs on a full-size batch of 8,192 sequences and 98 million response tokens: [timing run](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-worker-batch-sync-timing2-1113-a3), measured on an earlier commit of this branch). Worker assembly in #10668 reports metrics with the same functions.\n\nThe [CPU suite](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-worker-batch-fixes2-cpu2-1114-a1) (earlier commit of this branch; the reward-mean test passed in the #10668 CPU run), with training metrics on, passes except two Daytona tests that fail the same way on main. The 2,200-batch comparison from #10666 finds no difference from main in tensors, metadata or metrics.\n\nPart of marin-community/MarinSkyRL#888",
+      "sha": "636bc537ca12bb66d7dca034147943afc6d1106c",
+      "url": "https://github.com/marin-community/marin/commit/636bc537ca12bb66d7dca034147943afc6d1106c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-18T00:30:18Z",
+      "committed_at": "2026-11-18T00:30:18Z",
+      "message": "[rl] Verify awake colocated inference workers (#11631)\n\nEnable worker placement verification for awake TP1 inference engines\neven when they share a placement group. Generation-only DP/EP groups\nthen reach the existing cross-host validation path instead of the\nnode-local guard. Sleeping colocated training still skips verification\nunless verified placements are explicitly required.\n\nThe four-host vLLM startup has not been exercised locally; CPU tests\ncover the selection and placement checks.\n\nFixes #11629\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "7bdafc36fdf9130dd458979de634490c495c0cd9",
+      "url": "https://github.com/marin-community/marin/commit/7bdafc36fdf9130dd458979de634490c495c0cd9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-18T00:19:19Z",
+      "committed_at": "2026-11-18T00:19:19Z",
+      "message": "Make the calibforge release test independent of the umask (#11630)\n\n`test_packaging_preserves_private_verifier_and_checks_source_identity`\nwrites its source fixtures with the process umask, while the release\ncheck compares their modes with archive entries recorded as 644. Under a\n002 umask, which is common on shared development machines, the fixture\nfiles are 664 and the test fails with `Source/release mode mismatch`.\nThe test now sets the fixture modes to 644 explicitly. CI was unaffected\nbecause its runners use a 022 umask.\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "53d00cbc12f23fd3f36654bef88893298483a7ef",
+      "url": "https://github.com/marin-community/marin/commit/53d00cbc12f23fd3f36654bef88893298483a7ef",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-18T00:16:07Z",
+      "committed_at": "2026-11-18T00:16:07Z",
+      "message": "[rl] Worker batch assembly (1/3): Build batches from group records (#10666)\n\nThe driver builds the padded training tensors from a small record kept for each rollout group: prompt and response lengths, stop reasons, the rows left out of the advantage baseline, and loss-token counts. The training batch it produces is byte-for-byte the same as on main.\n\nA policy worker can build its own slice of the batch from the same record with the same functions, without the driver holding the full batch. #10668 uses this.\n\nThe [CPU suite on this branch](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-worker-batch-fixes2-cpu1-1114-a1), with training metrics on, passes except two Daytona tests that fail the same way on main; the skipped tests need storage credentials. A comparison harness built 2,200 seeded batches with main and with this branch and found no difference in tensors, metadata or metrics; batches from the task and preference-pair rollout producers also match at 1, 2 and 4 data-parallel ranks, and the harness catches a deliberate one-row shift. The 2,200 batches use the `rloo`, `rloo_n` and `grpo` estimators on single-step rollouts; step-wise rollouts, FTPO, trajectory selection, distillation and the other estimators rely on the CPU suite. The harness is not in the repository.\n\nPart of marin-community/MarinSkyRL#888",
+      "sha": "bdb72cb88964e4527db4e9f9a0000dd3a715398a",
+      "url": "https://github.com/marin-community/marin/commit/bdb72cb88964e4527db4e9f9a0000dd3a715398a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-18T00:08:16Z",
+      "committed_at": "2026-11-18T00:08:16Z",
+      "message": "[eval] Add a benchmark-authoring guide, PubMedQA and MMLU-Redux (#11576)\n\nAdd a guide, `docs/tutorials/add-evaluation.md`, and an `add-eval` agent\nskill for adding a non-agentic benchmark to the curated evaluation\ncatalog. PubMedQA and MMLU-Redux are added as worked examples. Two\nagents each followed the skill without other context to add one\nbenchmark; their reports of missing steps and failures drove the\nlauncher and documentation changes below.\n\nThe curated score reducer moves from Evaldash to\n`evalrecords.rollout_results.score_curated_record`; Evaldash calls it as\nbefore. When the launcher waits for a launch, it now prints each curated\nrun's coverage and scores instead of \"(no metrics)\". `python -m\nexperiments.evaluation.cli scores <run dir>` prints them for a finished\nrun, so a benchmark can be checked without Evaldash.\n\nThe launcher now rejects a CoreWeave target without `CW_KEY_ID` and\n`CW_KEY_SECRET` before submission, including dry runs. The peer\npreviously killed such jobs after submission. When an evaluation writes\nno record, the launcher prints the orchestrator's terminal state and\nerror and exits non-zero; it previously printed an S3 traceback and\nexited 0. Submission also prints the Iris job and the records prefix.\n\n`evaluation_source` builds a converter-based curated source from an\nexplicit protocol, which replaces about 50 lines of hand-built source,\nrecipe and catalog metadata per benchmark. Existing benchmarks keep\ntheir hand-built sources so that their artifact names and catalog keys\ndo not change.\n\n`pubmedqa` reproduces lm-eval-harness's zero-shot likelihood task on the\n500-question labeled fold-0 test split, from the `bigbio/pubmed_qa`\nParquet export at `13a7d154`. All 500 compiled requests match the\nrequests lm-eval 0.4.12 logged. `mmlu-redux` is a zero-shot chat\nbenchmark with thinking disabled. It uses ZeroEval's frozen\n2,778-question split, its MCQA prompt and its JSON answer extraction\n(the new `zeroeval_mcqa` scorer), and reports one score per subject.\nDecoding is greedy, as in ZeroEval, so every model is scored under the\nsame deterministic setting. Qwen publishes no MMLU-Redux harness.\nZeroEval's greedy scores for Qwen2.5-Instruct 3B, 7B and 32B are within\n0.3 points of the values in the Qwen3 report. Neither benchmark is added\nto a suite.\n\nQwen3-0.6B results:\n\n| Benchmark | Run | Scored | Accuracy | Reference |\n| --- | --- | --- | --- | --- |\n| pubmedqa | TPU, first 50 | 50/50 | 0.520 ± 0.071 | lm-eval, CPU\nfloat32: 0.500 on the same items; 49 of 50 agree, and the one difference\nis a 0.085-nat tie between \"yes\" and \"no\" |\n| mmlu-redux | TPU, first 50, earlier sampled protocol | 50/50 | 0.360 ±\n0.069 | |\n| pubmedqa | H100, all 500 | 500/500 | 0.572 ± 0.022 | lm-eval, CPU\nfloat32: 0.580 ± 0.022; 496 of 500 items agree, and the four differences\nare ties within 0.05 nats (median margin 1.09 nats) |\n| mmlu-redux | H100, all 2,778 | 2,778/2,778 | 0.4471 ± 0.0094 | Qwen3\nreport, Table 20, non-thinking: 0.446 |\n\nThe Qwen3 report samples at temperature 0.7, top-p 0.8, top-k 20 and\npresence penalty 1.5; Qwen's prompt and rows are inferred from ZeroEval.\nA full run with the report's sampling, without the presence penalty,\nscored 0.4435 ± 0.0094. In that run, 101 responses (3.6%) answer outside\nthe requested JSON format, for example `**Answer**: \"B\"`, and score\nzero, as they do under ZeroEval's extraction. A random sample of 20\ngraded responses was checked by hand; every grade was correct.\n\nPart of #10234.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "8eca4ffc4b5bc9b63de1db08c3c77c8763e0b4f6",
+      "url": "https://github.com/marin-community/marin/commit/8eca4ffc4b5bc9b63de1db08c3c77c8763e0b4f6",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-19T00:00:00Z",
+    "start": "2026-11-18T00:00:00Z"
+  }
+}

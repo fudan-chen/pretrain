@@ -1,0 +1,362 @@
+{
+  "commit_count": 32,
+  "commits": [
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-19T23:06:48Z",
+      "committed_at": "2026-11-19T23:06:48Z",
+      "message": "[inference] Add optional native DP session routing (#10956)\n\nAdd opt-in `--session-router` to local and Iris vLLM serving. A stable\n`X-Session-ID` pins turns to one DP rank for prefix-cache reuse. Direct\nserving remains the default.\n\n`ServingGeometry` derives placement from TP, global DP, PP and GPUs per\ntask. `--vllm-release` accepts a published GPU release manifest.\n\nThe isolated router uses consistent hashing even without session IDs.\nHTTP retries are disabled. See the [serving\ndocs](https://github.com/yonromai/marin/blob/goal/serving-router-01a150e9/experiments/evaluation/serve/models/README.md#session-routing-for-native-vllm-dp)\nfor setup and limits.\n\nFocused CPU and proxy checks pass. [Recorded GPU\nchecks](https://github.com/marin-community/marin/pull/10956#issuecomment-6868863676)\ncover a pinned vLLM build. The default runtime has no fresh GPU\nvalidation.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "32858dcb0a39550b5e5d5c0fce5bc8411fb0c50f",
+      "url": "https://github.com/marin-community/marin/commit/32858dcb0a39550b5e5d5c0fce5bc8411fb0c50f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-19T22:06:42Z",
+      "committed_at": "2026-11-19T22:06:42Z",
+      "message": "[skyrl] Delete critic training, FlashQLA and unused SkyRL helpers (#10660)\n\nVendored SkyRL supports only critic-free training and the PyTorch GatedDeltaNet path, and code that nothing calls is deleted. No config, nightly test or launcher on `main` selects a critic or `generator.gdn_backend=flashqla`, so existing runs behave the same.\n\nDeleted code:\n\n- critic (value model) training: GAE advantages, the critic worker classes, the critic loss and normalization, the value and returns fields of `Experience`, the critic trainer steps, the `trainer.critic` config section, the critic placement keys and `trainer.critic_mini_batch_size`, and the checks of `trainer.critic.model.path` in validation, FTPO, DPO, the marin launcher and checkpoint export;\n- the FlashQLA GatedDeltaNet kernel, its `generator.gdn_backend` setting and the TileLang cache sync the Iris launcher ran around it;\n- the no-op telemetry fallback used when `rigging` is not installed;\n- in the vLLM actor, the unused accumulate-then-load weight update with its FP8 requantization, the uncalled FP8 weight-loader patch, and the expert-slot readers;\n- the MoE router instrumentation and its Grug emitter, and the Grug optimizer route snapshot;\n- the `generate/tis/lcs_fallback_fraction`, `lcs_fallback_messages` and `lcs_fallback_alert` metrics, which rollout finalization sets to 0 for every row; the alignment alert reads unaligned tokens and TITO declines;\n- the deferred worker checkpoint upload and the trainer's wait on it; no worker produces an upload;\n- helpers nothing calls, among them the weight-sync tensor helper, the validation-generation logger, search-environment answer scoring, GenRM prompt keys, a NUMA page probe, launcher secrets and model-path helpers, and GPU test utilities the Grug parity tests do not import;\n- base-config keys that no production code reads: the policy LoRA settings other than `rank` and `adapter_path`, `use_torch_compile`, the policy optimizer's `offload_after_step`, `trainer.attn_backend`, `tis_splice`, `tis_lcs_alert_threshold`, `lambd`, `value_clip` and `value_head_prefix`, with the matching fields of the typed recipe schema;\n- the tests of the code above, and tests of remaining code that repeat another test or only check that a config field is passed through. Some launcher config tests are combined into fewer tests that check the same behavior, and the FlashAttention context-parallel test gains an entropy-loss-only case.\n\nSettings:\n\n- Training is critic-free. A source recipe that sets any `trainer.critic` key fails at launch with an unknown-key error. The advantage estimators are GRPO, RLOO, RLOO-N, RLOO-N-PBS, REINFORCE++, uniform and reward. The `train_critic_and_policy` timing key keeps its name, so dashboards read the same field.\n- GatedDeltaNet layers run the PyTorch path, as on `main`. The Iris launcher starts the controller with `exec` for every config.\n- Telemetry requires the `rigging` package.\n- A source recipe that sets any other key in the deletion list fails at launch with an unknown-key error. A launch config that already holds a composed SkyRL section, such as an earlier run's resolved config, loads and ignores those keys.\n\nOne runtime difference: the GPU count that decides whether NCCL peer-to-peer and shared-memory transport stay enabled is the largest of the policy GPUs per node, the reference GPUs per node and the inference tensor-parallel size. It changes only for runs where all three are 1: those runs skip the peer-access probe and disable NCCL peer-to-peer and shared-memory transport.\n\n`build_models` takes the policy and reference worker classes, and `get_worker_classes` returns those two.\n\nThe results below compare head 5ae897fe00 with `main` at dbac7175df. Later merges of `main` bring in its own changes, including worker batch assembly (#10668), with no deleted name reintroduced; CI passes on the current head. On CPU, the unit tests and the 13 nightly cases pass; the `main` run passes the same tests except the CatCount resume nightly case, which is intermittent on `main` and failed in that run. The 393 remaining modules import with the same results as on `main`; the six deleted modules are the only difference. The 215 launcher config combinations give the same result as on `main`: 206 build byte-identical configs and 9 fail the same geometry check. On H100, with each Grug MoE test run in its own clean attention-backend environment, all 52 tests that `main` runs pass on both trees, the added entropy-loss case passes, and the 88 numerical parity values the tests print equal `main`'s. The CatCount RL smoke run completes 10 steps and passes all of its checks, and its sampled training score at step 10 (0.690) is inside the range of repeated `main` runs (0.64 to 0.71).",
+      "sha": "0d838fdab8635608c5ffafcadc4613486e5a5d4c",
+      "url": "https://github.com/marin-community/marin/commit/0d838fdab8635608c5ffafcadc4613486e5a5d4c",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-19T21:47:01Z",
+      "committed_at": "2026-11-19T21:47:01Z",
+      "message": "[rl] Fail closed when a multi-node RL launch cannot use InfiniBand (#11619)\n\nMulti-node RL jobs request the cluster's InfiniBand fabric, but since\n2026-10-20 the Snowball-family recipes have forced NCCL onto TCP\nsockets, and one production run died from a socket-transport NCCL error.\nThe two-node probe in this PR measured the default environment passing\ncross-node over InfiniBand on both H100 clusters (85-88 GB/s all-reduce)\nand the socket override passing at 19-24x lower bandwidth where it\ncompletes at all; partial overrides hang at IPv6 link-local bootstrap.\nThis PR makes a launch refuse to run multi-node training on sockets\ninstead of silently falling back.\n\nTwo checks, one per launch stage:\n\n1. Static, at config resolution: the SkyRL launch builder refuses a\nmulti-node recipe whose `extra_env` sets `NCCL_NET=Socket` or\n`NCCL_IB_DISABLE=1`, naming the variables.\n2. Live, at task startup: the per-node task shell runs\n`nccl_transport_probe.py --mode gate`. Tasks 0 and 1 exchange one\nall-reduce and one all-to-all over the default environment on the job's\nown allocation (NCCL INIT, transport census, bounded time); the task\nfails with the exact NCCL error tail unless the census shows `NET/IB` or\nno NET transport (intra-node NVLink, where the socket variables are\nirrelevant anyway). The full environment-variant matrix stays available\nas the diagnostic mode (`--variants`).\n\nThe probe (launcher, worker, and gate modes) ships as\n`experiments/post_training/nccl_transport_probe.py`. Measured results\nper cluster, including the 02a finding that the three-variable override\nalone aborts there and only the production overlay with\n`NCCL_SOCKET_IFNAME` passes: [probe\nresults](https://github.com/marin-community/marin/pull/11619#issuecomment-6964135906).\nRun provenance and the recipe lineage are recorded in #11618.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "84f4b534ac43cbcd3f63003f140e9338be02e970",
+      "url": "https://github.com/marin-community/marin/commit/84f4b534ac43cbcd3f63003f140e9338be02e970",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-19T21:14:29Z",
+      "committed_at": "2026-11-19T21:14:29Z",
+      "message": "[shellbox] Work around Daytona log-stream boundary bugs in processes (#11689)\n\nDaytona `open_process` sessions could stall on, or corrupt, frames in\nthe bridge's output stream. The Daytona server prefixes every output\nline with a three-byte stream marker (`\\x01\\x01\\x01` for stdout,\n`\\x02\\x02\\x02` for stderr) and sends the log as 1,024-byte websocket\nmessages. The SDK's demultiplexer (`daytona/_utils/stream.py`, 0.200.2)\nmishandles two boundary cases:\n\n| Message boundary | SDK behavior | Effect on Shellbox |\n|---|---|---|\n| Final message is 1–2 bytes, e.g. a frame's lone `\\n` | Withheld until\nmore output arrives | Frame stalls until the guest writes again |\n| A marker ends exactly at a message boundary | Marker bytes passed\nthrough as output | Frame fails to decode; with stderr active, data can\nreach the wrong stream |\n\nThe bridge now sends every frame, including stderr and exit frames, on\nstdout, each followed by an empty `P` padding frame that the host\ndiscards. Only padding can be withheld, and no stream switch can\nmisroute data. The host removes `\\x01` and `\\x02` bytes, which base64\nframes never contain, before decoding. The process's stderr still\nreaches `ProcessSession.stderr` as `E` frames; Daytona's stderr channel\nnow carries only startup errors from the image shell or Python.\n\nIn the SWE-Bench Pro smoke run, 12 model requests from 4 of 22 sandboxes\nreached the host 608 s after the guest sent them, just after the guest\nrelay's 600 s timeout and the agent's retry. The host answered each in\n3–5 s. Retries resent identical bodies, so the same split repeated, and\n3 trials ended in `AgentTimeoutError`. A live reproduction sent lines of\nrandom sizes through `open_process`. Two sizes stalled in every sandbox\nuntil the guest wrote again, each ending in a 1-byte message. Adding the\npadding alone made marker leaks frequent: a smoke run lost 4 of 22\ntrials to `Only base64 data is allowed`. Under heavy concurrent stderr,\nthe unpatched bridge also corrupted 3 of 4 sessions. With this change,\n2,400 round trips across 6 sandboxes, with random sizes and concurrent\nstderr, completed with no corrupt frames or stalls. The slowest took 2.1\ns.\n\nThe fake provider in `test_daytona_process.py` now withholds the last\ntwo bytes of output and inserts a leaked marker byte after each line.\nThe new test fails without these changes.",
+      "sha": "9545563bfe1b3cebf9f896914600f7638e89b0a1",
+      "url": "https://github.com/marin-community/marin/commit/9545563bfe1b3cebf9f896914600f7638e89b0a1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-19T21:07:14Z",
+      "committed_at": "2026-11-19T21:07:14Z",
+      "message": "[shellbox] Add a Daytona quota and usage CLI for sizing concurrency (#11745)\n\nAgents need live capacity numbers to size Daytona launches; a static\nquota\ntable cannot show what other lanes already use on the org. The new\n`shellbox-daytona-usage` command reports one account's CPU, memory,\ndisk,\nsnapshot and volume quota and current use, sandbox counts by state, and\na\nsuggested maximum additional concurrency.\n\nThe command reads the account's paginated sandbox inventory and the\nusage\noverview through one API key from an explicit environment variable. The\n`/organizations` endpoint rejects API keys with 401, so the command\nresolves\nthe organization ID from the inventory; an org without sandboxes falls\nback\nto snapshots and then volumes. The concurrency suggestion is the minimum\nover\nremaining CPU, memory and disk capacity of the quota row for the\nlaunch's\ntarget region and sandbox class, each reduced by a 20% headroom, for a\nper-sandbox profile given with `--cpu`, `--memory-gib` and `--disk-gib`.\n`--all` sweeps the three known accounts; `--json` emits the\nmachine-readable\nreport; per-sandbox requests above the row maxima print a warning.\n`.agents/ops/daytona.md` documents the command and the sizing rule.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "9e8ccc58f5b5545af17e821256b20b4d3420da56",
+      "url": "https://github.com/marin-community/marin/commit/9e8ccc58f5b5545af17e821256b20b4d3420da56",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-19T21:07:09Z",
+      "committed_at": "2026-11-19T21:07:09Z",
+      "message": "[eval] Freeze Micro210 policy at the model-binding boundary (#11686)\n\nKeep one frozen Micro210 evaluation protocol so model comparisons use\nthe same settings. Pin the policy URI, revision, SHA-256 and byte size\nin code, and verify those bytes before use. The policy fixes dataset\nrevisions, selected task IDs and repetitions, sampling, seed, judge,\nharness deadlines and execution settings.\n\nThe `experiments.evaluation.micro210` entrypoint accepts a model\nexport-manifest SHA-256, a full tokenizer commit, their locations and a\nrun identity. It has no protocol override arguments. Before GPU\nallocation, verify prepared-task and export-manifest digests, check that\nstop IDs decode to the specified end-of-text and end-of-turn tokens, and\nreject edits to the generated launch YAML. Persist the policy digest\nbeside the results and retain all evaluation trajectories under the\nsupplied run identity.\n\nThe [human-readable policy\ncopy](https://gist.github.com/penfever/b9b7be780c14969634e897621454deef/0b5add0ef2843418eaded61258a91f51f3b1b69a)\nhas SHA-256\n`e0faa32c68994e8bf01d0ab7177893aa9c29f8c4309b9183de5c3dfcb6fa67aa`. Its\nraw bytes match the canonical object. Object storage remains the source\nused by the code; tests use a small synthetic policy offline.\n\nPart of #11337\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "83d96d8b08b51cfb17174446cda4e4a4e2d5beb4",
+      "url": "https://github.com/marin-community/marin/commit/83d96d8b08b51cfb17174446cda4e4a4e2d5beb4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-19T20:26:48Z",
+      "committed_at": "2026-11-19T20:26:48Z",
+      "message": "[shellbox] Run the Daytona process bridge on Python 3.8 guests (#11666)\n\nThe Daytona process bridge now starts on guest images whose `python3` is\n3.8. The bridge executes the shared frame codec, `process_framing.py`,\nwith the image's own interpreter, and that module's `tuple[bytes,\nbytes]` return annotation raised `TypeError: 'type' object is not\nsubscriptable` at definition time before Python 3.9. Postponed\nannotations remove the evaluation. The rest of the bridge and the HTTP\nrelay guest already ran on 3.8, so the README now states 3.8 as the\nminimum for `open_process` and the relay listener.\n\nEvery Daytona `open_process` failed on such images, including Harbor's\nmodel relay. In a SWE-Bench Pro smoke run, both `protonmail/webclients`\ntasks failed at startup with \"Model relay failed to start\", because that\nrepository's image ships Python 3.8.\n\nA live Daytona sandbox on `python:3.8-slim-bullseye` reproduces the\nfailure without this change and serves a relay request with it. CI has\nno Python 3.8 interpreter, so the change has no automated regression\ntest.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/11666#issuecomment-6984960123)\n<!-- marin-prose-cleanup -->",
+      "sha": "ec0a04be9ac87650650bec9e22836179aecb9187",
+      "url": "https://github.com/marin-community/marin/commit/ec0a04be9ac87650650bec9e22836179aecb9187",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-19T20:05:38Z",
+      "committed_at": "2026-11-19T20:05:38Z",
+      "message": "[grug] Shard expert RNG at initialization (#11288)\n\nStacked Grug expert initialization can exhaust TPU HBM before checkpoint\nrestore because random weights are generated as full replicated arrays\nand sharded afterward. Request the existing target sharding when\ngenerating each expert tensor, so RNG temporaries are partitioned too.\n\nAn eight-device CPU regression preserves every generated weight\nbit-for-bit with partitionable Threefry and reduces compiler temporary\nallocation from 50,331,972 to 2,623,236 bytes. The output allocation is\nunchanged. On one TPU v4-8 host (4 chips, 30.75 GB HBM each),\ninitializing 4 stacked layers of 64 experts (hidden 2048, intermediate\n4096, ring, expert axis 4) runs out of HBM on main, needing 32.00 GB of\ntemporaries in `jit_init`. With this change, the same init compiles with\n1.00 GB of temporaries and 6.00 GB per chip of output, and two training\nsteps then run with finite loss.",
+      "sha": "e1e4493a97e9c9f52c0883ba70bca6b8f8d3f475",
+      "url": "https://github.com/marin-community/marin/commit/e1e4493a97e9c9f52c0883ba70bca6b8f8d3f475",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dependabot[bot]",
+      "author_name": "dependabot[bot]",
+      "authored_at": "2026-11-19T19:46:47Z",
+      "committed_at": "2026-11-19T19:46:47Z",
+      "message": "Bump aiohttp from 3.14.3 to 3.14.4 in /infra/grafana in the uv group across 1 directory (#10285)\n\nBumps the uv group with 1 update in the /infra/grafana directory:\n[aiohttp](https://github.com/aio-libs/aiohttp).\n\nUpdates `aiohttp` from 3.14.3 to 3.14.4\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\nCo-authored-by: David Hall <david.hall@openathena.ai>",
+      "sha": "ca1415010c5947fec7a37db545684acbcb0b0f9b",
+      "url": "https://github.com/marin-community/marin/commit/ca1415010c5947fec7a37db545684acbcb0b0f9b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-19T19:46:20Z",
+      "committed_at": "2026-11-19T19:46:20Z",
+      "message": "[sft] Mirror HFModel Hub weights on CPU before training (#11117)\n\nSFT runs that start from a Hub `HFModel` no longer download weights on\nthe accelerator task. `HFModel` passed its Hub id to\n`initialize_from_hf`, and Levanter's `train_lm` loads that id straight\nfrom the Hub, so each GPU or TPU task downloaded the full repo before\ntraining. A Hub ref now adds the existing `download_model` step from\n`experiments/models.py` as a dependency. Its Zephyr CPU workers copy the\nrepo to `models/{repo}--{sha}` under the regional prefix.\n`initialize_from_hf` and the default tokenizer then read that copy.\n`ConvertedCheckpointModel` and `PreparedModel` already worked this way.\nAn object-store or local path is still loaded in place, with no extra\nstep. Hub-vs-path uses Levanter's own rule, now public as\n`levanter.compat.hf_checkpoints.is_hf_model_id`, so the launcher and the\nloader agree. An `hf://org/model@<sha>` ref names the same commit, so it\ngets the same pin check and copy.\n\nA Hub ref must now pin a full 40-character commit (`org/model@<sha>`).\nThe copy's address is hash-free and includes the sha, so an unpinned ref\nwould let the same path hold different weights. The Delphi recipe and\nthe TPU smoke recipe now pin the commit they were loading; Snowball was\nalready pinned. Delphi and Snowball also drop their unpinned\n`tokenizer_path` (the same repo as the weights), so the tokenizer comes\nfrom the pinned copy too. This changes their tokenizer cache key, so\ntheir chat caches rebuild once.\n\nThe copy is a durable `models/` artifact rather than Levanter's 30-day\n`hf-models` TTL cache. Step records outlive TTL objects, so after expiry\na cached step would point at deleted weights.\n\n\nThe full-sha GCS path already held a copy from an older executor, and\nits `.artifact.json` was the bare payload `null`. The old executor wrote\nthat for every step that returned `None`, so every `models/` download\nfolder in the GCS buckets has one. `read_record` raised a\nValidationError on it, so the drift check crashed before it could serve\nthe cache. `read_record` now treats a `null` file as missing and falls\nback to the old `.executor_info`, as it already does for folders with no\nrecord. The finished copy is served with no re-download.\n\nThe mirror step alone was run for the TPU smoke ref\n`Qwen/Qwen3-0.6B@c1899de2…` as Iris CPU jobs, with no training. On the\nGCP cluster, `ctx.artifact_path` resolved to\n`gs://marin-us-central2/models/Qwen--Qwen3-0-6B--c1899de289a04d12100db370d81485cdf75e47ca`,\nand the existing copy was served from cache. On `cw-rno2a`, it resolved\nto\n`s3://marin-us-east-08a/marin/models/Qwen--Qwen3-0-6B--c1899de289a04d12100db370d81485cdf75e47ca`,\nwhich is that cluster's `MARIN_PREFIX`. A fresh Zephyr download wrote\nthat copy. Both roots list the same model files:\n\n```text\nconfig.json               726\ngeneration_config.json    239\nmerges.txt            1671853\nmodel.safetensors  1503300328\ntokenizer.json       11422654\ntokenizer_config.json    9732\nvocab.json            2776833\n```\n\nDesign doc: [HF Model Load\nPre-Caching](https://docs.google.com/document/d/1-rRhP9mB4hpbzXwxUfPUTejwUVk1w68BOIs9TWdsBFk),\nsection \"SFT\".\n\nPart of #9233",
+      "sha": "6987c4a47f87b6d709f7090c67eb847d1e384821",
+      "url": "https://github.com/marin-community/marin/commit/6987c4a47f87b6d709f7090c67eb847d1e384821",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mminutoli",
+      "author_name": "Marco Minutoli",
+      "authored_at": "2026-11-19T19:22:37Z",
+      "committed_at": "2026-11-19T19:22:37Z",
+      "message": "[grug] Add a dense synthetic harness for Llama-3 8B and Marin 32B shapes (#11124)\n\nAdd `experiments/grug/dense_synthetic`, a dense counterpart of the\nSnowball synthetic harness, so dense GEMM and attention throughput are\nmeasured on the same footing as the MoE. It uses the same\nLevanter-trainer setup, flags and summary lines on a dense model built\nfrom the June 67B Grug blocks: layers under one `lax.scan`, per-block\nremat, Grug attention, FSDP and TP layout and June's SwiGLU `DenseMLP`,\nwith full RoPE and optional per-head QK-norm.\n\n- Presets: `tiny` (CPU check), `8b` (Llama-3 8B) and `32b` (Marin 32B in\nQwen3 layout, QK-norm, untied embeddings); `--layers` gives shallower\nproxies.\n- `--remat-mode` is `recompute_all`, `save_dots` or `none`;\n`--model-axis` adds tensor parallelism; mixed precision defaults to\n`p=f32,c=bfloat16`.\n- FLOPs per example are Levanter's Llama and Qwen3 counts, so MFU is\ncomparable with theirs; only process 0 logs the median-step summary.\n- The harness opts out of the grug variant contracts (`GRUG NOVERIFY`)\nbecause it drives Levanter's `Trainer`, not the grug template loop.\n\nStacked on #11123; the last two commits are this PR's.\n\nTests check preset parameter counts and FLOPs against `llama_8b` and\n`llama_32b`, that remat modes keep loss and gradients, and that QK-norm\nmakes the loss independent of a common `w_q`/`w_k` scale: 7 passed; grug\nvariant contracts 26 passed.",
+      "sha": "2465f56130afa56e3ba4f887720df0e9c4947854",
+      "url": "https://github.com/marin-community/marin/commit/2465f56130afa56e3ba4f887720df0e9c4947854",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-19T18:56:28Z",
+      "committed_at": "2026-11-19T18:56:28Z",
+      "message": "[evals] Add LongBench v2 with precompiled middle-truncated prompts (#11504)\n\nAdd `longbench-v2` and `longbench-v2-thinking`, curated evaluations of\n[LongBench v2](https://arxiv.org/abs/2412.15204): 503 multiple-choice\nquestions over contexts of 8,000 to 2 million words. Data is pinned to\n[`zai-org/LongBench-v2`](https://huggingface.co/datasets/zai-org/LongBench-v2)\nrevision `2b48e494` (Apache-2.0); the prompt, middle truncation and\nanswer parser follow\n[THUDM/LongBench@2e00731](https://github.com/THUDM/LongBench/tree/2e00731f8d0bff23dc4325161044d0ed8af94c1e)\n(MIT). `longbench-v2` runs greedy with thinking off and 4,096 output\ntokens. `longbench-v2-thinking` uses the Qwen3.5 model card's\nthinking-mode sampling and 32,768 output tokens, without its presence\npenalty, which the sampling spec does not express. New catalog entries\nserve Qwen3-32B with YaRN at 131K tokens (the leaderboard's setup) and\nQwen3.5-35B-A3B at 262K.\n\nUpstream truncates each prompt to the model's limit at run time. Here\neach item is published with its full prompt plus copies cut to a ladder\nof `o200k_base` token budgets (8K to 894K in steps of 1.25×, including\nupstream's 120K), keeping the first and last halves as upstream does. A\nrun sends the largest copy that fits the served context and output\nbudget, so every model answers all 503 items and models at the same\nbudget see identical prompts. Results are grouped by length, difficulty\nand domain. #10234 plans this length-stratified pilot alongside MRCR, to\ncover realistic multi-document tasks that MRCR does not.\n\nFull 503-question runs on this branch, in percent accuracy:\n\n| Model | Context | Thinking | Overall | Short | Medium | Long |\nReference | Evaldash |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Qwen3-32B | 131K, YaRN | off | 38.2 | 46.1 | 33.5 | 34.3 | 38.8\n([leaderboard](https://longbench2.github.io/)) |\n[run](https://evaldash.oa.dev/runs/longbench-v2-ts-full-qwen3-32b-20261113-longbench-v2-ede3e57aeb4e59a9aac856aeb41f3476)\n|\n| Qwen3.5-35B-A3B | 262K | off | 52.1 | 57.8 | 49.3 | 48.1 | — |\n[run](https://evaldash.oa.dev/runs/longbench-v2-ts-full-qwen3.5-35b-20261114-longbench-v2-4635a73b6e1b51eea4e265bb7fddd825)\n|\n| Qwen3.5-35B-A3B | 262K | on | 60.8 | 66.7 | 60.0 | 52.8 | 59.0 ([model\ncard](https://huggingface.co/Qwen/Qwen3.5-35B-A3B)) |\n[run](https://evaldash.oa.dev/runs/longbench-v2-ts-full-qwen3.5-35b-20261114-longbench-v2-thinking-5560e3ef118c52718284fa6d63aa9d29)\n|\n\nQwen3-32B matches the leaderboard, which uses the upstream harness,\nwithin one standard error (2.2 points). An earlier Evalchemy\nimplementation that truncated to each model's exact limit scored 38.4,\n52.5 and 64.4 on the same three runs. The thinking-mode gap is\nsignificant on a paired test (41 items lost, 23 gained) and comes from\ntwo places: 3 points on prompts sent in full, where the only differences\nare the missing presence penalty and sampling variation at temperature\n1.0, and 5 points on the 113 truncated items, whose ladder copies\naveraged 12% shorter than an exact-fit cut. The 120K copy equals\nupstream `pred.py` truncation on all 205 prompts long enough to need it.\n\nAn audit of the earlier implementation, whose prompt and parser this one\nreuses, found prompts identical to upstream on all 503 rows and answer\nextraction identical to upstream on 20,000 fuzzed and 1,026 real\nresponses; two blinded reviewers agreed with the grader on 119 of 120\nsampled responses. The grader reads only the final answer: it uses the\n`final_only` response selection from #11201, so a response whose final\nanswer is empty scores zero and its reasoning is never graded.\nRe-grading the stored thinking outputs confirmed that no reasoning\nreached the grader in the runs above, so the switch leaves their scores\nunchanged; the Qwen3.5 profile now names its reasoning parser\nexplicitly. Responses with no parseable answer score zero: 1, 7 and 10\nin the three runs, 16 of them cut off at the output limit. Upstream's\nparser reads \"The correct answer is Choice B\" as C; the grader keeps\nthat behavior, and strict `xfail` fixtures record it.\n\nEach run on CoreWeave H100s:\n\n| Run | GPUs | Eval time | Start to finish | H100-hours |\n| --- | --- | --- | --- | --- |\n| Qwen3-32B, thinking off | 2 | 2 h 14 min | 2 h 20 min | 4.7 |\n| Qwen3.5-35B-A3B, off then on | 4 | 46 + 76 min | 2 h 11 min | 8.8 |\n\nEach run reads 40M to 60M prompt tokens. Compiling the corpus takes\nunder a minute and stores 277 MB per protocol.\n\nRenaming `ChatPromptVariant.fewshot`, which this importer uses as a\nselection rank, is left to a follow-up because it also changes\nMMLU-Pro's protocol fingerprint.\n\nPart of #10234.\n\n---\n[Original\ndescription](https://github.com/marin-community/marin/pull/11504#issuecomment-6899399946)\n<!-- marin-prose-cleanup -->\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "20b7b228a95d7859938bdcefef3a63ce9f48f8ba",
+      "url": "https://github.com/marin-community/marin/commit/20b7b228a95d7859938bdcefef3a63ce9f48f8ba",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-19T17:58:04Z",
+      "committed_at": "2026-11-19T17:58:04Z",
+      "message": "[shellbox] Retry Daytona sandbox deletion after gateway errors (#11735)\n\nA Daytona sandbox leaks when its deletion hits a transient gateway\nerror. During task-machine cleanup, the lookup before deletion returned\n`502 Bad Gateway`; the cleanup logged `Task-machine provider close\nfailed` and left the sandbox running until its TTL expired.\n\nSandbox deletion now retries 502, 503 and 504 responses with backoff\nwithin the existing 10-second interrupt deadline, as the snapshot\nmetadata lookup already does. A missing sandbox still ends cleanup, and\nother errors still propagate. The two call sites share one\ntransient-status set, renamed `TRANSIENT_DAYTONA_STATUS`.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "06f3b2297a9df341af50ae4907923d3883ae0890",
+      "url": "https://github.com/marin-community/marin/commit/06f3b2297a9df341af50ae4907923d3883ae0890",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-19T17:57:42Z",
+      "committed_at": "2026-11-19T17:57:42Z",
+      "message": "[rl] Read the quick-loop selection size with CoreWeave credentials (#11733)\n\nThe quick-loop launcher fails with `NoCredentialsError` before\nsubmission when the environment has only `CW_KEY_ID` and\n`CW_KEY_SECRET`. The selection-size check from #11701 opened\n`train.parquet` through `StoragePath.open`, which uses only the ambient\nAWS credential chain and ignores CoreWeave's named keys.\n\nOpen the file through `rigging.filesystem.buckets.filesystem_for`, which\nroutes the `marin-us-east-02a` bucket to its declared CoreWeave endpoint\nand credentials. With only the CoreWeave keys set, a 10-task selection\nis rejected before submission and a 512-task selection resolves its\nplan.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "fc615b361f7c77d9e25362f2bcf863c2993ba2b4",
+      "url": "https://github.com/marin-community/marin/commit/fc615b361f7c77d9e25362f2bcf863c2993ba2b4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "mcwitt",
+      "author_name": "Matt Wittmann",
+      "authored_at": "2026-11-19T17:34:16Z",
+      "committed_at": "2026-11-19T17:34:16Z",
+      "message": "[rl, iris] Pin NCCL to the InfiniBand rails on CoreWeave H100 clusters (#11749)\n\nEach H100 node on our CoreWeave clusters has two networks: InfiniBand\nfor GPU-to-GPU traffic and a slower Ethernet network for everything\nelse. NCCL normally sees only the InfiniBand cards. The Snowball quick\nloop runs its pods in privileged mode, which also exposes the Ethernet\ncard to NCCL. NCCL then sends some GPU traffic over it, that traffic\nnever reaches the other node, and the job fails with\n`IBV_WC_RETRY_EXC_ERR(12)`. The InfiniBand fabric is healthy.\n\nThis PR sets `NCCL_IB_HCA=ibp`, which restricts NCCL to the InfiniBand\ncards (`ibp0`–`ibp7`), and drops the TCP workaround from #11700:\n\n- `lib/iris/config/cw-us-east-02a.yaml`, `cw-rno2a.yaml`: set it in\n`task_env` for every job. Takes effect after each controller's config\nrollout.\n- `train_quick_loop.py`: replace `NCCL_NET=Socket`, `NCCL_IB_DISABLE=1`\nand `NCCL_SOCKET_FAMILY=AF_INET` with the pin. Takes effect at once;\nSkyRL forwards `NCCL_IB_HCA` to every Ray actor.\n- `lib/iris/docs/coreweave.md`: document the setting and how to check\nit.\n\nThe workaround puts weight sync on TCP:\n\n| Network | Weight sync per update | Source |\n| --- | ---: | --- |\n| TCP (current quick loop) | 6.9–9.1 s | #11178 |\n| InfiniBand | 0.50–0.54 s | #11178 (`2t8k34cn`) |\n\nA two-node test on cw-rno2a reproduced the failure: forcing NCCL onto\nthe Ethernet functions failed every transfer with the production error,\nand the InfiniBand cards passed every transfer. The node layout,\ndiagnostic, and evidence are in [Echo wiki\n#1026](https://marina.oa.dev/echo/wiki/1026).\n\nLimits:\n\n- A quick-loop run over InfiniBand has not been done yet.\n- us-west-04a is unchanged because its device names are unverified. A\nvalue that matches no device makes NCCL fall back to TCP silently; check\n`NET/IB : Using [0]ibp0 …` under `NCCL_DEBUG=INFO`.",
+      "sha": "76a36b1c9f143057105c1f4cd71a2b271210381d",
+      "url": "https://github.com/marin-community/marin/commit/76a36b1c9f143057105c1f4cd71a2b271210381d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-19T17:01:35Z",
+      "committed_at": "2026-11-19T17:01:35Z",
+      "message": "[marina] Restrict public app access to the current revision (#11747)\n\nOlder app backends remain anonymously callable after selecting a new\nrevision. Restrict public GET/HEAD requests for HTML, static assets and\nAPIs to the app’s current revision, as set by publish or rollback.\nSigned-in Marina users retain access to retained revision history.\n\nVerified with all 58 real-Postgres applet tests, including named hosts,\nrollback and access-mode changes.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "b9334cc45d28b7baa305d97040fd441f22eea9f9",
+      "url": "https://github.com/marin-community/marin/commit/b9334cc45d28b7baa305d97040fd441f22eea9f9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-19T13:54:24Z",
+      "committed_at": "2026-11-19T13:54:24Z",
+      "message": "[rl-data] Add typed records for licenses, statuses and difficulty (#11568)\n\nThe Atlas pipeline needs one contract for its admission decisions. It\nnow\nwrites them as typed records, so the catalog app and every campaign\nwriter\nread the same shapes. The records here are the ones the Atlas app needs\nto\ndeploy in Marina's runtime.\n\nfinestore gets these record types:\n- the license receipt: primary evidence at an immutable pin, with a\nderived\n  classification and fail-closed admission checks\n- the status taxonomy: source statuses, canonical exclusion reasons,\ntyped\n  evidence and the data-restriction record\n- the difficulty gap records, with their exclusion reasons and the v3\nsolver\n  protocol\n- the curation records: legacy source declarations kept exactly as main\ndefines them, a QualifiedSourceDeclaration with exact-pin validation\nbeside\n  them, and the standalone evidence, measurement and census records\n\nLicense receipts fail closed. Ingest and admission need evidence from\nthe\ncurrent resolver, bound to the exact source revision. A recorded ban, a\nregistry ban, or a restrictive classification blocks ingest, unless an\nexplicit exception decision covers it. The license policy tables and the\nclassifier move here from experiments/data_belay/intake.py. Data Belay\nnow\nuses this module, so the two classifiers cannot drift. The shared table\nalso\nwidens the policy: DATA_LICENSES adds ODC-By 1.0 and the PDDL/ODC-PDDL\npublic-domain dedications. Data Belay intake now accepts datasets that\nit\nsent to review before.\n\nThis is lane 1 of the Atlas reviewability split (part of #11277). The\nlane\nthat rewrites the declaration producer carries the remaining curation\nrecords. taskcompendium adopts the reviewer taxonomies from here in its\nown\nlane.\n\nRuntime-closure validation evidence (supplied by the deploy-minimal\nreviewer):\n\n<details>\n<summary>Atlas r31 runtime validation evidence</summary>\n\nValidated commit `b57657049d5bb6656dbdda0760f12288a5a9fb62` with a fresh\n`uv sync --frozen --no-dev --package marin-marina` environment. The\nseparate r31 candidate passes package, inline-script and backend-import\nchecks: 89 files, 874,490 bytes; SHA-256\n`b6924d9bf689a1a4bb97f0273015ad3b8c68c813830a23ddf070c61eeb71f006`. The\nfactory registers 33 routes in memory. A license check advances to the\nmissing-population guard, and a missing license is rejected. This check\ndoes not migrate, load or release the app.\n\nCandidate changes are confined to\n`server/{admission,filtration,quality}.py`: alias\n`QualifiedSourceDeclaration as SourceDeclaration`, and pass `ban=None`\nonly after `require_unbanned` completes its registry check. The sealed\nr31 preview is unchanged.\n\nThe 41 imported shared names below resolve at the validated head. The\noriginal staged app lacked 29 names on main; the new qualified-model\nalias preserves main's existing declaration contract.\n\n| Imported name | Source module | Why needed | On main |\n| --- | --- | --- | --- |\n| `ActorCensusInput` | `finestore.rl.curation` | `server.source_counts`,\n`server.admission` | Absent |\n| `AssessmentItem` | `finestore.rl.curation` | `server.quality` |\nPresent |\n| `AssessmentPopulation` | `finestore.rl.curation` | `server.quality` |\nPresent |\n| `Confidence` | `finestore.rl.curation` | `server.app` | Absent |\n| `ContentEvidenceReference` | `finestore.rl.curation` |\n`server.source_counts` | Absent |\n| `CurationSummary` | `finestore.rl.curation` | `server.admission` |\nPresent |\n| `DAYTONA_SAFE_SNAPSHOT_LIMIT` | `finestore.rl.curation` | `server.app`\n| Present |\n| `DeconReceiptStatus` | `finestore.rl.curation` | `server.admission`,\n`server.contamination` | Absent |\n| `Defect` | `finestore.rl.curation` | `server.app`, `server.audit` |\nAbsent |\n| `GradingEnvironmentEvidence` | `finestore.rl.curation` |\n`server.admission` | Absent |\n| `JudgmentStatus` | `finestore.rl.curation` | `server.quality` |\nPresent |\n| `LexicalContaminationEvidence` | `finestore.rl.curation` |\n`server.admission`, `server.contamination` | Absent |\n| `LexicalUse` | `finestore.rl.curation` | `server.admission` | Absent |\n| `OracleFiltrationEvidence` | `finestore.rl.curation` |\n`server.filtration` | Absent |\n| `OracleValidation` | `finestore.rl.curation` | `server.filtration` |\nPresent |\n| `OversightLevel` | `finestore.rl.curation` | `server.quality`,\n`server.admission` | Present |\n| `QualityResultFinalization` | `finestore.rl.curation` |\n`server.quality` | Absent |\n| `ReferenceStatus` | `finestore.rl.curation` | `server.app` | Absent |\n| `SamplePanelCurrency` | `finestore.rl.curation` | `server.admission` |\nAbsent |\n| `QualifiedSourceDeclaration as SourceDeclaration` |\n`finestore.rl.curation` | `server.quality`, `server.filtration`,\n`server.admission` | Absent |\n| `SourceQualityResult` | `finestore.rl.curation` | `server.quality` |\nAbsent |\n| `SourceUse` | `finestore.rl.curation` | `server.source_counts`,\n`server.admission` | Absent |\n| `Verdict` | `finestore.rl.curation` | `server.app`, `server.quality`,\n`server.audit` | Present |\n| `require_decontamination` | `finestore.rl.curation` |\n`server.admission` | Absent |\n| `DifficultyGap` | `finestore.rl.difficulty` |\n`server.difficulty_coverage` | Absent |\n| `DifficultyObservation` | `finestore.rl.difficulty` |\n`server.rollouts`, `server.difficulty`, `server.difficulty_coverage` |\nAbsent |\n| `MeasurementStatus` | `finestore.rl.difficulty` | `server.difficulty`,\n`server.difficulty_coverage` | Absent |\n| `PROTOCOL_ID` | `finestore.rl.difficulty` | `server.difficulty` |\nAbsent |\n| `Solver` | `finestore.rl.difficulty` | `server.difficulty`,\n`server.difficulty_coverage` | Absent |\n| `difficulty_gaps` | `finestore.rl.difficulty` |\n`server.difficulty_coverage` | Absent |\n| `LicenseBan` | `finestore.rl.licenses` | `server.licensing` | Absent |\n| `LicenseReceipt` | `finestore.rl.licenses` | `server.licensing` |\nAbsent |\n| `require_license` | `finestore.rl.licenses` | `server.admission` |\nAbsent |\n| `DataRestriction` | `finestore.rl.status_taxonomy` | `server.app`,\n`server.restrictions`, `server.difficulty`,\n`server.difficulty_coverage`, `server.curriculum`, `server.audit` |\nAbsent |\n| `VerifiedIdentity` | `rigging.server_auth` | `server.audit` | Present\n|\n| `get_verified_identity` | `rigging.server_auth` | `server.audit` |\nPresent |\n| `canonical_sha256` | `taskcompendium.identity` |\n`server.difficulty_coverage` | Present |\n| `DuplicateGroup` | `taskcompendium.source_fingerprints` |\n`server.duplicate_folding` | Absent |\n| `DuplicateGroupMember` | `taskcompendium.source_fingerprints` |\n`server.duplicate_folding` | Absent |\n| `DuplicateLabel` | `taskcompendium.source_fingerprints` |\n`server.duplicate_folding` | Absent |\n| `DuplicateReview` | `taskcompendium.source_fingerprints` |\n`server.app`, `server.duplicate_folding` | Absent |\n\nThe extracted schema branch passed 56 focused model/storage tests and\nmain's 16 Atlas database/API tests. The wider selected suite passed\n1,249 tests; all seven failures reproduced on exact main. Harbor passed\n1,917 tests; all nine failures also reproduced on exact main. The owned\nPostgres container and volume were removed. These wider-suite results\ndescribe the extracted branch, not a new run at the validated PR head.\n\n</details>\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "a6277a630d228b90dc117c8c502bbe8261cc4753",
+      "url": "https://github.com/marin-community/marin/commit/a6277a630d228b90dc117c8c502bbe8261cc4753",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-19T13:52:57Z",
+      "committed_at": "2026-11-19T13:52:57Z",
+      "message": "[verifyit] Grade list replies whose members carry their own brackets (#11739)\n\nA math LIST reply whose members carry their own brackets now grades as\nthe\nsame members as a reference written with outer brackets.\n\n`_split_members` dropped a sequence's first and last characters whenever\nthey\nread as an opener/closer pair, even when that pair did not enclose the\nwhole\ntext. A reply in HARDMath's polynomial_roots form `\\left[…\\right],\n\\left[…\\right]`\nlost its first `[` and last `]`, split into three members, and scored 0\nagainst\nits own LIST reference on all 65 polynomial_roots rows; the golden\ncontrol that\ncarries the outer brackets scored 1, so admission missed the false\nnegatives.\nOn main the same split scored `(1,2),(3,4)` 0 against the LIST reference\n`[(1,2),(3,4)]`. The outer brackets are now dropped only when the first\nopener\ncloses at the last character with the text between balanced, and the top\nlevel\notherwise splits as is.\n\nPart of #11511\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "9d000be30dec7409e79d49cdcc8f198002473914",
+      "url": "https://github.com/marin-community/marin/commit/9d000be30dec7409e79d49cdcc8f198002473914",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-19T11:09:36Z",
+      "committed_at": "2026-11-19T11:09:36Z",
+      "message": "[marina] Add an applet operator so named hosts can be bound (#11743)\n\nThe atlas.oa.dev public host is provisioned but returns 404 until an\noperator binds it to its app, and the Marina stack listed no operators.\nThis change adds one Marina user ID to `marin-marina:applet_operators`,\nso that user can bind applet hosts with `marina apps hosts bind`.\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "c6fe54873e00d0669d0bb8a7ad818de0471cd94f",
+      "url": "https://github.com/marin-community/marin/commit/c6fe54873e00d0669d0bb8a7ad818de0471cd94f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-19T09:44:02Z",
+      "committed_at": "2026-11-19T09:44:02Z",
+      "message": "[taskcompendium] Run code preparation after staging the answer (#11408)\n\nRun `prepare.py` in the Python code grader command after the grading\nruntime installs `/app/answer.txt`. The previous recipe put preparation\nin environment setup, which runs before candidate files are installed.\nThe reported 20-item CRUXEval smoke run recorded `infra_error` for every\nattempt with `FileNotFoundError` on that path.\n\nBump `CODE_REVISION` from `2-...` to `3-...` so newly built HumanEval,\nHumanEval+, MBPP+, and CRUXEval corpora use the corrected recipe. A\nfocused `grade_in_sandbox` regression uses a process-boundary fake that\nrequires the answer before preparation; eight focused TaskCompendium\ntests pass. The live evaluation suites have not been rerun.\n\nThe affected safe-test runner stops at Harbor's\n`test_local_numeric_limits_do_not_bypass_required_containment` because\nthis host's Python lacks `os.pidfd_open`. The same test fails on\nunmodified main.\n\nFixes #11404\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "1a8a628d2613b3b730f84ea317c99e8c5f2c94a8",
+      "url": "https://github.com/marin-community/marin/commit/1a8a628d2613b3b730f84ea317c99e8c5f2c94a8",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-19T08:04:01Z",
+      "committed_at": "2026-11-19T08:04:01Z",
+      "message": "[skyrl] Quarantine prompts that only produce unusable groups (#11708)\n\nThe loader now counts unusable groups (`fully_masked` or\n`below_minimum_group_size`) per prompt. After\n`trainer.rollout_buffer.max_unusable_groups` in a row (default 3), it\nquarantines the prompt: it does not offer the prompt for the next 10\ntraining steps, logs a warning with the prompt and the last rejection,\nand reports `async/quarantined_prompts`. The prompt then returns with a\nfresh count. A usable group resets the count. Stale and duplicate-uid\nrejections don't affect it.\n\nA prompt whose grader fails on every sample is otherwise offered again\nwith no limit. With spare prompts, each pass spends a group on it.\nWithout spare prompts, the batch cannot fill and the run ends at the\nadmission stall timeout (30 minutes before the first step, later at\nleast 10), with an error that does not name the prompt.\n\nQuarantine is temporary because infrastructure failures mask their\nsamples: a sandbox or verifier outage produces the same unusable groups\nas a broken grader. For the same reason quarantine never leaves fewer\nusable prompts than one batch needs. A prompt at that limit stays in\nrotation and the loader logs a warning that names it; the stall timeout\nremains the only failure path.\n\nTruncated but graded samples still count toward the baseline, so prompts\nthe model cannot finish are not quarantined while\n`apply_overlong_filtering` is off (the default). Quarantine is not\ncheckpointed; a resumed run starts with every prompt in rotation.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "ee1844b68c4028a82c265248a9ddd6055b72e3ca",
+      "url": "https://github.com/marin-community/marin/commit/ee1844b68c4028a82c265248a9ddd6055b72e3ca",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-19T04:01:47Z",
+      "committed_at": "2026-11-19T04:01:47Z",
+      "message": "[rl] Worker batch assembly (3/3): Assemble batches on policy workers (#10668)\n\nWith `trainer.batch_builder=worker`, each policy worker builds its own data-parallel slice of the training batch and keeps it through the forward pass and the optimizer step. The driver sends only a plan of which rows go to which rank. The default stays `driver`, which gives the same training results as main. On checkpoint resume, both modes rebuild each restored group's row summary from its stored rollout. Both modes run on the Megatron backend and train only the policy; Megatron training does not support a critic model.\n\nThe driver holds only the plan, so its memory does not grow with the batch. On 8 H100s with a small model and a full-size batch (8,192 sequences, 98 million response tokens, responses up to 98,940 tokens), same rollouts and seed in both modes ([paired run](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-worker-batch-sync-benefit-1113-a2), measured on an earlier commit of this branch; fixed stored rollouts with no generation, one run per mode, median of steps 2 and 3):\n\n| | `driver` | `worker` |\n|---|---:|---:|\n| Driver process memory, peak | 144 GB | 1.9 GB |\n| Pod memory, peak | 445 GB | 304 GB |\n| Ray object store, peak | 110 GB | 11 GB |\n| Training step, median | 3,084 s | 2,749 s |\n\nMost of the step-time saving is in the policy-training phase (2,410 s to 2,179 s); the run's timers do not show which part of it. Batch assembly takes 24 s in worker mode and 51 s in driver mode.\n\nWorker mode supports the outcome estimators (`rloo`, `rloo_n`, `grpo`) with the regular, dual-clip, GSPO, CISPO, SAPO, importance-sampling and behavior-clip losses, and SFT with uniform advantages, with scalar or per-turn token rewards. It refuses other settings at startup with a message that names the setting, and those runs use `driver`; the [dev guide](https://github.com/marin-community/marin/blob/d9495bb6e3435cabc3e18425917e8d40b09023e8/docs/dev-guide/skyrl.md#batch-assembly) lists them. Worker mode reports summed and maximum mismatch metrics; the percentile, ESS, KL, chi-square and tail metrics and the standard deviation of the probability difference are driver-only.\n\nBoth modes give the same results in these tests:\n- [H100 driver-vs-worker test](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-worker-batch-loom-snowball-1118-a1) (tiny mixture-of-experts model, pipeline and data parallel, router replay), which runs the trainer's step in each mode: every rank's inputs, the routes, the loss, the gradient norm and the updated parameters are identical in both modes. A one-off run of the same check at a tiny Mochi shape (latent attention, short convolution, two shared experts) was also identical ([run](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-worker-batch-cuts-mochi-1116-a1), earlier commit).\n- [CPU suite on this branch](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-worker-batch-loom-review-1118-a1): everything passes except two Daytona tests that fail the same way on main; the skipped tests need storage credentials and run in the nightly below. It includes two-step GRPO and SFT training in both modes with identical losses, gradient norms and metrics, and a worker resume that trains on restored groups. The 2,200-batch comparison from #10666 finds no difference from main.\n- [Nightly CPU workflow with storage credentials](https://github.com/marin-community/marin/actions/runs/44150608455) on an earlier commit of this branch: all tests pass, including the worker GRPO, SFT and resume tests. One driver-mode checkpoint-resume test passed on its second attempt, and main's nightly passed the same day.\n\nA 64-H100 GSM8K run in worker mode completed two steps of 8,192 sequences on all ranks ([run](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-worker-batch-marin-length2-gsm8k64-1106-a1), earlier commit).\n\nPart of marin-community/MarinSkyRL#888",
+      "sha": "406dff47f217637ceca499b266989588cb0df5ab",
+      "url": "https://github.com/marin-community/marin/commit/406dff47f217637ceca499b266989588cb0df5ab",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-19T03:28:23Z",
+      "committed_at": "2026-11-19T03:28:23Z",
+      "message": "[marina] Serve public named applet hosts from the public reader (#11690)\n\nNamed applet hosts must serve public-mode apps without Google sign-in,\nbut each host maps to the IAP-protected `marina` service.\n\nAdd `marin-marina:public_applet_domains`. Pulumi maps each host in this\nlist to the `marina-public-applets` service. Pulumi gives the list to\nthat service as `MARINA_APPLET_DOMAINS`. The public reader then resolves\nthe host in `marina.applet_hosts` and rewrites the request to the bound\napp's `/a/<id>/` routes. These are the same GET and HEAD routes as the\napp's `public.applets.marina.oa.dev` URL, so the content and headers are\nthe same. Hosts in `applet_domains` stay on the protected service.\n\nThe reader reads the app's stored mode on each request. An unbound host,\na disabled host, or a host bound to a private or archived app returns\n404. Thus `marina apps mode UUID private` stops public service through\nthe host without a deploy. The protected service cannot delegate to the\npublic reader, because IAP rejects the request before it gets to the\ncontainer. Thus the service for each host is set at deploy time, and the\naccess check is done by the reader at request time. A public host does\nnot fall back to the protected service. The protected service also gets\nthe public hosts, so that operators can bind them with `marina apps\nhosts bind`.\n\nThe stack config adds `atlas.oa.dev` to `public_applet_domains`. The\ndeploy creates one Cloudflare DNS-only CNAME (`atlas.oa.dev` to\n`ghs.googlehosted.com`) and one Cloud Run domain mapping to\n`marina-public-applets`. It also updates `MARINA_APPLET_DOMAINS` on both\nservices. There are no new secrets and no IAM or IAP changes. After the\ndeploy, an applet operator must bind `atlas.oa.dev` to the public RL\nData Atlas app.\n\nDomain mappings ignore changes to their route. If a host moves between\n`applet_domains` and `public_applet_domains`, remove it in one deploy\nand add it to the other list in the next. A host cannot be in both\nlists.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "66ca009730d7dd892874e12cc0c54118ba300eb0",
+      "url": "https://github.com/marin-community/marin/commit/66ca009730d7dd892874e12cc0c54118ba300eb0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-19T03:25:13Z",
+      "committed_at": "2026-11-19T03:25:13Z",
+      "message": "[skyrl] Write training batch dumps to cloud export paths (#11643)\n\nWrite diagnostic training batches to the configured cloud export path.\nThe writer previously treated an `s3://` URI as a local path and\nsilently created a local `s3:` directory. Use the existing resource-path\nand storage helpers while keeping local writes, filenames, pickle format\nand batch contents unchanged. The dump trigger and export-root selection\nstay unchanged.\n\nCPU regressions read equal tensors and metadata back from a local file\nand an S3 URI routed to a memory filesystem, without creating a local\n`s3:` tree.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "e6307091d70e041bbca38adb6d2a01684e0a71bd",
+      "url": "https://github.com/marin-community/marin/commit/e6307091d70e041bbca38adb6d2a01684e0a71bd",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-19T03:25:00Z",
+      "committed_at": "2026-11-19T03:25:00Z",
+      "message": "[skyrl] Preserve worker diagnostics without attached exceptions (#11621)\n\nPreserve asyncio diagnostics without an attached exception in SkyRL\nworker logs. Asyncio can emit `exc_info=False`; the stdlib-to-Loguru\nbridge indexed it as an exception tuple, raised `TypeError` and lost the\noriginal diagnostic. Treat it as no attached exception while retaining\nreal exception tracebacks.\n\nA subprocess regression fails on main and passes with the repair. It\nchecks messages and worker IDs from asyncio's context dictionary, plus a\nreal exception's type, message and traceback frame. This repairs\ndiagnostic logging; it does not establish the cause of the original\nworker failure.\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "f8e4e9ff7dc10d0e3ac6937c20b09d6fda60fe8a",
+      "url": "https://github.com/marin-community/marin/commit/f8e4e9ff7dc10d0e3ac6937c20b09d6fda60fe8a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-19T03:22:53Z",
+      "committed_at": "2026-11-19T03:22:53Z",
+      "message": "[skyrl] Use standard NCCL buffers for policy and reference roles (#11656)\n\nMegatron policy and reference roles now resolve to an explicit 4-MiB\nNCCL SIMPLE buffer, and reference forwarding applies in dedicated and\ncolocated layouts. The previous reference default was 256 KiB; an unset\npolicy value delegated sizing to the runtime. The resolved settings\noverride an inherited small-buffer environment. Explicit role tuning\nremains available. Colocated reference workers retain larger buffers, so\ntheir memory budget must account for that.\n\nNCCL 2.30.7 returned incorrect native C and ProcessGroupNCCL reductions\nwith a 256-KiB buffer. A source-library A/B reproduced the failure and\ncorrected it by bounding the NVLSTree chunk to its FIFO slot.\nExisting-library 4-MiB controls passed the tested 16–512-MiB range;\n1-MiB controls failed at 512 MiB. This mitigation keeps the existing\nlibrary and strict comparator. The eight-GPU A/B does not qualify every\ntopology or message size.\n\nThe regression captures resolved role environment mappings at actor\nallocation with inherited NCCL_BUFFSIZE=262144. Existing immutable run\nartifacts are unchanged; these defaults apply to future launches.\n\nPart of #11649\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "ce2c57cd68a0e718cebe60a69315b332d9d18897",
+      "url": "https://github.com/marin-community/marin/commit/ce2c57cd68a0e718cebe60a69315b332d9d18897",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-19T01:28:41Z",
+      "committed_at": "2026-11-19T01:28:41Z",
+      "message": "[rl] Reject quick-loop selections smaller than one update (#11701)\n\nA quick loop whose selection has fewer than 128 training tasks fails at\nSkyRL's data load (`len(prompts_dataset) >= train_batch_size`). That\ncheck runs only after the 40 GPUs are allocated and the model has\nloaded.\n\nAn update trains each task at most once, so the selection needs at least\none batch of distinct rows. The launcher now reads the row count from\nthe `train.parquet` metadata and rejects a smaller selection before\nsubmission, with the count and the required batch size.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "ea1257ca8d7a968397f2493b968035c8eb1caa46",
+      "url": "https://github.com/marin-community/marin/commit/ea1257ca8d7a968397f2493b968035c8eb1caa46",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-19T00:58:39Z",
+      "committed_at": "2026-11-19T00:58:39Z",
+      "message": "[skyrl] Log the provider error when a task machine fails (#11704)\n\nWhen a task machine or grader machine fails to start, the rollout worker\nlogs only `TaskMachineError`, and the rollout's diagnostics keep only\nthe provider's error type, HTTP status and SDK call. Daytona\n`snapshot.get` HTTP 400 failures during grader creation therefore can't\nbe diagnosed: neither the log nor the saved rollouts contain Daytona's\nerror message, and the snapshot may be gone by the time anyone looks.\n\nWhen the underlying error is a `DaytonaError`, the worker's warning now\nincludes its type and message, passed through\n`rigging.redaction.redact_string` because provider text can contain\ncredentials. For example: `TaskMachineError (DaytonaValidationError:\nFailed to get snapshot: ...)`. Redaction also masks high-entropy\nidentifiers such as snapshot names. Other providers' errors still log\nonly the exception type, and the persisted diagnostics keep their\nallowlisted fields unchanged.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "02fc8bc130ad23afbb273ae83866e51d4d568bda",
+      "url": "https://github.com/marin-community/marin/commit/02fc8bc130ad23afbb273ae83866e51d4d568bda",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-19T00:36:32Z",
+      "committed_at": "2026-11-19T00:36:32Z",
+      "message": "[rl] Force NCCL onto TCP in the Snowball quick loop (#11700)\n\nThe Snowball quick loop fails on cw-us-east-02a at the first inter-node\npipeline-parallel collective: NCCL logs `NET/IB: Got completion ...\nstatus=IBV_WC_RETRY_EXC_ERR(12)` and then `ncclRemoteError`.\n\n#11178 removed the TCP override because InfiniBand worked on the nodes\nits smoke landed on. The fault from 2026-10-20 still occurs on other 02a\nnodes, so a quick loop fails within minutes depending on placement.\n\nRestore `NCCL_NET=Socket`, `NCCL_IB_DISABLE=1` and\n`NCCL_SOCKET_FAMILY=AF_INET` in the launcher's `extra_env`. With these\nsettings, the same 5-node layout completes model load, weight sync,\nthree updates and both evaluations. TCP weight sync costs about 7 s per\nupdate (measured in #11178). Remove the override once the 02a InfiniBand\nfault is fixed.\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "10b2167aed28f7d50f1a622a76f1820bafe2dbf2",
+      "url": "https://github.com/marin-community/marin/commit/10b2167aed28f7d50f1a622a76f1820bafe2dbf2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "HRL9000",
+      "author_name": "HRL9000",
+      "authored_at": "2026-11-19T00:15:37Z",
+      "committed_at": "2026-11-19T00:15:37Z",
+      "message": "[finelog] Record catalog min/max for flagged columns (#11394)\n\nRecord each segment's min and max for columns flagged `catalog_bounds`,\nand flag `log.epoch_ms`. This is the write half of #11184, which will\nuse the bounds to skip segments in time-bounded queries. Part of #11172.\n\nNothing reads the bounds yet. Until #11184 lands, this PR only adds\ncost: maintenance reads Parquet footers to backfill existing segments,\nup to 64 segments per table per tick.\n\n- `ColumnIndex.catalog_bounds` applies to INT64 columns only. When\nschemas merge it can only turn on, never off, so a sender on an older\nschema doesn't clear it on the hub. It is outside the index policy\nfingerprint, so turning it on rebuilds no index.\n- The bounds are stored in `object_segments.column_bounds`, the column\nthat catalog migration 0007 (#11579) added, and in the checkpoint's\n`CatalogSegment.column_bounds`. NULL means no range is recorded. This PR\nadds no migration.\n- Flush, merge and spec migration record bounds for the segments they\nwrite.\n- The key-bounds maintenance task becomes `SegmentBounds`, which also\nfills missing column bounds from footers without rewriting objects. It\nmainly matters for L3, which is never rewritten. A column with no usable\nstatistics is recorded as always-scan, so the segment leaves the\nbackfill queue and queries still read it.\n\nTo roll out, deploy the new image once #11579 is deployed; nothing needs\nto run by hand. Segments written from then on get bounds as they are\nflushed or merged. From the first maintenance tick, the backfill adds\nbounds to existing segments, 64 per table per tick, until every object\nsegment has them. Query results and plans don't change until #11184.\n\nThe #11579 image can be redeployed after bounds have been written. It\nalready knows migration 0007, so it opens the catalog, and everything\nthis PR writes goes where that image ignores it:\n\n- That image never reads `object_segments.column_bounds`.\n- The checkpoint JSON decoder ignores the new\n`CatalogSegment.column_bounds` field.\n- The `catalog_bounds` flag is a key in the namespace's stored schema\nJSON, whose decoder doesn't reject unknown keys. It is also field 4 on\n`ColumnIndex`, which protobuf ignores, so a client that sends the flag\nto an older server is fine.\n\nSegments that image writes get NULL, and checkpoints it rewrites drop\nthe bounds; after the next upgrade, the backfill restores them. This was\nchecked from the code; it has not been run end to end with the #11579\nbinary against a catalog this PR wrote.\n\n---------\n\nCo-authored-by: Louisa <54686345+hrl20@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "bdfff7d9fd0a38f690f2e22804527ccf8a660846",
+      "url": "https://github.com/marin-community/marin/commit/bdfff7d9fd0a38f690f2e22804527ccf8a660846",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-19T00:11:58Z",
+      "committed_at": "2026-11-19T00:11:58Z",
+      "message": "[rl] Document Mochi inference on GB200 (#11609)\n\nDocument a BF16 Mochi inference configuration for GB200 using the\nexisting SkyRL recipe interface. It uses eight EP16 engines across two\nNVLink domains, alongside a 64-GPU trainer in a third domain. The\nexample updates the recipe’s five inference topology fields together\nwith the typed role plan, preserving the caller’s other training\nsettings and model/data inputs. Normal admission is capped at 128 prompt\ngroups, with a two-group override for smoke runs. Use a new artifact\nversion when changing the layout.\n\nCPU checks execute the documented fragment for recipes with and without\nserialized inference topology, through the native loader, placement\nplanner and training validator. They also cover the smoke admission\noverride. GPU memory fit, updated-weight publication, long-context\ntraining, performance and recovery remain outside this CPU validation.\n[#11430](https://github.com/marin-community/marin/issues/11430) tracks\nserving work.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "62e0b1cbce049177cd43836c6be42deae5e47cd2",
+      "url": "https://github.com/marin-community/marin/commit/62e0b1cbce049177cd43836c6be42deae5e47cd2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-19T00:11:43Z",
+      "committed_at": "2026-11-19T00:11:43Z",
+      "message": "Run declared Harbor task setup before agent installation (#11585)\n\nRun explicitly declared task setup as root with `sh` after Harbor stages\nthe task’s setup files and injected skills and before a Harbor trial\ninstalls its agent. Retain setup output and completion evidence\nseparately from model traces, and report failed setup as an execution\nfailure.\n\nThe Harbor task package owns the image, environment variables and agent\nuser. TaskSpec may add setup commands and their setup-only working\ndirectory; reject other environment requirements. The recording engine\nrequires its own machine when these setup fields remain set. Remove them\nfrom its copy while retaining the full declaration in Harbor’s harness.\nUnmodified imported tasks retain their behavior. Prompt extraction and\ncampaign-specific setup policy remain outside this change.\n\nThe affected Linux checks and SkyRL CI test selection pass. Five CPU\ncases pass, including the real Harbor setup lifecycle; removing the\nsetup hook fails both lifecycle cases. These tests run in the existing\nCI file selection. A prior native CPU/provider check verified setup\nbefore the first model request in 27 SWE trials with scripted answers.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "83e1e7fca2203ba345926a63bc77bd195d9997d7",
+      "url": "https://github.com/marin-community/marin/commit/83e1e7fca2203ba345926a63bc77bd195d9997d7",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-20T00:00:00Z",
+    "start": "2026-11-19T00:00:00Z"
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "commit_count": 14,
+  "commits": [
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-22T23:39:13Z",
+      "committed_at": "2026-11-22T23:39:13Z",
+      "message": "[levanter] Remove dead helpers from levanter and haliax (#11872)\n\nDelete Levanter and Haliax code that nothing in the repository calls:\nthe W&B run-name truncation helper (last caller removed in #6649), the\ncheckpoint debug state-provider registry, the `BackgroundIterable`\nwrapper, the DeepEP dispatch-kernel probe on both the Python and CUDA\nsides, `read_token_count_summary`, and two private Haliax helpers.\n\nNothing ever registered a checkpoint debug state provider, so the\nregistry only produced an empty dict, and the debug log line added it\nonly when non-empty. Checkpoint metadata and log output are unchanged.\n\nProduction code uses only `BackgroundIterator`, so its tests now\nconstruct that class directly. The two perplexity tests read the\ntoken-count JSON themselves.\n\nLevanter and Haliax are used outside this repository, so this pass is\nlimited to helpers and internals with no callers, and leaves every\noptimizer option in place. The removed CUDA function is a self-contained\n`extern \"C\"` entry point with no references; it was not compiled\nlocally.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "1f668d6cb3c0db971d2fea58760618c9f6906350",
+      "url": "https://github.com/marin-community/marin/commit/1f668d6cb3c0db971d2fea58760618c9f6906350",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-22T23:11:07Z",
+      "committed_at": "2026-11-22T23:11:07Z",
+      "message": "[ci] Fix native floor bumps under uv 0.13.9 and for extra floors (#12001)\n\nThe native package floor updater has failed on every run since uv 0.13.9\n(released 2026-11-17), such as [run\n45066154109](https://github.com/marin-community/marin/actions/runs/45066154109/job/137342627186).\nsetup-uv installs the latest uv, and 0.13.9 spells environment markers\ndifferently when it re-locks; for example, it factors a shared\n`python_full_version < '3.13'` term out of each fork. A floor bump\nrewrote 16 of the 112 top-level resolution markers and markers in 58\npackage entries, so validate_targeted_lock_change rejected the lock as\nchanged metadata. Re-locking main once would not hold: uv 0.13.5\nrewrites the lock back to the old form byte for byte.\n\nThe guard now ignores marker strings, as #9994 made it ignore the lock\nformat `revision`. It still rejects a change to the version, source,\nhashes, or dependency names of any package other than the released\ndistribution and its requirement owner. Because the guard cannot tell a\nrespelled marker from one that changes meaning, bump-releases also\ncompares the lock with markers and reports `markers_changed`. When it is\ntrue, the workflow opens or updates the PR but leaves the merge to a\nperson. The first update after this lands is held this way, because\nmain's lock has the form that uv 0.13.8 and earlier write.\n\nThe bump also raised the wrong floor for marin-finelog-server, which\nmoved into the iris controller extra in #10236. `uv add --package\nmarin-iris` without `--optional controller` kept the extra's old floor\nand added a second marin-finelog-server requirement to iris's core\ndependencies; the open update PR #8846 has that line. The bump now\nwrites the floor in place with update_native_requirement, which already\nfinds it in any section, and runs `uv lock --upgrade-package`. For all\nthree packages this gives the same pyproject and lock as `uv add` with\nthe correct section.\n\nWith the versions from the failing run, bump-releases raises the\ndupekit-native, iris-native, and finelog-server floors under uv 0.13.5\n(`markers_changed=false`) and uv 0.13.9 (`markers_changed=true`).\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "fad966b04cb7bbc357e4ebdaa35786c984d9fae6",
+      "url": "https://github.com/marin-community/marin/commit/fad966b04cb7bbc357e4ebdaa35786c984d9fae6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-22T20:25:11Z",
+      "committed_at": "2026-11-22T20:25:11Z",
+      "message": "[finelog] Let a table raise its client buffer and split large sends (#11941)\n\n`LogClient.get_table` now takes `max_buffer_rows` and\n`max_buffer_bytes`, the bounds on the rows that wait in a table's queue.\nThe flush thread takes one request of rows from the queue at a time, of\nabout 32 MiB, so a queue larger than one request goes out in several\n`WriteRows` requests.\n\nEvery table had the default bounds of 10,000 rows and 16 MiB, and a\ncaller of `get_table` could not change them. A producer that writes in\nbursts loses rows at those bounds. One process that ran 2,000 scripted\nrollouts through the rollout engine in about 2 seconds wrote 32,000\nevent rows, and 20,000 arrived.\n\nLarger bounds alone move the loss to the server. The flush thread sent\nthe whole queue in one request, and the server refuses a `WriteRows`\nbody above 160 MiB or 1,000,000 rows. The client drops a refused\nrequest, so a 180 MB queue of 3,000 rows lost every row. The same queue\nnow arrives complete in 6 requests and 5.4 seconds on an embedded server\nof version 0.2.67.dev39325146809.\n\nThe client sizes a request by its estimate of the queued rows, which\ncounts the characters of a string and 8 bytes for any other value. It\nthen checks the encoded size and sends a request above 128 MiB as two\nhalves, so rows that the estimate undercounts stay below the limit. With\nthe default bounds, 3,000 rows that each hold a 60 kB `bytes` value went\nout as two requests and all arrived; as one request of 180 MB they are\nrefused. A single row above 128 MiB is dropped. A 270 MiB row got a\nretryable error from the server's 256 MiB transport limit, and the\nclient sent it again without end while the rows behind it waited.\n\nThe request size sets the throughput. The server acknowledged the first\nrequest to a table in 0.04 seconds and each later one after about 1\nsecond, also for requests of 256 KiB. That matches `MIN_FLUSH_INTERVAL`,\nits cap of one sealed segment each second for a table. A request above\nthe server's 100 MiB segment size skips that wait: a 480 MB queue took\n14.3 seconds in requests of 32 MiB and 2.5 seconds in requests of 120\nMiB. The target stays at 32 MiB so that the producer holds a smaller\nencoded copy of the rows for each request. `SEND_TARGET_BYTES` is the\nconstant to raise for a faster drain.\n\nThe rows of later requests stay in the queue, so the buffer bounds still\napply to them and `flush` and `close` count them as pending. A queue\nwithin the default bounds that encodes below 128 MiB still goes out in\none request. `Table.close` still waits about 10 seconds for the queue,\nand the flush thread stops after that, so a producer with raised bounds\ncalls `Table.flush` with its own timeout before it closes. `get_table`\nraises `ValueError` when a later handle of a namespace asks for other\nbounds.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "7d0d2752a3ea789985d60471d1f52b4f0bae6223",
+      "url": "https://github.com/marin-community/marin/commit/7d0d2752a3ea789985d60471d1f52b4f0bae6223",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-22T20:21:24Z",
+      "committed_at": "2026-11-22T20:21:24Z",
+      "message": "[rolloutengine] Add order, time and attempt facts to rollout events (#11940)\n\nA `RolloutEvent` now carries `index`, its position in the attempt, and\n`emitted_at`, the wall-clock time at which the engine emitted it.\n`AttemptStarted` carries the spec's harness and trace mode and the\ndataset of the task's source. `AttemptEnded` carries the number of model\nturns and the tokens that the attempt spent.\n\nThe engine delivers events to the observer from a queue, after the\nrollout has moved on, so an observer could not tell when an event\nhappened. The queue holds 1,024 events for each attempt and drops the\nrest. The drop count is in `Rollout.metrics`, which an observer does not\nreceive. The index counts every emitted event, so a gap in the indexes\nthat an observer receives is a lost event. The last events of an attempt\ncan be lost without a gap, so the events are complete when\n`AttemptEnded` is among them and every lower index is present.\n\nThe start and end fields let an observer that stores events describe an\nattempt from those two events, without the `TaskRolloutSpec` or the\nreturned `Rollout`. No code outside the engine builds these events, and\nno production caller passes an observer yet, so no caller changes.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "47c255adbf0c70b3f884dc3c8a3b356f051890f9",
+      "url": "https://github.com/marin-community/marin/commit/47c255adbf0c70b3f884dc3c8a3b356f051890f9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-22T15:58:44Z",
+      "committed_at": "2026-11-22T15:58:44Z",
+      "message": "[task-curation] Repair fixed-reply Reasoning Gym scorers (#11987)\n\nRepair five Reasoning Gym 0.1.25 scorers that award full reward to fixed\nincorrect replies. Generated, Nemotron Ultra, and TaskTrove conversions\nretain these task families. Shared Verifyit scoring requires finite\ncomplex values, compares coin probabilities, matches propositional\nconclusions to the recorded example, evaluates puzzle24 expressions with\nexactly the given numbers, and compares Game of Life boolean labels.\n\nGenerated controls use the repaired scoring and retain the recorded\nwrong-answer rejection. TaskTrove controls use the documented\npropositional example when an entry has no answer. Regressions\nreproduced all five scorer failures on the old code and check that each\nincorrect reply scores 0 while a known-correct answer scores 1. The\nnull-answer TaskTrove golden regression reproduced a validation failure\nbefore its fix. The affected-test runner passed 326 selected tests and\nHarbor's offline suites; Pyrefly reported zero errors. Recipe versions\nadvance for all three sources, with generated version 3 following\nversion 2 in #11951. The released validation panel still requires a\nseparate rebuild to use the repaired grader.\n\nPart of #11653\n\n---------\n\nCo-authored-by: Xiaoyuan Wang <174581044+XiaoyuanWang111@users.noreply.github.com>\nCo-authored-by: Ben Feuer <49835968+penfever@users.noreply.github.com>",
+      "sha": "18a6cd6463ddb867378628d1ac4beba07cf33312",
+      "url": "https://github.com/marin-community/marin/commit/18a6cd6463ddb867378628d1ac4beba07cf33312",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-22T15:19:33Z",
+      "committed_at": "2026-11-22T15:19:33Z",
+      "message": "[ifeval] Correct repeat and language grading (#11991)\n\nHarness IFEval now compares `combination:repeat_prompt` with the source\n`prompt_to_repeat` after trimming and lowercasing, so a reply can repeat\nonly the request before answering. Harness language constraints use\n`langdetect==1.0.9` seeded to zero. The detector returns `en` for all\nthree reported English counterexamples and `de` for a German control\nsentence. Detection errors fail the constraint; a missing detector\npackage surfaces as a grader infrastructure error.\n\nRLVR-IFeval curation and skyrl-gym preflight reject response-language\ndescriptors because their grader retains the hint-word check. The IFEval\nprotocol advances to `2026.11.22.1` and the RLVR source advances to\nversion 3 so changed scores have distinct identities.\n\nFixes #11986\n\n---------\n\nCo-authored-by: Ben Feuer <49835968+penfever@users.noreply.github.com>",
+      "sha": "4891b8e7a8bdc70a86c1b01a285113c82a5b2c5e",
+      "url": "https://github.com/marin-community/marin/commit/4891b8e7a8bdc70a86c1b01a285113c82a5b2c5e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "XiaoyuanWang111",
+      "author_name": "Xiaoyuan Wang",
+      "authored_at": "2026-11-22T14:28:47Z",
+      "committed_at": "2026-11-22T14:28:47Z",
+      "message": "[task-curation] Grade time_intervals rows on any day (#11951)\n\nCompare a regenerated `time_intervals` entry with its recorded entry\nwithout `metadata.start_time` and `metadata.end_time` when the question\nholds times only. `reasoning-gym` 0.1.25 parses the two times with\n`dateutil`, which fills in the current date, so both fields carry the\nday the generator ran. The generated source's grade script compared the\nwhole entry, so from the next day on it raised `ValueError: Regenerated\nentry differs from the recorded entry` for every reply and grading\nrecorded an infrastructure error. 508 of the source's 1,000\n`time_intervals` rows have such a question (task types `time`,\n`time_seconds` and `time_ms`).\n\nThe question states both times, so the question, the answer and the\nremaining metadata still identify the entry. Entries with dates and the\nentries of every other task are compared in full, as before. The\ngenerator's `reproducible` flag uses the same comparison as the grade\nscript.\n\nI encoded the 1,000 entries with `datetime.now()` fixed to 2026-11-04\ninside `dateutil`'s parser and ran the grade script's `main()` on\n2026-11-20 with each entry's own answer. On main 508 entries raise and\n492 print 1.0; with this change all 1,000 print 1.0. The earlier day is\nsimulated: I did not grade a stored row.\n\nThe recipe version moves to 2 because the bundled grade script changes,\nso the source's rows get new task ids, and rows converted before this\nchange keep the old script. The new test in\n`test_reasoning_gym_grading.py` is marked `docker` like the others in\nthat file. I had no grader image, so I ran the file through\n`sandbox_grade` with the grading commands as local subprocesses: the new\ntest ends in an infrastructure error on main and scores 1.0 here.\n\nFixes #11651\n\n---------\n\nCo-authored-by: Xiaoyuan Wang <174581044+XiaoyuanWang111@users.noreply.github.com>",
+      "sha": "f12095137c84fd2dfb1543aefd2600c2c1544f23",
+      "url": "https://github.com/marin-community/marin/commit/f12095137c84fd2dfb1543aefd2600c2c1544f23",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-22T13:57:16Z",
+      "committed_at": "2026-11-22T13:57:16Z",
+      "message": "[ifeval] Consolidate instruction graders on verifyit (#11985)\n\nGrade RLVR-IFeval descriptors, skyrl-gym IFEval rollouts and preflight,\nand Evalchemy harness IFEval through verifyit. Remove both open-instruct\nchecker copies and the unused harness copy. IFBench keeps its separate\nsource checkers.\n\nScore changes affect `MarinSkyRL:rlvr_ifeval`, skyrl-gym `ifeval`, and\n`Evalchemy:ifeval`. The previously unpatched skyrl-gym path now accepts\nthe four reported formatting cases; verifyit's language, punctuation,\nsentence, and Markdown checks also differ from the source checkers. The\nRLVR curation source advances from version 1 to 2. Evalchemy IFEval\nadvances from protocol 2026.11.02 to 2026.11.22 and receives a new\ncontent-derived scorer revision. The frozen Micro210 policy and prepared\ntask bytes remain unchanged.\n\nRegression coverage exercises the four reported cases through the\nmigrated paths, including replies that ignore each instruction. Focused\ntests and Pyrefly pass. The affected-test runner passed 2,049 Harbor\ntests, then stopped before root pytest because its local environment\nlacks `pytest-xdist`.\n\nFixes #11984\n\n---------\n\nCo-authored-by: Ben Feuer <49835968+penfever@users.noreply.github.com>",
+      "sha": "bdeb84d6389307cb3dfe6a3dcefde94312713628",
+      "url": "https://github.com/marin-community/marin/commit/bdeb84d6389307cb3dfe6a3dcefde94312713628",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "XiaoyuanWang111",
+      "author_name": "Xiaoyuan Wang",
+      "authored_at": "2026-11-22T13:09:33Z",
+      "committed_at": "2026-11-22T13:09:33Z",
+      "message": "[rl-data] Grade nemotron_if with verifyit's IFEval checks (#11979)\n\nGrade `MarinSkyRL:nemotron_if` with verifyit's IFEval checks instead of\nthe open-instruct checkers in `skyrl/scorers/ifeval_utils.py`. Each\nNemotron row becomes a list of verifyit constraints, one per IFEval\ninstruction with the row's non-null arguments, and the grade script\nstill rewards the fraction of constraints passed. RLVR-IFeval keeps its\nconversion, scorer and rubric.\n\nThe open-instruct checkers follow RLVR-IFeval's wording, and three of\nthem fail replies that do what a Nemotron prompt asks: paragraphs\ndivided by `***`, a `***` divider in a reply with an exact bullet count,\nand a `<<title>>` line above `SECTION 1`. verifyit's checks follow the\nIFEval wording that these prompts use, and `nemotron_ultra/graders.py`\nalready grades the Nemotron Ultra instruction rows with them.\n\nOn the pinned file (`ab2a40d2`, 56,339 rows), conversion keeps 56,083\nrows instead of 54,954. `keywords:letter_frequency`, which had no\nmapping, now converts, and 256 rows are rejected because a required\nargument is missing or empty. Replies built from each kept row's\narguments and the prompt's wording pass 109,315 of 109,316\nsingle-instruction checks; the exception asks for exactly 0 bullets, so\nits literal reply is blank. Replies that combine `***` paragraphs with\nbullets pass on all 1,247 rows that ask for both, and a `<<title>>`\nabove the sections passes on all 582. Over the 54,951 rows both versions\nkeep, replies that ignore the prompt earn within 0.0001 of their old\nmean reward (0.0817 for `yes`, 0.2047 for three unrelated paragraphs). A\nblank reply earned 0.0822 from constraints such as \"no commas\" and now\nscores 0.\n\n`language:response_language` stays unsupported: no row uses it, and\nverifyit's check passes on a single hint word. The recipe version goes\nto 2, so pools built before this change keep the old grading until they\nare rebuilt.\n\nFixes #11978\n\nCo-authored-by: Xiaoyuan Wang <174581044+XiaoyuanWang111@users.noreply.github.com>",
+      "sha": "a9c51ba37920d751ce2cbc47156f695bb76f823e",
+      "url": "https://github.com/marin-community/marin/commit/a9c51ba37920d751ce2cbc47156f695bb76f823e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-22T13:06:23Z",
+      "committed_at": "2026-11-22T13:06:23Z",
+      "message": "[rl-data] Align IFEval format checks with Nemotron prompts (#11983)\n\nThe shared SkyRL IFEval format checks now accept `***` and `* * *` as\nstandalone paragraph dividers, exclude those dividers and bold headings\nfrom exact bullet counts, count numbered section markers after a title,\nand count each `**bold**` span once. Replies that omit a required\ndivider, bullet, section marker, or highlight still fail.\n\nThe previous checks rejected replies that followed the Nemotron prompts.\nOn the issue's repro inputs, the paragraph, bullet, and section checks\nreturned false, while one bold span passed a request for two highlights;\nall four results reverse with this change. The shared checker also\nscores RLVR-IFeval rows, so its format semantics change there too.\n\n[#11979](https://github.com/marin-community/marin/pull/11979) separately\nswitches Nemotron grading to verifyit and overlaps with this fix. The\ntwo approaches need coordination before either merges.\n\nThe affected-test runner reached its 600-second limit after 1,346 passes\nand 5 skips, with no reported failures. Direct scorer and SkyRL tests\npassed (15 and 61 cases).\n\nFixes #11978\n\nCo-authored-by: Ben Feuer <49835968+penfever@users.noreply.github.com>",
+      "sha": "29a770764c280f0055624de218613c5efd195c58",
+      "url": "https://github.com/marin-community/marin/commit/29a770764c280f0055624de218613c5efd195c58",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-22T11:25:23Z",
+      "committed_at": "2026-11-22T11:25:23Z",
+      "message": "[skyrl] Preserve NCCL AllGather in learner processes (#11956)\n\nPermit Ring for NCCL collectives outside all-reduce while retaining Tree for batch-invariant all-reduce in SkyRL's learner processes. The [November 21 SkyRL nightly](https://github.com/marin-community/marin/actions/runs/44925403052/job/136910257408) failed in Grug's two-rank eval test during Megatron optimizer initialization: `all_gather_object` had no available algorithm because `NCCL_ALGO=allreduce:tree` named only the all-reduce function.\n\nThe [pinned vLLM initializer](https://github.com/marin-community/vllm/blob/0ac9dcb157ee/vllm/model_executor/determinism/batch_invariant.py#L1142-L1155) overwrites the Ray learner's `NCCL_ALGO` during actor construction. SkyRL now reapplies the Ring fallback after that call, before Megatron creates its process groups. The [targeted H100 rerun](https://github.com/marin-community/marin/actions/runs/44930085809/job/136924588396) passed the original failing case; all three matrix lanes passed. Local affected tests and PR CI passed.\n\nA [full nightly rerun](https://github.com/marin-community/marin/actions/runs/44930544256/job/136927877372) passed the original case and the first four-GPU rollout case, then exposed the same `allreduce:tree` defect inside vLLM's separate inference engine core while profiling a MoE model in `broadcast-32`. That subprocess re-runs vLLM's initializer and fails its own AllGather. Restoring the full lane requires changing the pinned `marin-community/vllm` source setting to include a default algorithm, building a new GPU wheel, and adopting that wheel in Marin. This PR fixes the SkyRL learner side only.\n\nPart of #11955",
+      "sha": "f5b7aa4d951661a9056d5215ecf8c8f6966e2dd0",
+      "url": "https://github.com/marin-community/marin/commit/f5b7aa4d951661a9056d5215ecf8c8f6966e2dd0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "XiaoyuanWang111",
+      "author_name": "Xiaoyuan Wang",
+      "authored_at": "2026-11-22T02:11:56Z",
+      "committed_at": "2026-11-22T02:11:56Z",
+      "message": "[verifyit] Keep the IFEval sentence patterns valid on Python 3.10 (#11952)\n\nFollow-up to #10928, which ended the sentence-mark runs in\n`FINAL_MARK_RUN` and `SCRIPT_MARK_RUN` with possessive quantifiers\n(`++`, `*+`), which Python added in 3.11. The grader interpreter can be\nPython 3.10, where compiling them raises `re.error: multiple repeat`, so\nimporting `verifyit.modes.ifeval` fails there:\n`test_staged_imports_survive_the_grader_interpreter[python-3.10]` fails\non main.\n\nEach run now ends at a negative lookahead for its own class\n(`[marks]+(?![marks])`, `[closers]*(?![closers])`), which keeps a run\nmaximal as the possessive quantifier did. A plain greedy quantifier is\nnot enough: `SCRIPT_MARK_RUN(?!-\\S|\\s*$)` would then match the first\nmarks of a run that ends the text. `SENTENCE_END` and\n`UNJOINED_SENTENCE_END` give the same matches and groups as on main for\n400,000 random strings over the marks, closers, whitespace, dashes and\nletters, and the degenerate-text tests still finish within their\ndeadlines.\n\n`test_ifeval.py` and `test_grader_interpreters.py` pass, including the\nPython 3.10 case that fails on main.\n\nCo-authored-by: Xiaoyuan Wang <174581044+XiaoyuanWang111@users.noreply.github.com>",
+      "sha": "cd0e932c780e0171c5612658faa0f180a851569e",
+      "url": "https://github.com/marin-community/marin/commit/cd0e932c780e0171c5612658faa0f180a851569e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-22T00:17:00Z",
+      "committed_at": "2026-11-22T00:17:00Z",
+      "message": "[tests] Speed up Grug pipeline and Snowball CPU tests (#11961)\n\nJIT the Grug pipeline and reference loss paths to avoid compiling each\neager\noperation separately. The two cases still compare losses and gradients,\nand\nthe offload case checks the saved residuals for pinned host placement.\n\nUse three layers for June Snowball's two-device expert-parallel test.\nThe\nuneven split still exercises sliding-window and full causal attention,\nand\nthe test still checks routing drops and exact logits and gradient\nparity.\nReuse equivalent SkyRL compositions in three more gated publication\ncases.\n\nEach Grug case dropped from about 2,000 XLA compilations to 91. The\nlocal\nbefore and after timings used the CPU package and four-core affinity.\n[Baseline nightly\nCI](https://github.com/marin-community/marin/actions/runs/44923213506)\n\n| Case | Before | After |\n| --- | ---: | ---: |\n| Grug pipeline, recompute-all | 49.2s | 13.1s |\n| Grug pipeline, offload-carry | 50.7s | 13.1s |\n| June Snowball pipeline, two expert shards | 32.8s | 26.4s |\n| Publication, coordinator re-entry | 29.0s | 23.4s |\n| Publication, missing control receipt | 22.3s | 16.4s |\n| Publication, source changed | 18.2s | 14.9s |\n\nThe PR's CPU job passed 57 tests. The two Grug cases and all three\npublication\ncases fell outside the five slowest. June Snowball took 29.4 seconds.\n[PR CPU\njob](https://github.com/marin-community/marin/actions/runs/44943452969/job/136965576989)",
+      "sha": "83774ce7d9c761206dd7eb257454860d87033f09",
+      "url": "https://github.com/marin-community/marin/commit/83774ce7d9c761206dd7eb257454860d87033f09",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-22T00:07:08Z",
+      "committed_at": "2026-11-22T00:07:08Z",
+      "message": "[levanter] Preserve final checkpoints across forced saves (#11960)\n\nKeep the latest checkpoint loadable when the final forced hook follows a\ntemporary save or a completed-run restart. Promote an existing temporary\ncheckpoint by changing only its metadata after the pending save\ncompletes. Replace local manifests atomically so an interrupted restart\nleaves the prior manifest intact; object-store writes remain direct\nbecause a rename requires a copy and delete.\n\nA CPU crash injection on `main` at `cb991a5` left the default temporary\nstep and the restarted step unloadable. With this change, the default\nstep is promoted without a re-save, and the restarted step still loads\nafter a crash while its replacement manifest is open. Multi-process runs\nand a crash during array rewriting on restart remain untested.\n\nFixes #11959\nFixes #11534\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "900999e632ac3385b0db71ebec9f286a55ca9f49",
+      "url": "https://github.com/marin-community/marin/commit/900999e632ac3385b0db71ebec9f286a55ca9f49",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-23T00:00:00Z",
+    "start": "2026-11-22T00:00:00Z"
+  }
+}

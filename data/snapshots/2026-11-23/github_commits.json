@@ -1,0 +1,318 @@
+{
+  "commit_count": 28,
+  "commits": [
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-23T23:55:59Z",
+      "committed_at": "2026-11-23T23:55:59Z",
+      "message": "[loom] Use the Loom image defaults for agent runtimes (#12165)\n\nUse the Loom image's defaults for the Codex and Claude CLIs and ACP\nadapters. The entrypoint also selects the Codex executable for ACP\nsessions.\n\nThe old production overrides kept Codex on 0.163.0. Its bundled catalog\nomitted GPT-6.2 Sol even after the Loom image shipped a version that\nincludes it.",
+      "sha": "74cebba418031903d8df716c9ebe0746920e83d0",
+      "url": "https://github.com/marin-community/marin/commit/74cebba418031903d8df716c9ebe0746920e83d0",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-23T23:52:30Z",
+      "committed_at": "2026-11-23T23:52:30Z",
+      "message": "[harbor] Accept Pi MCP adapter pins without MCP servers (#12122)\n\nAccept the frozen Micro210 policy's `mcp_adapter_version` setting\nwithout changing its bytes or content hash. Pi ignores the setting when\na task has no MCP servers. With MCP servers configured, setup fails\nclearly: the current agent loads the image-provided `pi-mcp-extension`\nand cannot honor a `pi-mcp-adapter` pin.\n\nThe scheduled slow launch-document test failed on November 21 and 22\nbecause recipe validation rejected the setting. It passes in the\nvendored SkyRL CPU environment (1 passed in 126 seconds). The actual Pi\ntask image was not exercised because this environment cannot access the\nDocker daemon.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "03b3dc6be90ee4a1fc43c74838eaaf8766d98af9",
+      "url": "https://github.com/marin-community/marin/commit/03b3dc6be90ee4a1fc43c74838eaaf8766d98af9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-23T23:50:38Z",
+      "committed_at": "2026-11-23T23:50:38Z",
+      "message": "[rigging] Remove unused helpers from rigging, marina and tpu-ci (#11876)\n\nDelete rigging and infra code that no production path calls, about 200\nsource lines and 320 test lines.\n\n`rigging.rpc` (`ConcurrencyLimitInterceptor`) lost its last caller in\n#6536 and #7055, and `redact_json_text` in #7598. `read_desktop_client`,\n`delete_credentials`, `get_verified_user`, the `LogBuffer` protocol,\n`get_global_buffer` and `LOG_LEVEL_NAMES` have no callers anywhere in\nthe repo, including `vendor/`.\n\nIn infra, marina's `grant_read` wrapper is unused because applets call\n`grant_read_on_connection` inside their own transaction. Its\nlock-timeout rationale moves to that function's docstring. tpu-ci's\n`get_all_regions` and `INFRA_DIR` are never read.\n\nTests that only exercised the removed code go with it. The marina applet\ntest and the server_auth tests now call the remaining APIs\n(`grant_read_on_connection`, `get_verified_identity`).\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "a5b21b1a1427b030230c35f883455fab1637e7ea",
+      "url": "https://github.com/marin-community/marin/commit/a5b21b1a1427b030230c35f883455fab1637e7ea",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-23T22:58:23Z",
+      "committed_at": "2026-11-23T22:58:23Z",
+      "message": "[loom] Raise review capacity and bound ops session retention (#12158)\n\nDouble concurrent correctness and holistic reviews from 8 to 16 and\nagentic lint from 4 to 8 to reduce rejected launches.\n\nArchive idle ops coordinators after 30 minutes and route investigation\nchildren through a dedicated automation profile with a 15-minute idle\nlimit. Children otherwise select the interactive default profile.\nIncident evidence and required human actions belong in Echo and the\narchived conversation.\n\nKeep Belay at one worker: concurrent workers could race the training\nnode-cap check. Finish each claimed batch through the recipe's supported\ncommands instead of asking for its nonexistent wait command; new events\nremain queued for the next pass. Retention changes apply to new\nsessions; active agent turns remain protected from idle cleanup.\n\nCompanion bulk-clear feature:\nhttps://github.com/marin-community/loom/pull/446.\n\n---------\n\nCo-authored-by: Russell Power <607207+rjpower@users.noreply.github.com>",
+      "sha": "9023d9d51c9aed0ab7026c333e0e3f74929064de",
+      "url": "https://github.com/marin-community/marin/commit/9023d9d51c9aed0ab7026c333e0e3f74929064de",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-23T22:49:11Z",
+      "committed_at": "2026-11-23T22:49:11Z",
+      "message": "Protect shared SWE graders outside Atlas (#11844)\n\nProtect hidden SWE grading files for Harbor tasks that do not use Atlas.\n\nMove the SWE-rebench pytest/native controllers, trusted-reference\npackaging, and Prime Scale-SWE/SWE-Lego adapters into TaskCompendium.\nHarbor initializes grading before actor access. Keep the root control\nuser and run the actor as UID 10001. Preserve source-declared HOME\nduring initialization and replace an actor's root HOME with its writable\nhome.\n\nPrivate bootstrap inputs stay in root-only task-image paths, so skipping\ninitialization does not expose them to the actor. Generated images\ncontain private grading material and must stay private. Different\nprivate inputs produce different image contexts.\n\nPrime adapters allow dependency writes only in Python package\ndirectories (purelib and platlib). Bootstrap rejects an actor-writable\ncontrol interpreter, standard library, or parent directory.\n\nPackage completion scoring separately from the retained evaluation\nscorers; all 19 retained scorer revision identifiers match main. Judge\ncalls retain transport diagnostics and bounded retries. Math timeouts\nidentify the expired phase; pytest retains candidate startup\ndiagnostics.\n\nChecks on one Scale-SWE task and one SWE-Lego task, using original\nimages pinned by digest, give oracle reward 1 and NoP (no-operation\ncontrol) reward 0. Actor UID 10001 cannot read the private scorer or\ngrading configuration. Docker also verifies read denial with\ninitialization skipped. A dedicated CPU workflow runs the Docker\nboundary test and Linux UID suite. The sanitized receipt records source\npins, controller hashes, and image-context hashes:\n`s3://marin-us-east-02a/marin/rl-data/shared-grader-runtime/2026.11.20.5/qa-report.json`\n([Filer](https://filer.marina.oa.dev/#s3%3A%2F%2Fmarin-us-east-02a%2Fmarin%2Frl-data%2Fshared-grader-runtime%2F2026.11.20.5%2Fqa-report.json)).\n\nLint and type checks pass. After merging main at a457a3f4b7, Docker\nconfidentiality passes 1 test, the Linux UID matrix passes 78 tests (31\nsource and 47 pytest/C++), and the portable judge/spec/package/scorer\nsuite passes 240. The affected runner passes 1,945 Harbor tests and\nstops on 11 failures reproduced on clean main at the same commit. Native\nsmoke coverage uses C++; other native toolchains were not exercised.\n\nA planned follow-up, “Add a separate Harbor entry point for RST and\nMulti-SWE,” will move their grading-time delivery adapters.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "05fb749527b62f16d0a2338b74a16bfebb906d5e",
+      "url": "https://github.com/marin-community/marin/commit/05fb749527b62f16d0a2338b74a16bfebb906d5e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-23T22:23:42Z",
+      "committed_at": "2026-11-23T22:23:42Z",
+      "message": "[skyrl] Keep turn terminators out of visible replies (#11845)\n\nReplayed multi-turn histories contain an extra end-of-turn (EOT) token\ninside each assistant tool-call turn, and this extra token reduces tool\nuse.\n\nSince [#11232](https://github.com/marin-community/marin/pull/11232), the\nSkyRL model client adds the trailing turn terminator back to reply text\nwhen `skip_special_tokens=False`. The long-loop agent path uses that\nsetting, so each historical assistant message has an EOT before its tool\ncall. The chat template then adds a second EOT after the tool call. The\nLongLoop round-4 audit found EOT tokens inside all 142 parsed tool-call\nmessages, and in none of 3,802 tool-call messages saved from round 1\n([audit\nevidence](s3://marin-us-east-08a/marin/users/benfeuer/eot-history-fix/evidence/audit-evidence.json),\n[Filer](https://filer.marina.oa.dev/#s3%3A%2F%2Fmarin-us-east-08a%2Fmarin%2Fusers%2Fbenfeuer%2Feot-history-fix%2Fevidence%2Faudit-evidence.json)).\nOn the frozen round-4 weights, removal of the two EOTs from a saved\nBixBench prompt increased next tool calls from 1/8 to 8/8 over eight\nmatched seeds ([paired\nreplay](s3://marin-us-east-08a/marin/users/benfeuer/eot-history-fix/2026.11.20.1/paired-summary.json),\n[Filer](https://filer.marina.oa.dev/#s3%3A%2F%2Fmarin-us-east-08a%2Fmarin%2Fusers%2Fbenfeuer%2Feot-history-fix%2F2026.11.20.1%2Fpaired-summary.json)).\nThe effect on full-task scores is not measured.\n\nWhen a reply ends its turn, its text (`responses` and assistant message\n`content`) does not include the EOS or turn terminator, for completion,\nassistant-prefix, and chat replies. Sampled `response_ids` do not\nchange, and `skip_special_tokens` controls only the special tokens\ninside the reply.\n\nThe Marin chat template moves from `marin.datakit` to\n`rolloutengine.chat_template`, because Marin and SkyRL both depend on\nrolloutengine. The SkyRL history tests render with this template, so no\ncopy of the template is necessary. The template text does not change.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "3144da42e4052edb6adb6e49a4b11a2af5fe0ed9",
+      "url": "https://github.com/marin-community/marin/commit/3144da42e4052edb6adb6e49a4b11a2af5fe0ed9",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-23T21:36:49Z",
+      "committed_at": "2026-11-23T21:36:49Z",
+      "message": "[loom] Send weekday Slack reminders for overdue PR reviews (#12145)\n\nLoom posts a weekday digest of overdue individual review requests to\n#marin-eng at 10:00 Pacific. Each entry links the PR and shows its\ntitle, the time since its last update, and how long each requested\nreviewer has been inactive.\n\nA request is due when both the request and the reviewer’s latest\nactivity predate the same time on the previous weekday. The digest skips\ndrafts, PRs last updated more than seven days ago, and PRs from bots or\nauthors without repository write access. Empty scans stay quiet. Large\ndigests split at PR boundaries to fit Loom’s message limit.\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>",
+      "sha": "6081e9b4feb1dce7a21eb54c719646369bb497ed",
+      "url": "https://github.com/marin-community/marin/commit/6081e9b4feb1dce7a21eb54c719646369bb497ed",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-23T21:18:57Z",
+      "committed_at": "2026-11-23T21:18:57Z",
+      "message": "[levanter] Remove checkpoint metadata before payload during pruning (#11718)\n\nRemove `metadata.json` and check that it is absent before recursively\nremoving the checkpoint payload. If marker removal fails with an error\nother than file-not-found, or the marker remains visible, skip payload\nremoval. An interrupted recursive prune can leave a discoverable\nmetadata marker over an incomplete payload. Hiding the marker first lets\nsubsequent discovery skip the prefix during payload removal.\n\nThis ordering does not protect a reader that already selected the\ncheckpoint before pruning started, and writes and deletes to a reused\nstep prefix still require serialization.\n\nPart of #11714",
+      "sha": "424e19317499f54977ad6e1a122ad5c911f8bf6a",
+      "url": "https://github.com/marin-community/marin/commit/424e19317499f54977ad6e1a122ad5c911f8bf6a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-23T20:58:01Z",
+      "committed_at": "2026-11-23T20:58:01Z",
+      "message": "[skyrl] Reject unsupported Grug context-parallel attention (#11799)\n\nSliding-window Grug layers cannot use ring context parallelism, and\nall-to-all requires each TP-local query and KV head count to be\ndivisible by the context-parallel width. Share the bridge's per-layer\ncommunication defaults with validation and reject incompatible modes\nbefore constructing model layers. Snowball's five KV heads at CP4\nrequire an explicit all-gather override; Hero's existing defaults remain\nunchanged.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "7469d67ed13d90a07e10f45bef058880abc731fb",
+      "url": "https://github.com/marin-community/marin/commit/7469d67ed13d90a07e10f45bef058880abc731fb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-23T20:36:19Z",
+      "committed_at": "2026-11-23T20:36:19Z",
+      "message": "[rl] Pin SkyRL east02a requests to InfiniBand rails (#12017)\n\nSet NCCL_IB_HCA=ibp in SkyRL child requests on cw-us-east-02a when the\nrecipe does not specify an HCA. This carries the cluster's InfiniBand\nrail selection into the request used by the launch-time collective gate\nand serving. An explicit recipe HCA retains precedence.\n\nA 16-node gate previously selected exposed Ethernet HCAs and failed on\nall hosts with IBV_WC_RETRY_EXC_ERR(12). The child-request regression\ncovers the east02a default and explicit override; live qualification\nremains pending.\n\nFixes #12015\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "eb195459a6e444e8e48b2de924107d981b0de225",
+      "url": "https://github.com/marin-community/marin/commit/eb195459a6e444e8e48b2de924107d981b0de225",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-23T20:30:21Z",
+      "committed_at": "2026-11-23T20:30:21Z",
+      "message": "[evals] Add the MultiChallenge multi-turn benchmark (#11757)\n\nAdd `--evals multichallenge`, Scale AI's\n[MultiChallenge](https://arxiv.org/abs/2501.17399). Each item is a fixed\nuser/assistant conversation that ends on a user turn. The served model\nwrites only the final assistant reply. The data is the 266-row public\nrelease,\n[`ScaleAI/MultiChallenge`](https://huggingface.co/datasets/ScaleAI/MultiChallenge)\nat `670fd81f270314d0f8f82b34fcfe2187fd28f699`. The history is replayed\nunchanged as chat messages, with no system prompt. A judge answers the\nitem's yes/no `target_question` from the final answer alone and passes\nthe item on `YES`. Scores are grouped by the four axes: inference memory\n(109), instruction retention (69), self-coherence (48) and reliable\nversion editing (40). The judge is `openai/gpt-oss-120b` through\nTogether, bound as for the other judged evals. A second commit defines\nthat Together judge block once with a YAML anchor; the loaded\nconfiguration is unchanged.\n\nThe judge prompt is Marin's own, written from the paper's description of\nthe judge without reference to the authors' runner prompt, which has no\nlicense. The judge sees only the final reply and the item's question,\ngives brief reasoning, and writes `YES` or `NO` alone on the final line.\nIntended differences from the authors' runner:\n- Marin's prompt replaces the runner's, which tells the judge to be\n\"VERY STRICT\".\n- gpt-oss-120b replaces `gpt-4o-2024-08-06`.\n- Each model keeps its own sampling defaults instead of temperature 0.\n- Only the final answer is graded, so reasoning never reaches the judge.\n- `accuracy` is the item mean. The paper's headline, the mean of the\nfour axis accuracies, is in the table below.\n\nLicensing: the dataset is CC-BY-4.0, and the judge prompt is written for\nMarin.\n\nFull runs, 266 items each, all items scored, no infrastructure errors,\ngraded with Marin's prompt:\n\n| Model | Hardware | Accuracy ± SE | Axis mean | Truncated | Published |\n| --- | --- | --- | --- | --- | --- |\n| Qwen3.5-35B-A3B | H100x4 | 71.8 ± 2.8 | 66.2 | 3 (1.1%) | 60.0, Qwen\nmodel card; judge and population unstated |\n| Muse Glimmer 30B | H100x2 | 67.3 ± 2.9 | 64.2 | 0 | none |\n| Nemotron 3.5 Super | H100x4 | 66.5 ± 2.9 | 64.1 | 0 | none |\n| Snowball v0.1, `grug` parser | H100x8 | 49.2 ± 3.1 | 47.2 | 0 | none |\n\nQwen's axis mean is 2.1 standard errors above its card. The card does\nnot name its judge or dataset. We have not graded the Qwen responses\nwith the authors' GPT-4o judge. Snowball left 4 answers empty because\nits reasoning never closed; they score 0.\n\nAll 266 compiled conversations matched the source rows byte for byte.\nThe full runs were first graded with the authors' runner prompt;\nre-judging all 1,064 recorded responses with Marin's prompt raised each\nmodel's score by 0.4-2.2 points (at most 0.8 standard errors) and kept\nthe ranking. Marin's prompt disagrees with itself on 3.3% of verdicts\nacross two passes, against 4.4% for the runner prompt, and returned no\nmalformed verdicts in 2,128 calls. Two independent language-model\nreviewers, blind to every verdict, labeled the responses where the\nprompts disagree, along with an earlier stratified sample of 87. On the\n108 disagreements where the reviewers agree, Marin's prompt made 41\nerrors, the runner prompt 48 and a variant of Marin's prompt told to\napply requirements exactly 58. On the stratified sample, Marin's prompt\nhas an estimated error rate of 4.1% (95% CI 1.0-9.3%), the same as the\nrunner prompt; its errors split 25 false fails to 16 false passes on the\ndisagreements, where the runner prompt's split 38 to 10. Typical\nremaining errors misread the response or follow from the judge not\nseeing the conversation, which matches the authors' design.\n\nCost at CoreWeave list price, $6.155 per H100-hour:\n\n| Run | Eval time | Worker start to finish | H100-hours | Cost |\n| --- | --- | --- | --- | --- |\n| Glimmer 30B | 9.0 min | 13.1 min | 0.44 | $2.69 |\n| Nemotron 3.5 Super | 7.4 min | 13.8 min | 0.92 | $5.65 |\n| Snowball v0.1 | 6.2 min | 9.4 min | 1.25 | $7.69 |\n| Qwen3.5-35B-A3B | 8.4 min | 14.0 min | 0.93 | $5.73 |\n\nThe judge used 0.78M input tokens over 1,064 calls, about $0.05 per\nmodel; gpt-oss's hidden reasoning tokens are not recorded, so this is an\nestimate. Run records are under\n`s3://marin-us-east-02a/marin/evals/multichallenge-full-*-20261119-multichallenge-*`.",
+      "sha": "0be70dc0c4c255a6204b63bd5e28dd49897cf600",
+      "url": "https://github.com/marin-community/marin/commit/0be70dc0c4c255a6204b63bd5e28dd49897cf600",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-23T19:50:52Z",
+      "committed_at": "2026-11-23T19:50:52Z",
+      "message": "[finelog] Release the policy mutex before eviction (#12035)\n\nEviction reads the storage policy through an accessor that releases the\npolicy\nmutex before eviction waits for query readers. Before, a temporary guard\nin the\neviction call kept the mutex locked for the whole call. During\n[incident 1046](https://marina.oa.dev/echo/wiki/1046), registration\nwaited\nbehind that mutex in a policy update, and 510 more registration requests\nfilled\nthe blocking pool.\n\nThe regression test holds a query reader, starts eviction, and requires\na policy\nupdate to finish while eviction waits. With the fix reverted, the test\nfails at\nits 5-second timeout. The operations guide describes how to diagnose a\nblocked\npod and what a container restart keeps.\n\nTwo hardening items from the issue are not in this change: a deadline\nover the\nwhole forwarding read, including snapshot acquisition, and admission\ncontrol for\nregistration before it occupies blocking workers.\n\nPart of #12024\n\n---------\n\nCo-authored-by: Rafal Wojdyla <ravwojdyla@gmail.com>",
+      "sha": "a05e90066d63e89895ae9d323ee41fc68e187a77",
+      "url": "https://github.com/marin-community/marin/commit/a05e90066d63e89895ae9d323ee41fc68e187a77",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-23T17:58:35Z",
+      "committed_at": "2026-11-23T17:58:35Z",
+      "message": "[verifyit] Remove unused graders, adapters and runtime helpers (#11877)\n\nDelete code in verifyit, taskcompendium and evalrecords that nothing\noutside its own tests calls: about 1,150 source lines and 600 test\nlines. Live behavior does not change.\n\nEach removed name had no caller in a repository-wide `git grep -w`,\nwhich covers the vendored SkyRL and Harbor forks, the `MODE_DESCRIPTORS`\nregistry and docs. The nl2bash comparator goes with them because it was\nnever registered as a mode. Helpers that only the removed code used were\ndeleted until no new orphans appeared.\n\nTests that covered only removed code are gone. Tests that also checked\nlive behavior keep it: the AIME and GSM8K cases now call\n`grade_aime_extracted` and `grade_gsm8k_extracted`, which the vendored\nSkyRL environments import, instead of the removed deadline and\nformat-score wrappers.\n\nPart of the dead-code pass that started with #11859.",
+      "sha": "50d4f6f25eea5140c349d93b533b4236cff81de6",
+      "url": "https://github.com/marin-community/marin/commit/50d4f6f25eea5140c349d93b533b4236cff81de6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "gonzalobenegas",
+      "author_name": "Gonzalo Benegas",
+      "authored_at": "2026-11-23T17:09:35Z",
+      "committed_at": "2026-11-23T17:09:35Z",
+      "message": "[eval] Add GenomeQA through TaskCompendium (#10984)\n\nAdd the original 5,200-question GenomeQA benchmark through\nTaskCompendium, using pinned Hugging Face data and an externally fetched\nrunner prompt. The existing evaluation pipeline publishes the corpus\nwith the converter and packaged grader versioned together. The GenomeQA\ngrader selects the last answer section, uses VerifyIt’s shared MCQ\nparser to read the choice, and gives each of the twelve subtask × format\ncells equal weight while retaining ordinary accuracy and grouped\ndiagnostics.\n\nUse the served model’s decoding settings and the run’s output cap.\nRequire enough context for the full prompt and that cap. Grade the\navailable final answer. Archived model turns retain the provider stop\nreason for reporting. Unparseable answers score zero.\n\nReplaying all 31,200 saved answers from six full runs (temperature 0.7,\ntop-p 0.95, 16,384-token cap) with the shared parser and answer-section\nselection reproduced the recorded answer choices and accuracy scores.\nNative EvalDash reduction reproduced the six overall scores and their\nsubtask and format-cell breakdowns. See #10981 for results.\n\nPart of #10981.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "5ac4195dd3ae69673956d5ad435b51311e98d608",
+      "url": "https://github.com/marin-community/marin/commit/5ac4195dd3ae69673956d5ad435b51311e98d608",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-23T17:06:29Z",
+      "committed_at": "2026-11-23T17:06:29Z",
+      "message": "[evals] Add PHYSICS-Verified with a per-answer judge rubric (#11820)\n\nAdd `physics-verified`: the 602 test problems without figures from\n[PHYSICS-Verified](https://huggingface.co/datasets/yale-nlp/physics-verified)\n@ `724170025e35`, the authors' audited release of\n[PHYSICS](https://arxiv.org/abs/2503.21821). The problems come from\nphysics PhD qualifying exams in six domains and carry 1,454 labelled\nreference answers (861 symbolic, 459 numeric, 134 text); 60% ask for\nmore than one result. The system prompt and judge prompt are copied from\nthe release's harness (`eval/prompts.py`), which uses the Humanity's\nLast Exam response format. One judge call per problem returns a yes/no\nverdict for each reference answer. `accuracy` counts a problem only when\nevery answer is correct; each grade also records the fraction of correct\nanswers. The judge is GLM-5.3-Flash on Together, the authors' judge\nmodel; it sees the final answer only. Scores are grouped by domain, and\nthe benchmark is in no suite. The dataset and harness are MIT-licensed.\n\nThe judge needs a new `answers` rubric in verifyit's judge mode: one\nrequest returns a JSON object with one verdict per reference, and the\ntask scores 1 only when all are correct. It omits `temperature` so the\njudge samples with its own defaults, as the harness does. At temperature\n0, GLM-5.3-Flash spent its whole 32,768-token budget reasoning on 27 of\n602 problems. A reply that exhausts 32,768 tokens is retried once with\n65,536; both attempts fit inside the evaluator's 600 s grading timeout.\nThe `labels`, `reference` and `checklist` rubrics are unchanged.\n\nThe original PHYSICS harness scores each item as the fraction of the\nmodel's boxed answers that match any reference, so one correct box on a\nfive-part question scores 1.0 (yale-nlp/Physics#4). The verified release\nfixes that, removes 188 problems that need a proof or a missing figure,\nand audits the reference answers.\n\nFull runs on 2026-11-19, all on CoreWeave H100s in `cw-us-east-02a`:\n\n| Model | Hardware | Scored | Accuracy | Truncated | Published |\n| --- | --- | --- | --- | --- | --- |\n| nvidia-nemotron-3.5-super-vl-120b-a12b-bf16 | H100x4 | 602/602 | 85.1\n± 1.5 | 33 | |\n| muse-glimmer-30b | H100x2 | 597/602 | 84.6 ± 1.5 | 0 | |\n| qwen3.5-122b-a10b-fp8, 73,728-token context | H100x8 | 602/602 | 76.6\n± 1.7 | 16 | 80.9 (BF16, 95% CI 77.7–84.1) |\n| Snowball v0.1 | H100x8 | 602/602 | 55.5 | 1 | |\n\nTruncated responses score zero, as in the authors' table. Glimmer's 5\nunscored problems are judge replies that exhausted both token budgets.\nQwen3.5-122B is 4.3 points (1.9 standard errors) below its published\nscore. Grading explains at most about 1 point of that gap: re-judging\nthe authors' own 602 published Qwen3.5-122B-A10B responses through this\npipeline gives 80.1 against their 80.9, with 96.7% agreement on\nindividual answers. The rest comes from generation: FP8 weights, 16\ntruncations, and fresh samples. The curated default judge, gpt-oss-120b,\nagreed on 90.6% of answers and scored the same responses 68.9. In a\nblind read of 11 disagreements, the authors' judge was right on 8; high\nreasoning effort did not close the gap. All 602 compiled requests match\nthe harness's rendering of the system prompt, question and reference\nlist byte for byte.\n\n| Run | Hardware | Eval time | Inference worker | GPU-hours |\n| --- | --- | --- | --- | --- |\n| Glimmer | H100x2 | 42 min | 47 min | 1.6 |\n| Nemotron | H100x4 | 2.1 h | 2.2 h | 8.7 |\n| Snowball | H100x8 | 34 min | 38 min | 5.0 |\n| Qwen3.5-122B-FP8 | H100x8 | 3.8 h | 3.1 h, 4 preemptions | 24.6 |\n\nJudge calls cost an estimated $3–6 per 602-problem run at Together's\n$0.15/$0.50 per million tokens.\n\n```bash\nuv run python -m experiments.evaluation.cli launch --model muse-glimmer-30b --evals physics-verified --priority interactive\n```\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "ce50ca62496e1a9d4ada1c96c9b56d5759cb3307",
+      "url": "https://github.com/marin-community/marin/commit/ce50ca62496e1a9d4ada1c96c9b56d5759cb3307",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "forklady42",
+      "author_name": "Betsy Cannon",
+      "authored_at": "2026-11-23T15:36:54Z",
+      "committed_at": "2026-11-23T15:36:54Z",
+      "message": "[serve] Make the serve dashboard usable on phones (#11682)\n\nMake the serve dashboard usable on phones (360–390px) and keep its\ntoolbar from overflowing at tablet and narrow desktop widths.\n\nOn the deployed dashboard at 390px, the chat toolbar was 622px wide, so\nthe max tokens input and the More options button (temperature, system\nprompt) were off screen. The toolbar now sizes against the main column\nthrough a container query, because the history panel takes 256px of the\nscreen from the `md` breakpoint up. When the column is at least 768px\nwide, max tokens is in the toolbar; below that it moves into the More\noptions panel. Share and Report issue show text labels from 896px. If\nspace still runs out, only the mode tabs scroll, so More options stays\nvisible. At window widths of 768–1023px, max tokens sits in the toolbar\nfor Compare (which has no history panel) and in the panel for Chat and\nCompletion.\n\nOn touch devices, form fields use 16px text so iOS Safari does not zoom\non focus. Enter in the chat and compare composers inserts a newline\nbecause touch keyboards have no Shift+Enter; Cmd/Ctrl+Enter sends, and\ntouch devices that also report a trackpad show that hint. The Compare\nURL row stacks on narrow screens so Connect no longer covers the input.\n\nMeasured in Chrome and headless Chromium with feedback enabled, from\n320px to 1512px: the toolbar fits at every width, and only the mode tabs\nscroll, at 320px. The touch-only behaviour has not been tried on a\nphysical device.\n\n\nChat view at 390px, before and after. Both captures are from desktop\nChrome, so the composer still shows the desktop shortcut hint.\n\n<img width=\"620\" alt=\"Serve dashboard chat view at 390px before and\nafter: the toolbar previously cut off max tokens and More options; now\nall controls fit\"\nsrc=\"https://github.com/user-attachments/assets/6280830f-dd5f-4ed2-9b21-319d19717103\"\n/>",
+      "sha": "12ad8da06511a1abf4918630ca06426c0fca9739",
+      "url": "https://github.com/marin-community/marin/commit/12ad8da06511a1abf4918630ca06426c0fca9739",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-23T15:15:00Z",
+      "committed_at": "2026-11-23T15:15:00Z",
+      "message": "[grafana] Warn before CoreWeave storage quota is exhausted (#11884)\n\nWarn in `#marin-alerts` each afternoon, 15:00–16:00 America/Los_Angeles,\nwhen current or projected storage use exceeds 80% of a zone's live\nquota. Send a warning at any time when recent growth projects quota\nexhaustion within 24 hours. The forecast uses the faster positive\n24-hour or 72-hour regression, includes the age of the latest\nobservation, and shares deduplicated measured usage with the critical\nquota page.\n\nProduction collections arrive 4–10 hours apart despite the hourly\nschedule. The forecast windows and sample minimums tolerate that\ncadence; observations older than twelve hours are excluded. Reduce the\nmissing-collection warning from 24 hours to twelve. The scheduling cause\nremains unknown and is recorded in [the\nincident](https://marina.oa.dev/echo/wiki/1036).\n\nAll 60 provisioning tests and required formatting checks pass, including\nirregular collection gaps, sample-age extrapolation, and duplicate\nwrites that previously could trigger a false critical page. The shared\nquery returns measured and projected values for seven zones on live\nFinelog. Advisory review has no remaining findings.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "bc0181b3d5b0480008117d0a48c28f18670c543f",
+      "url": "https://github.com/marin-community/marin/commit/bc0181b3d5b0480008117d0a48c28f18670c543f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-23T10:18:23Z",
+      "committed_at": "2026-11-23T10:18:23Z",
+      "message": "[tasks] Share task error types across framework category maps (#11812)\n\nCopied error tables let training treatment drift between Harbor and\nSkyRL.\n\nKeep ErrorCategory and RetrySettings in Rigging with the map from shared\ntask and SDK error names to categories. Shellbox owns machine and\nDaytona categories. Harbor owns its other native categories and the\npolicy for resuming trials in a new job. SkyRL composes these maps with\nits own errors. It includes Harbor's category map only when Harbor is\ninstalled. Reject names assigned by more than one map. Remove the SkyRL\nsnapshot and update callers to import each owner directly.\n\nShellbox requires Rigging at runtime. Harbor requires Shellbox at\nruntime to read its category map.\n\nIn SkyRL, eight error names now exclude failed samples instead of\nassigning zero reward. They are: RuntimeServiceError,\nRuntimeLogCollectionError, EnvironmentStopError, DaytonaError,\nDaytonaDockerSetupError, InternalServerError, APIConnectionError, and\nAPITimeoutError. Other registered names retain their SkyRL training\ntreatment. RetrySettings retains the existing fields and defaults.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "e1742c045d2ce976c6c8a78d1cf9beb439f054c3",
+      "url": "https://github.com/marin-community/marin/commit/e1742c045d2ce976c6c8a78d1cf9beb439f054c3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-23T09:52:42Z",
+      "committed_at": "2026-11-23T09:52:42Z",
+      "message": "[skyrl] Prefer the task image Python for CPU launches (#12009)\n\nPrefer the task image's compatible system Python at both uv selections\nin the frozen SkyRL CPU launcher. A cached managed build can meet the\nPython version requirement yet lack `os.pidfd_open`, causing Shellbox\nkeeper allocation to fail before evaluation workers start.\n\nThe real-uv regression selected the cached build on current main and the\nimage interpreter with this change. The long-loop worker-construction\npreflight from the source commit remains on #11120 because its\nexperiment files are not on main.\n\nFixes #12008\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "3f430069faba88ad841db917ad40841abb4f52ac",
+      "url": "https://github.com/marin-community/marin/commit/3f430069faba88ad841db917ad40841abb4f52ac",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "XiaoyuanWang111",
+      "author_name": "Xiaoyuan Wang",
+      "authored_at": "2026-11-23T07:29:38Z",
+      "committed_at": "2026-11-23T07:29:38Z",
+      "message": "[verifyit] Accept coin_flip probabilities within 0.1% of the reference (#12006)\n\n`coin_flip` now scores a reply 1.0 when it is within 0.1% of the\nreference probability. #11987 compared within one part in a million, so\na rounded reply scored 0 whenever the reference has more digits:\n`0.07031` or `0.0703` against `0.0703125` (\"exactly 7 heads in 9 fair\ncoin flips\"). The question asks for no precision.\n\nOn the 1,000 generated `coin_flip` entries (the generator's seeds,\nreasoning-gym 0.1.25), 682 references have more than four significant\nfigures. Entries that score 1.0:\n\n| reply | main | this change |\n|---|---|---|\n| the reference | 1,000 | 1,000 |\n| the reference rounded to 4 significant figures | 318 | 1,000 |\n| the reference rounded to 3 significant figures | 218 | 716 |\n| `0` | 0 | 0 |\n| `1` | 61 | 81 |\n\nThe reference is exactly 1 on 61 entries. The 20 more that `1` gets have\nreferences within 0.1% of 1, such as 0.9990234375 for at least one head\nin ten flips. The tolerance is the one the review on #11987 suggested\n(`rel_tol=1e-3`), kept in exact fractions.\n\n`test_coin_flip_accepts_equivalent_probability` becomes three replies to\none entry: the fraction, four significant figures (0 on main) and two\nsignificant figures (still 0).\n\nPart of #11653\n\ncc @penfever\n\n---------\n\nCo-authored-by: Xiaoyuan Wang <174581044+XiaoyuanWang111@users.noreply.github.com>",
+      "sha": "ec7d42518566ee77f058a9b9da34b0b2b41c79ce",
+      "url": "https://github.com/marin-community/marin/commit/ec7d42518566ee77f058a9b9da34b0b2b41c79ce",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-23T07:27:13Z",
+      "committed_at": "2026-11-23T07:27:13Z",
+      "message": "[levanter] Finish generation across decode chunks (#12018)\n\nThe inference engine could stop after prefill when the decode chunk size\n(`max_rounds`) exceeded `max_seq_len`. It could also skip the final\npartial chunk when `max_seq_len` was not a multiple of `max_rounds`.\n\nContinue decoding while unfinished requests remain and each chunk makes\nprogress. Cap requested sequence lengths at the configured context limit\nand reject prompts that leave no room for generation. The regression\ntest covers both truncation cases.",
+      "sha": "6a18fc418c385ebe16e0b9809c40c934acab6d0e",
+      "url": "https://github.com/marin-community/marin/commit/6a18fc418c385ebe16e0b9809c40c934acab6d0e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-23T07:15:40Z",
+      "committed_at": "2026-11-23T07:15:40Z",
+      "message": "[levanter] Preserve the full distribution at top-p one (#12010)\n\nKeep the entire vocabulary eligible at `top_p=1`, including rows in a\nbatch\nwith lower cutoffs. The nucleus cutoff tolerance could drop a small tail\nand\nrenormalize the remaining tokens upward, inflating the sampled token's\nlog\nprobability. Policy learning uses those scores.",
+      "sha": "35be4b03741ce983a1a127fd7d592a055338d4c2",
+      "url": "https://github.com/marin-community/marin/commit/35be4b03741ce983a1a127fd7d592a055338d4c2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-23T06:57:37Z",
+      "committed_at": "2026-11-23T06:57:37Z",
+      "message": "[levanter] Add paged generation for Snowball (#12020)\n\nSnowball can now generate through Levanter's `InferenceEngine` with one\npaged KV cache per layer. Prefill and decode follow the full forward\npass's short- and long-layer attention schedule. Padded tokens are\nexcluded from expert dispatch, and the sampler gathers only the logit\nrows it needs.\n\nThe test compares generated token IDs and their log probabilities with a\nfull-sequence forward pass in single-device, tensor-parallel, and\nexpert-parallel configurations. The same check passed with the native\npaged attention kernel on a v4 TPU mesh.\n\nStacked on #12019.",
+      "sha": "fdd730ae0ba482425c49980afc6c9aeca94ce045",
+      "url": "https://github.com/marin-community/marin/commit/fdd730ae0ba482425c49980afc6c9aeca94ce045",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-23T06:56:48Z",
+      "committed_at": "2026-11-23T06:56:48Z",
+      "message": "[levanter] Add Grug attention over paged KV caches (#12019)\n\nSnowball's short-window layers need causal sliding-window attention that\nuses absolute token positions when decoding from an existing KV cache.\n\nAdd grouped-query attention over Levanter's interleaved KV pages for\nbatches that mix prefill and decode. Use JAX's Pallas kernel for FP32\ninputs on supported TPUs and the JAX reference implementation elsewhere.\nShare the TPU adapter with the existing named-axis attention path, and\nlet Grug rotary embeddings accept shared or per-batch absolute position\nIDs.\n\nCPU tests compare attention against a dense oracle. A v4 TPU smoke\nchecks standard and regrouped head layouts with static and runtime logit\nscales.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "bc42ccad3f45bed64fdce7818ad8ca6e22f6425f",
+      "url": "https://github.com/marin-community/marin/commit/bc42ccad3f45bed64fdce7818ad8ca6e22f6425f",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "marin-external-runtime-updater[bot]",
+      "author_name": "marin-external-runtime-updater[bot]",
+      "authored_at": "2026-11-23T04:46:01Z",
+      "committed_at": "2026-11-23T04:46:01Z",
+      "message": "[dependencies] Advance native package versions (#8846)\n\nAdvance Marin-owned native package compatibility floors, and the uv\nlocks that\nrecord them, to published releases. Native source changes remain\nsource-built\nin their implementation pull requests; this dependency pull request\nexercises\nthe published wheels before they become the repository default.\n\nThe updater merges this pull request when its checks pass. If the update\nchanges\nenvironment markers in a `uv.lock`, a maintainer reviews those changes\nand merges it.\n\nPart of #6456\n\nCo-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+      "sha": "4b653e32712971f3d4affd2a2cbab2deb79e8498",
+      "url": "https://github.com/marin-community/marin/commit/4b653e32712971f3d4affd2a2cbab2deb79e8498",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-23T04:26:15Z",
+      "committed_at": "2026-11-23T04:26:15Z",
+      "message": "[levanter] Restore the logging import in the tracker tests (#12007)\n\n#11872 removed `import logging` from\n`lib/levanter/tests/test_tracker.py`, but #11950 had added\n`test_wandb_tracker_skips_artifacts_larger_than_20_mb_without_raising`,\nwhich uses `logging.WARNING`. The test fails with `NameError: name\n'logging' is not defined` on main's unit run for 1f668d6cb3 and on any\nPR that runs the levanter suite, such as #8846.\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "7a4c26882cc7cd6dbe6597ea09758c3ee98bb5e2",
+      "url": "https://github.com/marin-community/marin/commit/7a4c26882cc7cd6dbe6597ea09758c3ee98bb5e2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-23T03:58:04Z",
+      "committed_at": "2026-11-23T03:58:04Z",
+      "message": "[ci] Re-lock vendored SkyRL when native package floors advance (#12004)\n\nThe native package updater now re-locks each vendored project whose\n`uv.lock` installs the floor owner from a local path, as well as the\nroot lock. Today that is `vendor/skyrl`, which installs `marin-iris`\nfrom `lib/iris`. Each re-locked file gets the same targeted-change guard\nand marker gate as the root lock, and `vendor/skyrl/uv.lock` is now on\nthe updater's allowlist. A failed re-lock names the lock that failed.\n\n`vendor/skyrl/uv.lock` records the floors in `lib/iris/pyproject.toml`.\nThe updater re-locked only the root lock, so the vendored lock check in\n`marin-lint` and `skyrl-wheel` failed on the update PR #8846.\n\nSkyRL does not install the iris `controller` extra. Its lock records the\n`marin-finelog-server` floor but does not contain the package, so the\nguard now accepts a lock that never contained the released distribution.\nA distribution that was locked before must still be locked at the\nreleased version.\n\nWith the releases now on PyPI, a local `bump-releases` run changes 14\nlines in `vendor/skyrl/uv.lock` and 42 in the root lock. `uv lock\n--check` passes for both projects.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "cddf4805ec86492614363ec749d7011ca566fabb",
+      "url": "https://github.com/marin-community/marin/commit/cddf4805ec86492614363ec749d7011ca566fabb",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-23T01:51:32Z",
+      "committed_at": "2026-11-23T01:51:32Z",
+      "message": "[rl] Limit job authorization requirement to unrelated runs (#12005)\n\nIn the run-rl skill, require separate authorization to cancel or resubmit jobs unrelated to the current experiment.",
+      "sha": "b81aab2547780f233bfe1d78d30e1a652dbe5125",
+      "url": "https://github.com/marin-community/marin/commit/b81aab2547780f233bfe1d78d30e1a652dbe5125",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-24T00:00:00Z",
+    "start": "2026-11-23T00:00:00Z"
+  }
+}

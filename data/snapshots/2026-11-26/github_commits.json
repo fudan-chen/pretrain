@@ -1,0 +1,230 @@
+{
+  "commit_count": 20,
+  "commits": [
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-26T18:07:00Z",
+      "committed_at": "2026-11-26T18:07:00Z",
+      "message": "[sft] Express the Exp3 V5 mix as an artifact graph (#11658)\n\nExpress the exact SFT mix Exp3 trained on as a Marin artifact graph, so\na run's\nmix is recoverable from its records.\n\nExp3's production SFT stage (job\n`/benfeuer/long-loop-exp3-2026.11.16.51`) consumed\ndata release V5 (`release-complete-v5.json`, SHA-256 `3e216194…`).\nCoordinator\nsign-off `450bc8a4b24613c6b6f00e07da9b3953` approved that exact URI and\ndigest, and\nthe run's consumed data config equals the release's `data.json` on every\nrelease\nfield; the launcher added only default-valued fields.\n\n`experiments/sft_new_mix/exp3_v5_mix.py` defines that mix as versioned\nhandles:\n\n- The release document and its cache catalog are adopted at their exact\nURIs, with\n  the pinned SHA-256 digests recorded in the handle configs.\n- Each of the 434 sources is a `TokenizedCache` seal step whose\nfingerprinted config\npins the digest of the source's cache-catalog entry — the ledger that\ncarries the\nsource's exact content-addressed shard caches — plus its row and token\ncounts,\nshard count, and loss mode (384 full-token replay sources, 50\nassistant-only chat\nsources, one teacher-only relay source). No data is copied or\nrecomputed.\n- `exp3_v5_data_config()` assembles the `LmDataConfig` through\n`mixture()`: the\nnatural weights in the release's three-phase schedule (boundaries\n0/250/500),\nfull-permutation feistel shuffle, the release cache catalog, and the\nseven\n8-sequence IID validation reservations. A test resolves the graph\noffline and pins\nthe resolved config component by component against\n`fixtures/exp3_v5_data.json`,\n  whose content is the release member the run consumed.\n- `exp3_v5_seal_check()` verifies the seal before a consumer uses the\nmix: the\ncatalog digest, every source's entry digest and counts, and that all\n1,900\n  content-addressed shard caches exist.\n\n`TokenizedCache` now reads a sealed cache's recorded cache dir, prebuilt\nformat, and\npacking, so `mixture()` can consume a cache registered beside a manifest\nrather than\nbeside its data.\n\nOne consumed-config field is recorded as provenance and is not part of\nthe resolved\ncomponents: bounded-lookahead packing (cap 256, lookahead 128) was a\nproperty of the\nExp3 training runtime. A consumer packs with its own policy.\n\nRebuilding the mix from sources would need these transforms as\nfingerprinted variant\nsteps:\n\n- Chat conversion and loss masking for the 50 chat sources from pinned\n`DatakitChatSource` pipelines (assistant-only masks, relay\nteacher-only), plus\nfull-token masking and scripted tokenization for the 384 replay sources\n  (`scripted-v3`, `scripted-v4-remainder`, `scripted-ranges-v5`).\n- Replay line restoration (`replay-line-restoration-v1`, 20,707 restored\ncontext\n  IDs).\n- Quality gates (`gate-high-science-v1`, `gate-math-rest-v1`) with their\npinned\n  calibration evidence.\n- Atlas drops (`atlas-applied-v5`: 1,429 exact duplicates and 8,520\nlexical flags)\n  using the release's bloom and population pins.\n- OpenCode raw-question repair (`opencode-raw-question-repaired-v1`:\n409,004\n  repaired rows) using the release's bridge and index pins.\n\nEach variant step needs a typed config whose fingerprint covers the\nsource pin and\nthe transform's pinned inputs (label tables, gate calibrations, and\nAtlas\nreferences, each by digest). The post-EOT newline repair is not part of\nthis mix;\nit belongs to the separate V6 candidate, which Exp3 did not train on. No\nrebuild\nran, and the sealed caches remain the training inputs.\n\n\nDesign note from review: the seal records and the seal-check config are\nrelease-literal\nJSON dicts, fingerprinted exactly as recorded. The release document is\nthe schema of\nrecord — the pin is the point — so wrapping them in dataclasses would\nfork the recorded\nidentity without adding a contract the pinned release does not already\ncarry.\n\n\nUnrelated to the mix, this PR also repairs\n`test_fa4_attention_traces_through_hero_loss_and_gradient` for CPU-only\nrunners — since #11543 the QB loss path calls the cached `gpu_family()`\nhelper, which probes `jax.devices(\"gpu\")` under the test's stubbed `gpu`\nbackend, so the test now stubs `jax.devices` with an H100-like device\nand clears the gpu-family caches per that helper's documented contract.\n\n---------\n\nCo-authored-by: Ben Feuer <benfeuer@Bens-MacBook-Pro.local>\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "8c629544b164fc0ab015e5d74ab51f75971ecd92",
+      "url": "https://github.com/marin-community/marin/commit/8c629544b164fc0ab015e5d74ab51f75971ecd92",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-26T17:59:35Z",
+      "committed_at": "2026-11-26T17:59:35Z",
+      "message": "[marin] Check cache status before reading step drift metadata\n\nCheck cache status before reading drift metadata. Concurrent cold-cache launches can replace `.executor_info` while another launcher reads it, raising `FileExpired` before the step reaches its distributed lock. Drift checks now run when a successful cache entry can be served; mutable versions still rebuild.\n\nAn incomplete sidecar no longer aborts a cold step. The execution suite passes 120 tests on the merged base.\n\nFixes #12354",
+      "sha": "9431c8b2a8a808b073e82354779ba4c56b907835",
+      "url": "https://github.com/marin-community/marin/commit/9431c8b2a8a808b073e82354779ba4c56b907835",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-26T17:15:42Z",
+      "committed_at": "2026-11-26T17:15:42Z",
+      "message": "Consolidate Dependabot dependency updates (#12307)\n\nUpdate Hublot to Vite 7.3.7 (#12171). Upgrade Finelog to Buffa 0.9.2,\nConnectRPC 0.9.1, and the matching code generators (#9455).\n\nUpdate workspace Torch to 2.13.0 and TorchVision to 0.28.0 (#10814).\nLevanter’s tests use CPU TorchCodec 0.13 for a compatible ABI and Linux\narm64 wheels. Marin and Levanter use the CUDA 13.2 Torch wheels to meet\nMarin’s cuBLAS 13.2.0.9 minimum for B200. These wheels require Triton\n3.7.1 and pin an older NCCL, so the workspace override keeps NCCL at\n2.32.6 or newer.\n\nGrafana already locks `fast-uri` 3.1.9 (#9521), and #11080 removed the\nTau3 sandbox targeted by #10945.",
+      "sha": "07df7fe0b937322b8a4bacfff6f35c544440fca4",
+      "url": "https://github.com/marin-community/marin/commit/07df7fe0b937322b8a4bacfff6f35c544440fca4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-26T14:51:34Z",
+      "committed_at": "2026-11-26T14:51:34Z",
+      "message": "[eval] Score malformed tool calls as failed submissions (#12280)\n\nFixes #12278",
+      "sha": "7af5fd0e8d7c1b2f66f76312b2825bd46f8165e4",
+      "url": "https://github.com/marin-community/marin/commit/7af5fd0e8d7c1b2f66f76312b2825bd46f8165e4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-26T14:20:56Z",
+      "committed_at": "2026-11-26T14:20:56Z",
+      "message": "[evaldash] Include policy-violating runs in all cohorts (#12311)\n\nCloses #12308",
+      "sha": "5586b64731de0d32167fc6cb0c58c51951bcc072",
+      "url": "https://github.com/marin-community/marin/commit/5586b64731de0d32167fc6cb0c58c51951bcc072",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-26T12:12:16Z",
+      "committed_at": "2026-11-26T12:12:16Z",
+      "message": "[eval] Grade on the task machines' backend (#12283)\n\nAn evaluation run's graders now run on the same backend as its task\nmachines. Before, a worker without an explicit verifier machine always\ngraded in its local sandbox (bubblewrap on the Iris worker), so\nbenchmarks whose package tests grade in a separate verifier machine,\nsuch as SWE-bench-Science, applied and executed the agent's changes on\nthe worker even when the task machines were on Daytona, and pulled each\ntask's verifier image there. The default verifier machine stays\nnetwork-denied; runs without task machines grade locally, and an\nexplicit `verifier_machine` still wins.\n\nJudged graders and graders that run in the agent's own machine are\nunaffected: neither uses the verifier machine. SWE-bench-Science smokes\ngraded on Daytona this way (96 tasks, two models) with no grading\nfailures attributable to placement.",
+      "sha": "46e0c1b502bb0467b98bae922552ece67d6d984e",
+      "url": "https://github.com/marin-community/marin/commit/46e0c1b502bb0467b98bae922552ece67d6d984e",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-26T10:01:07Z",
+      "committed_at": "2026-11-26T10:01:07Z",
+      "message": "[rl] Run nightly controls and gate by preset version (#12187)\n\nThe nightly workflow requests at least one main control per gated preset across seven control series. It adds runs when fewer than five controls have completed at the current version. Snowball controls use Reno H100s. Mochi controls fit within one 60-GB200 NVLink domain. Snowball `data-medium` runs ungated and reports evaluation scores. `learning-medium` owns the shared default configuration's control cohort.\n\nThe gate selects the five latest eligible main controls at the branch's base preset version. Marina history uses the same eligibility selector. The archived model command derives that version by hashing the effective native launch configuration. The gate reports the base version and count when a cohort is short. Both scheduled jobs route failures to the nightly report.\n\nA manual dispatch on `main` can select several models or gated presets. A commenter with repository write access can use `/rl-controls snowball/learning-medium mochi` on a merged PR to dispatch those controls from `main` and receive the run link. The controls job checks for the main branch of `marin-community/marin` before checkout and cloud authentication.\n\nThe controls job configures the main-only `marin-cd-cloud-run-deploy` identity for Marina index reads and publication. Iris and GCS keep the `github-iris` identity.\n\nThe recorded Snowball speed-medium run passed with no change against five controls at `ec834775`. Mochi learning-medium passed with improvement against five controls at `9d23aea1`, with 100/100 tasks scored on both panels. The Mochi candidate’s final family mean was 0.82415 versus 0.73354 across its controls. These branch comparisons published to isolated Marina. Hosted publication requires a Marina runtime with the shared record schema.\n\n[Snowball dispatch](https://github.com/marin-community/marin/actions/runs/45582327170) · [Snowball candidate](https://iris.oa.dev/#/job/%2Fatqamar%2Fusers-ahmad-checkpoints-snowball-rl-speed-medium-506a9fd43c-in-8037ac9b-gate-n1-defaults-11c8349f-controls-15b9459e-evidence-7a90a1bf-2026.11.25-coordinator-b7a1002d) · [Mochi speed dispatch](https://github.com/marin-community/marin/actions/runs/45605698440) · [Mochi learning dispatch](https://github.com/marin-community/marin/actions/runs/45630885257) · [Mochi candidate](https://iris.oa.dev/#/job/%2Fatqamar%2Fusers-ahmad-checkpoints-mochi-rl-learning-medium-3ded2363f7-in-d8b267c9-gate-n1-defaults-0b2f5d64-controls-c684c4aa-evidence-aa117e87-2026.11.25-coordinator-48b4aa63)",
+      "sha": "67116a01e844f7e5619285c2962a97a1d18fb7e6",
+      "url": "https://github.com/marin-community/marin/commit/67116a01e844f7e5619285c2962a97a1d18fb7e6",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-26T09:23:43Z",
+      "committed_at": "2026-11-26T09:23:43Z",
+      "message": "[rl] Chart control history and link EvalDash to RL attempts (#12188)\n\nFor each preset, Marina charts final scores from the latest successful control attempt per run output on clean main. The comparable line joins consecutive scores with matching task sets, evaluation settings, and scored answer indices. Family scores also compare task-family assignments. The global line connects all plotted control scores. A toggle shows branch runs at their recorded attempt times.\n\nEach point opens its exact attempt and its recorded links, verdict, source provenance, redacted settings, and launch configuration. Marina uses the run’s preset version for a clean main control at the merge base. For other runs, the model command in the merge-base archive supplies the base preset version when available. EvalDash links exported-policy evaluations with stored run and attempt IDs to the corresponding Marina attempt.\n\nSelection manifests record catalog source IDs for training and evaluation subsets. Gate reports check task IDs and answers per task against the recorded launch. When the preset requires coverage, the report also checks the share of tasks with a scored answer.\n\nPart of #12186.",
+      "sha": "ca7186b2b6984e8694f0281e4fb9e8b820a01a3b",
+      "url": "https://github.com/marin-community/marin/commit/ca7186b2b6984e8694f0281e4fb9e8b820a01a3b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-26T09:02:11Z",
+      "committed_at": "2026-11-26T09:02:11Z",
+      "message": "[rl] Index Snowball and Mochi runs in Marina (#12186)\n\nMarina indexes prepared and terminal attempts from Snowball and Mochi preset runs. A watcher on the launching host follows detached runs and uses stored run and control receipts to locate any required gate report.\n\nMarina and Grafana share the run ID that W&B uses to group attempts. W&B defaults to `marin-rl` and tags attempts with the model, preset, preset version, user, and branch when known. Grafana links use the recorded native Iris job and execution window when available.\n\nThe index sums trainer time excluding evaluation when every attempt in the checkpoint lineage has trainer timing and a native job window. `--plan` reports control pin checks for gated candidates. Use `publish --issue` with `--run-output` and `--attempt` to associate a stored terminal or interrupted attempt with a GitHub issue.",
+      "sha": "366194526319bf3acda4a28551cc89a8e8b9df70",
+      "url": "https://github.com/marin-community/marin/commit/366194526319bf3acda4a28551cc89a8e8b9df70",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-26T08:03:27Z",
+      "committed_at": "2026-11-26T08:03:27Z",
+      "message": "[rl] Use checked-in SkyRL launch and gate entry points (#12195)\n\nThe SkyRL launcher and candidate checks use the checked-in native entry points. GPU jobs run the PyTorch transport probe. For a single NVLink domain, every rank must show a full-world NVLS communicator or a cross-host MNNVL channel during the benchmark. Training probes also check vLLM’s PyNccl initialization. Jobs that publish to the Hugging Face Hub use the CPU profile of the shared setup hook. Bootstrap writes the environment as data for node and nightly processes. The controller prepares Ray spill storage before starting Ray.\n\nOne CPU supervisor serves the SkyRL launcher, the gate, and native test fixtures. It captures diagnostics and terminates the whole process group on timeout or failure. The gate uses the vendored CLI to compose launch documents, validate driver settings, and read schema defaults. Frozen environment preparation has a 300-second budget and the native CLI has a separate 120-second budget. A stage file records the current operation for redacted failure reports.\n\nCI selects each affected test file once per suite.\n\nThe dataset reader takes missing task labels from the selection manifest and checks every non-null stored label against it.\n\nThe P104 Reno training proof at `32eaeee8b2` passed transport checks, started Ray, and wrote a step-1 checkpoint on 40 H100s. Its export converted the checkpoint on 32 H100s and verified the Hugging Face files in object storage. [Training proof](https://iris.oa.dev/#/job/%2Fatqamar%2Fusers-ahmad-checkpoints-snowball-rl-p104-train-20261125-2026.11.22.3-ad68fefc69f5) · [Export proof](https://iris.oa.dev/#/job/%2Fatqamar%2Fatqamar-p104-export-fresh-20261125)\n\nThe X1 Mochi startup proof on the integrated head `386863e4a2` passed the transport probe and verified 15 Ray hosts within one healthy NVLink fabric. [Mochi startup proof](https://github.com/marin-community/marin/actions/runs/45605698440)\n\nThe native EvalLite reader test passed with a nullable label and an explicit conflict. On the stored quick and full panels, task digests and non-null labels all agreed with the manifest.",
+      "sha": "7f11f92f2da1dccdce2e05d3dfdb9dc9c3627b78",
+      "url": "https://github.com/marin-community/marin/commit/7f11f92f2da1dccdce2e05d3dfdb9dc9c3627b78",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "atqamar",
+      "author_name": "Ahmad Qamar",
+      "authored_at": "2026-11-26T07:05:00Z",
+      "committed_at": "2026-11-26T07:05:00Z",
+      "message": "[rl] Reduce Snowball train-long memory and isolate run state (#11943)\n\nSnowball `train-long` packs samples and uses two context-parallel ranks with KV all-gather for both policy and reference. A 25-update Reno proof completed all updates on 40 H100s with this memory configuration. The CP1 run exhausted memory in update 24. [Memory proof](https://wandb.ai/marin-community/marin-snowball-rl/runs/ad32076d128a)\n\nPublished task selections are read-only inputs. The runner checks that the selection exists without writing registration or execution metadata. Launcher NCCL rendezvous is scoped to the Iris job and attempt. The gate estimates GPU-hours using the configured GPU count and the time from the first recorded workload start to native job completion.",
+      "sha": "cfd53895c7009a6839a9222994f07b33a85d1b48",
+      "url": "https://github.com/marin-community/marin/commit/cfd53895c7009a6839a9222994f07b33a85d1b48",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-26T06:23:46Z",
+      "committed_at": "2026-11-26T06:23:46Z",
+      "message": "[skyrl] Keep only the NVLink fabric check in the placement audit (#12265)\n\nEvery node of a locality group must still report the same healthy\ncluster-UUID/clique-ID pair before model actors start. The\ndistinct-host, complete-rank-coverage and rank/locality-label-agreement\nchecks are dropped, and the audit now groups nodes by their observed\nlocality label. The report still persists each node's rank, host, group\nand fabric, and the audit still requires the expected number of alive\nRay nodes.\n\nKueue already places each model group inside one NVLink domain, and the\nplacement half of the audit had no observed failure to catch. The fabric\nhalf is the cross-host comparison that catches the incident-898 failure\nmode, where a node dropped out of its NVLink domain while Kueue still\nplaced the group on that rack (https://marina.oa.dev/echo/wiki/898).\n\nFollow-up to #11807, from the review thread asking to drop the placement\nchecks and keep the fabric verification.\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "34381b5991654d54cfdc338d59693b99c101bdb2",
+      "url": "https://github.com/marin-community/marin/commit/34381b5991654d54cfdc338d59693b99c101bdb2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "asartran",
+      "author_name": "Amy Sartran",
+      "authored_at": "2026-11-26T03:37:41Z",
+      "committed_at": "2026-11-26T03:37:41Z",
+      "message": "[tests] Make misleading tests check what their names claim (#12347)\n\nMake eleven tests fail when the behavior they are named for breaks. Each\none could pass with the code wrong: its assertion was satisfied by any\ninput, it checked only log or status text, or it had no assertion at\nall. This continues #10883.\n\n-\n`lib/verifyit/tests/test_judge.py::test_pairwise_verdict_takes_last_match_of_first_matching_pattern`:\nevery row expected reward 0.5, which any recognised verdict produces, so\nthe test could not tell which match won. It now asserts the parsed\nverdict for each game, and the double-bracket preference case is a row\nof the same table.\n- `lib/iris/tests/cluster/controller/test_observability_rows.py`:\n`test_failed_write_commits_and_runs_later_post_commit_hooks` now checks\nthat the submitted job exists after a failed row write.\n`test_slow_rows_are_logged_and_counted_in_the_dbs_lock_cost` is deleted:\nit asserted only warning text, and the lock-cost record is already\nchecked by\n`test_a_submit_emits_one_row_record_after_releasing_the_lock`. In\n`test_every_cluster_config_forwards_under_its_own_name_or_not_at_all`,\nconfigs without a Finelog config used to pass through a bare `return`;\nthe parameter list now holds only configs that set one.\n-\n`experiments/post_training/rl_tests/test_runner_models.py::test_mochi_agentic_plan_collects_attempts_with_exports_disabled`\nasserted human status text and never checked exports. It now parses the\nplan status, checks that attempt collection is planned for the run, and\nchecks the composed launch config has `export_hf` False.\n`printed_status` moved into `rl_tests/fixtures.py` so both test modules\nshare it.\n- `lib/taskcompendium/tests/test_evalchemy_code.py`: two CRUX tests only\nexecuted the program with no assertion, and a third pinned\n`SyntaxError`. Their cases are now rows of\n`test_crux_reads_answers_by_the_harness_rule`, which asserts pass or\nfail, including wrong-answer rows.\n-\n`tests/sft/test_hf_to_levanter.py::test_sft_exports_once_at_the_final_update`\nalso checked model resolution; those checks are now two named tests:\n`test_sft_model_resolves_to_the_final_update_export` and\n`test_epoch_sft_model_leaves_the_export_path_to_runtime`, which keeps\nthe `relative_path is None` check that RL relies on in `rl_gate.py`.\n-\n`experiments/post_training/task_curation/tests/test_lean.py::test_the_proofnet_eval_is_left_out_of_default_campaigns`\nasserted the checked-in declaration type; it now runs the driver's\nsource selection and checks ProofNet is excluded by default and included\nwhen named.\n-\n`experiments/post_training/task_curation/tests/test_daytona_identity.py`:\nthe two `machine_spec` tests asserted that supplied values came back;\none parametrized test now checks the real mapping from `allow_internet`\nto the network policy.\n-\n`test_no_oracle_qualification.py::test_a_faithful_mode_change_is_reported_not_failed`\nand `lib/rigging/tests/test_network.py` now pin the exact octal mode\nreport and the address in the error, so a decimal-parsed mode or a\ngeneric error fails.\n\nNo product bugs turned up. Not run locally:\n`tests/sft/test_hf_to_levanter.py`, `test_runner_models.py` beyond\ncollection, and `test_lean.py` import JAX; `test_daytona_identity.py`\nneeds the Harbor runtime. CI is their first run. The Iris failure seen\nlocally,\n`test_a_controller_with_observability_rows_off_attaches_no_row_tables`,\nis an untouched test that needs the Finelog native extension.\n\n#12310 also moves `printed_status` into `rl_tests/fixtures.py`, but its\ncopy does not cut the output at the first `StepSpec(`. This PR's callers\nin `test_rl.py` and `test_runner_models.py` rely on that cut, so\nwhichever PR merges second must keep this PR's version of the function.\n\n---------\n\nCo-authored-by: Amy Sartran <users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "1bc2673c1fe1b51ecabccddf4af098d71c69613d",
+      "url": "https://github.com/marin-community/marin/commit/1bc2673c1fe1b51ecabccddf4af098d71c69613d",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-26T02:26:43Z",
+      "committed_at": "2026-11-26T02:26:43Z",
+      "message": "[marina] Load long Hublot runs progressively (#12358)\n\nOpen Hublot by run ID and show up to seven days of the recorded range.\nShow sampled inference values while chart detail loads in the\nbackground.\nThe footer shows progress for the selected range.\n\nLoad request counts and token rates before inference timing and KV\ncache.\nSelecting a chart brings its data forward. Each Marina worker runs one\nFinelog read at a time and pauses two seconds after each background\nread.\n\nOn a 125-minute Mochi selection in the local preview, the first tabs\nwere\nready in 15 seconds and all tabs in 25 seconds. The preview with\n20-minute\npages across all inference metrics took 33 seconds.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "2de6fcd77775426aecfc8c9c7c78cbc7db8a5d99",
+      "url": "https://github.com/marin-community/marin/commit/2de6fcd77775426aecfc8c9c7c78cbc7db8a5d99",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-26T01:29:25Z",
+      "committed_at": "2026-11-26T01:29:25Z",
+      "message": "[mochi] Enable DSpark for one-rack RL (#12239)\n\nEnable four-proposal DSpark for one-rack Mochi RL from the pinned\nstep-400407 initializer. The default uses the interleaved 766M two-layer\ndraft at a 0.775 vLLM memory fraction. Standard and agentic one-rack\npresets inherit the setting. Three-rack presets use plain decoding\npending measurements at 262k context with FlashInfer.\n\nKeep Speculators for draft fitting and Levanter for assistant masks.\nSeeded sampling interleaves the SFT sources by sampled row count and\nkeeps the first-user prompt holdout. Both draft sizes share a prepared\ndataset and teacher activations. Prefill once on the teacher gang, then\nfit each draft as a checkpoint ArtifactStep on one GPU. The cache is\nreusable for 48 hours from prefill start. Fitting publishes a\nSkyRL-ready export and prints its source URI and identity.\n\n### Five-update one-rack comparison\n\nAll three runs used Mochi step 400407, the same workload, and 60 GB200s.\nPlain used a 0.75 memory fraction. Both drafts used four proposals and\n0.775.\n\n| Metric | Plain | Prior 521M | Interleaved 766M |\n| --- | ---: | ---: | ---: |\n| Startup before update 1 | 12m03s | 16m24s | 14m02s |\n| Update 1 | 40m40s | 30m52s | 28m48s |\n| Mean update, updates 2–3 | 4m38s | 2m22s | 2m16s |\n| Update 5 | 14m59s | 16m24s | 9m46s |\n| Total updates 2–5 | 34m18s | 27m21s | 21m32s |\n| Median update, updates 2–5 | 7m47s | 4m18s | 4m47s |\n| Successful rollout call p95, updates 2–5 | 23m17s | 15m23s | 15m20s |\n| Lead GPU task wall time | 89m23s | 76m03s | 65m52s |\n\nThe 766M cut total warm update time by 37% versus plain and 21% versus\nthe prior draft. The two drafts had similar times in updates 2–3. On\nupdate 5, rollout admission took 449 s with the 766M and 840 s with the\nprior draft. Startup runs from lead GPU task start to the first\nrollout-wait window. Task wall time excludes the scheduling queue. The\np95 pools successful rollout calls dispatched during updates 2–5.\n[Five-update\nanalysis](https://loom.oa.dev/s/heul67oq/artifacts/mochi-dspark-performance)\n· [Per-step\ntimings](https://loom.oa.dev/s/heul67oq/artifacts/mochi-dspark-step-time)\n\nWarm trainer–vLLM mean absolute log ratios on fresh tokens were 0.00951,\n0.00967, and 0.01033 for plain, 521M, and 766M. The arms had 488k, 358k,\nand 243k fresh tokens respectively, so coverage differed. The 766M\nreached 3.077 acceptance length on the shared holdout versus 2.759 for\nthe prior draft, with 119.4k KV tokens per GPU versus 132.2k. The\ninterleaved 521M was preempted twice before completing an RL update.\n[Ablation\nrecords](https://loom.oa.dev/s/heul67oq/artifacts/mochi-dspark-ablation)\n\n### Use the draft on another branch\n\nUse the permanent CoreWeave export with the step-400407 verifier and the\nNov 24 ShortConv vLLM wheel. Add these options to a one-rack Mochi\nlaunch. [Draft\nfiles](https://filer.marina.oa.dev/#s3%3A%2F%2Fmarin-us-east-08a%2Fmarin%2Fcheckpoints%2Fdspark%2Fmochi%2Fablation-interleaved-two-layer%2F2026.11.25-skyrl)\n· [Verifier\nexport](https://github.com/marin-community/marin/issues/8089#issuecomment-6841382920)\n· [vLLM\nwheel](https://github.com/marin-community/vllm/releases/tag/marin-vllm-gpu-20261124-36cef9c0caf3)\n\n```bash\n--set 'generator.speculative_decoding={\n  \"method\": \"dspark\",\n  \"num_speculative_tokens\": 4,\n  \"model\": {\n    \"source_uri\": \"s3://marin-us-east-08a/marin/checkpoints/dspark/mochi/ablation-interleaved-two-layer/2026.11.25-skyrl\",\n    \"source_identity\": \"sha256:e163ef4fb50cbdfd578f1d26a27adf35b7c22e5a597a8da63b4591a2190aa468\"\n  }\n}' \\\n--set generator.gpu_memory_utilization=0.775\n```\n\nPart of #10227\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "c6988f7ac0dc2f3f3a75c86190af0728d656c9a4",
+      "url": "https://github.com/marin-community/marin/commit/c6988f7ac0dc2f3f3a75c86190af0728d656c9a4",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-26T01:07:46Z",
+      "committed_at": "2026-11-26T01:07:46Z",
+      "message": "[evals] Add SWE-bench Multilingual as a curated agentic benchmark (#11676)\n\nAdd SWE-bench Multilingual to the curated agentic catalog: 300 GitHub\nissues in nine languages other than Python, each resolved by an agent in\nthe issue's repository and graded by its hidden tests.\n\nThe tasks lower from Harbor's `swebench_multilingual@1.0` packages,\npinned to laude-institute/harbor-datasets at `19fb29e2`. The registry\npins one task, `tokio-rs__tokio-4384`, at that commit and the rest at\nits ancestor; among these packages, only that task's test script\ndiffers. Terminus 2 runs them with 16,384-token replies, as the Harbor\nruns used for validation did. Each task has its own image, so the\nevaluations build machines declaratively from a 300-entry digest lock.\n\n`swebench-multilingual` runs a fixed, language-stratified 100-task\nsubset; `-full` runs all 300 and `-lite` two. None is in a suite.\n\nValidation against Qwen's reported scores and a curated-versus-Harbor\ncomparison on three models are in #12270.\n\nFixes #12270",
+      "sha": "42e015572ad8ef54bf7dca548a7c9e881e4e274a",
+      "url": "https://github.com/marin-community/marin/commit/42e015572ad8ef54bf7dca548a7c9e881e4e274a",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "rjpower",
+      "author_name": "Russell Power",
+      "authored_at": "2026-11-26T00:59:11Z",
+      "committed_at": "2026-11-26T00:59:11Z",
+      "message": "[review] Challenge interface designs and review each PR head (#12327)\n\nGive interface changes an independent design review. A reviewer sketches\nthe calls a consumer needs from the base tree, then compares them with\nthe proposed interface across two supported uses. The main reviewer\nverifies the resulting findings against the implementation. The\nauthor-side ML design lane checks branches with more than 100 changed\nlines for avoidable work imposed on callers and maintainers. When a\nmaterial objection is answered by a design constraint, the PR explains\nthat constraint.\n\nLaunch holistic review for each distinct head of a trusted, non-draft\nPR. Reuse the PR’s Loom channel and numbered overview, and read the\nrubric at the workflow revision so it also applies to older branches.\nThe previous gates skipped the heads that maintainers reviewed on\n[#12228](https://github.com/marin-community/marin/actions/runs/45493315533)\nand\n[#11988](https://github.com/marin-community/marin/actions/runs/45119648115).\n\n---------\n\nCo-authored-by: rjpower <rjpower@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "b4a048be234ea738814c0a8ca7d194bf54a31f53",
+      "url": "https://github.com/marin-community/marin/commit/b4a048be234ea738814c0a8ca7d194bf54a31f53",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-26T00:57:20Z",
+      "committed_at": "2026-11-26T00:57:20Z",
+      "message": "[finestore] Bound the memory of full-table reads and compaction (#12176)\n\nFull-table reads and compaction merge every shard of a table in key\norder and keep all of its shards open. Shards had row groups of up to\n100 MB and the readers held a few of them per shard, so memory grew with\nthe shard count. On a 3.4M-row, 23 GB table, a full export and a\nfull-table column backfill were both killed at 128 GB.\n\nShards now get row groups of at most 4 MB of Arrow data, separate from\nthe 100 MB write buffer that sets when a table flushes. Ordered reads\n(`iter_rows`) and compaction read a shard one row group at a time and\nfetch later groups, up to 4 MB of them, on a thread pool, so each open\nshard holds about two decoded groups. Ordered reads hand the merge\nslices of about 1 MB. Shard files open with their manifest size and\nwithout fsspec's 50 MiB read-ahead, so opening a shard once per row\ngroup sends no HEAD request. The shared range cache fetches different\nranges of one file at once.\n\nOn CoreWeave S3 in the same region, one run, with 32 shards of 8,000\nrows of 7 KB (1.8 GB of Arrow data, 454 MB of Parquet):\n\n| Operation | Before | After |\n|---|---|---|\n| Ordered read, all shards spanning all keys | 9.7 s, 5,149 MB | 7.8 s,\n325 MB |\n| Ordered read, disjoint key ranges | 9.1 s, 1,885 MB | 9.2 s, 259 MB |\n| Ordered read of the key column only | 1.0–1.3 s | 2.8–3.1 s |\n| Unordered scan | 3.9 s | 2.0–2.2 s |\n| Point lookup, overlapping / disjoint | 1,756 / 111 ms | 236 / 18 ms |\n| Lookup of 2,000 keys | 3.1–3.2 s | 1.3 s |\n| Compaction of the 32 overlapping shards | 19.0 s, 5,152 MB | 16.6 s,\n772 MB |\n| Write, 32 flushes | 38–41 s | 43–44 s |\n\nMemory is peak Arrow allocation. The archive size does not change.\nAcross three runs, writes took 38–42 s before and 39–45 s after. The\nkey-column read is slower because a narrow projection needs one small\nrange request per row group, 14 times as many in this benchmark, and\nArrow's I/O pool runs at most 8 at a time.\n\nShards written before this change keep their 100 MB row groups until\ncompaction rewrites them, and `maintain()` never rewrites the top level.\nAn ordered read of such an archive took 1,784 MB here instead of 5,149\nMB. A single compaction that rewrites a large existing table holds one\nold row group, up to 100 MB, per input shard.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "a2e9dd0cab2cfb6c51671a1c3287e0c8feda71b5",
+      "url": "https://github.com/marin-community/marin/commit/a2e9dd0cab2cfb6c51671a1c3287e0c8feda71b5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "ravwojdyla-agent",
+      "author_name": "Rafal Wojdyla (Agent)",
+      "authored_at": "2026-11-26T00:24:01Z",
+      "committed_at": "2026-11-26T00:24:01Z",
+      "message": "[finestore] Reject commits over rows changed after they were read (#12178)\n\nTransaction.read returns the newest rows for the given primary keys from\nthe transaction's pinned snapshot and guards those keys. The commit\nchecks the guards in check_preconditions, next to the table guards that\nrequire_unchanged adds (#12203), against each manifest a publication\nattempt builds on, including retries after a HEAD conflict. If a guarded\nkey has a row committed after the transaction's snapshot, the commit\nraises RowConflict instead of replacing it. Absent keys are guarded too,\nso two transactions that insert the same new key conflict. A drop or\nreplacement of the guarded table raises CommitConflict. The check reuses\nReadView's keyed lookup, limited to shards that hold a row newer than\nthe snapshot.\n\nDataStore.update(table, keys, edit, message=...) reads the rows, applies\nedit and commits. On RowConflict it backs off with jitter and runs edit\nagain on the newer rows, up to 20 attempts, so edit must be safe to\nrepeat. It rejects missing keys, edits that change the primary key, and\ntables that do not use OnConflict.SUPERSEDE.\n\nWithout the check, the later of two writers that read the same row\nreplaces the earlier edit without an error. In a 3.4M-row store, eight\nwriters making 80 read-modify-write edits to one row kept 10 of them.\nWith update, none was lost; 5 edits raised RowConflict after 20\nattempts, in a run that retried without the backoff added here.\n\n---------\n\nCo-authored-by: Rafal Wojdyla <1419010+ravwojdyla@users.noreply.github.com>",
+      "sha": "f2c0a3f847727d54e7805b238c9c6524999a2daf",
+      "url": "https://github.com/marin-community/marin/commit/f2c0a3f847727d54e7805b238c9c6524999a2daf",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "yonromai",
+      "author_name": "Romain Yon",
+      "authored_at": "2026-11-26T00:15:16Z",
+      "committed_at": "2026-11-26T00:15:16Z",
+      "message": "[skyrl] Require a spare prompt in each rollout pool (#12179)\n\nRequire one distinct prompt per open rollout slot and one spare in each\npool. Validate the count after dataset preparation, using each family's\nquota when set. Skip a quarantine that would take the pool below its\nminimum.\n\nQuarantine cooldowns count completed batches. Keeping a spare leaves the\nscheduler another candidate when a rejection and future batch\nreservations\nwould otherwise leave the current batch waiting for a cooldown to\nexpire.\n\nRepeat quarantine backoff follows in #12180.\n\n---------\n\nCo-authored-by: Romain Yon <1596570+yonromai@users.noreply.github.com>",
+      "sha": "18988a24fafe76a7e07bf4eefb844a4c0d0ac606",
+      "url": "https://github.com/marin-community/marin/commit/18988a24fafe76a7e07bf4eefb844a4c0d0ac606",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-27T00:00:00Z",
+    "start": "2026-11-26T00:00:00Z"
+  }
+}

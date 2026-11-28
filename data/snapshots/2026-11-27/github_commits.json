@@ -1,0 +1,131 @@
+{
+  "commit_count": 11,
+  "commits": [
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-27T21:38:12Z",
+      "committed_at": "2026-11-27T21:38:12Z",
+      "message": "[rl] Align Arrow text widths before combining SkyRL task inputs (#12404)\n\nread_prompt_files passed per-source datasets straight to\ndatasets.concatenate_datasets, which fails with \"The features can't be\naligned\" when the same column is string in one source and large_string\nin\nanother. The Mochi campaign run v2-mix-009 died at startup this way on\ntask_sha256, task_spec and runtime.\n\nWiden compatible text columns to large_string before concatenation,\nincluding all-narrow-string mixes so text columns carry one canonical\nwidth, and keep rejecting incompatible non-text schemas. Mixed-width\nParquet regression tests verify that task JSON, hashes, routes and\nnumeric\nvalues survive concatenation. Widening covers top-level columns only;\nnested text, such as the source-format prompt message lists, keeps its\noriginal width and still raises on mixed widths.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>",
+      "sha": "e19b29901a8da95c5898d38973448ecf61509fa2",
+      "url": "https://github.com/marin-community/marin/commit/e19b29901a8da95c5898d38973448ecf61509fa2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "karansag",
+      "author_name": "Karan Sagar",
+      "authored_at": "2026-11-27T17:34:21Z",
+      "committed_at": "2026-11-27T17:34:21Z",
+      "message": "[iris] Add researcher interactive budget tier entry (#12367)\n\nAdd a user entry to the Iris researcher budget tier (`budget_limit:\n75000`, `PRIORITY_BAND_INTERACTIVE`) in `lib/iris/config/marin.yaml`.\n\nWithout an explicit entry, submissions fall back to the default 1000\ninteractive budget and are demoted to `PRIORITY_BAND_BATCH` whenever\nactive cluster spend exceeds 1000.",
+      "sha": "7a0ea9e624e047f4b21c73fec893bd7a7480cdef",
+      "url": "https://github.com/marin-community/marin/commit/7a0ea9e624e047f4b21c73fec893bd7a7480cdef",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-27T12:59:20Z",
+      "committed_at": "2026-11-27T12:59:20Z",
+      "message": "[eval] Score lost sandbox command output as a failed submission (#12269)\n\nA Daytona command whose output could not be read raised\n`CommandOutputLost`, which the evaluation driver\n(`marin.rollouts.evaluation.run_evaluation`) did not classify, so a\nsingle attempt stopped a whole agentic evaluation. A 20-item SWE-bench\nVerified smoke run of Muse Glimmer 30B from TaskCompendium corpora\nstopped after its first attempt this way. Daytona reported `fork/exec\n/usr/bin/bash: no such file or directory` for the agent's next command,\nafter the episode had run for many steps in a working sandbox, so the\nagent had most likely damaged its own machine.\n\nOnce the harness has started, the driver now scores such an attempt as a\nfailed submission with reward 0, as it already does when the agent fills\nthe machine's disk and as Harbor scores trials whose agent broke its\nenvironment. Before the harness starts, the error stays an unexpected\nfailure. A lost output caused by the provider during an episode would\nalso score 0; the run records the error in the attempt's evidence.",
+      "sha": "3ceb2e58074aeccfe2ab4f6ce89dfe73ca7e97a1",
+      "url": "https://github.com/marin-community/marin/commit/3ceb2e58074aeccfe2ab4f6ce89dfe73ca7e97a1",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "chrismc91",
+      "author_name": "chris",
+      "authored_at": "2026-11-27T12:59:15Z",
+      "committed_at": "2026-11-27T12:59:15Z",
+      "message": "[eval] Start likelihood contexts with the model's BOS token (#12222)\n\nA nonempty likelihood context now starts with the tokenizer's BOS token\nwhen the model expects one. It did not before: `encode_pair` encoded\nevery nonempty context with `add_special_tokens=False`. Models trained\nwith a leading BOS therefore scored WinoGrande, TruthfulQA MC2, BoolQ,\nPIQA, LAMBADA and the other likelihood tasks on prompts they never see\nin training. Rescoring gemma-4-26B-A4B-it's saved October campaign\nrequests with BOS raised WinoGrande accuracy by 4.97 points [1.26, 8.68]\nand TruthfulQA MC2 by 6.26 [3.24, 9.36] (#12156).\n\nThe worker resolves the policy once from the tokenizer. It prepends BOS\nwhen the tokenizer adds BOS on encode or the chat template writes\n`bos_token`. The second signal is needed for Gemma 4, whose tokenizer\nnever adds BOS on encode although its template does. Marin's Llama 3\ntokenizer (Snowball and Grug checkpoints), Glimmer and Gemma 4 gain BOS.\nQwen3.6 has no BOS token, and Nemotron 3.5 Super's template does not use\nits `<s>`, so their requests are unchanged. An empty context keeps the\nexisting single prefix token.\n\nLikelihood protocol versions gain `bos-2026.11.24`, so results scored\nwithout BOS are not reused. Chat and agent protocols keep their\nidentities. Panel-model scores need GPU reruns of the likelihood\nbenchmarks and are not included here.\n\nPart of #10828.",
+      "sha": "c59384574c0c576f53def1318410a97dd9485fd2",
+      "url": "https://github.com/marin-community/marin/commit/c59384574c0c576f53def1318410a97dd9485fd2",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-27T11:43:54Z",
+      "committed_at": "2026-11-27T11:43:54Z",
+      "message": "[shellbox] Report Daytona headroom from sandbox inventory (#11840)\n\nAPI keys cannot read Daytona's organization-usage endpoint. Read every\nsandbox inventory page and compare allocations with the account-owner\nlimits recorded in `ACCOUNT_LIMITS`\n(`lib/shellbox/src/shellbox/backends/daytona/usage_cli.py`), the single\nquota source of record.\n\nDaytona enforces quota per region, so usage is grouped by each sandbox's\n`target` and headroom is sized per region against that region's recorded\nlimits; it is never summed across regions, and a region without recorded\nlimits fails the reading. The owner-supplied figures (2026-11-19) are\nrecorded for the `us` region, the one region Marin launches in. Compute\nand disk follow the provider's separate charged-state rules, including\nstopped and paused disk, transition-state compute, and compute during\nresize or snapshot operations whose desired state is started.\nUnclassified lifecycle metadata fails the reading. The report converts\ndecimal GB quotas to GiB and reserves 20% of each region's quota by\ndefault, reporting zero additional sandboxes when a requested profile\nexceeds a per-sandbox maximum.\n\nInventory is the standard CLI path. Standard key variables select their\nquota presets: `DAYTONA_EVAL_API_KEY` for eval, `DAYTONA_RL_API_KEY` for\nrl, and `DAYTONA_DATA_API_KEY` for data; custom key variables require\n`--limits`. Empty inventories report zero use and a null organization\nID. The command is an optional diagnostic; the create-time quota retry\nin #12389 is the enforcement path, and submitters must still retain\ntheir admission locks and pending-create reservations.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "b7377500da527e81e677e1e81389ef0ef94bd940",
+      "url": "https://github.com/marin-community/marin/commit/b7377500da527e81e677e1e81389ef0ef94bd940",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "penfever",
+      "author_name": "Ben Feuer",
+      "authored_at": "2026-11-27T11:43:48Z",
+      "committed_at": "2026-11-27T11:43:48Z",
+      "message": "[tasks] Apply one retry policy to every SkyRL task kind (#11850)\n\nTransient startup failures can recover by running the task on a fresh\nmachine. Apply `rigging.task_errors.retry_delay` to every SkyRL task\nkind through the task worker: a retry budget, name exclusions, and\njittered exponential backoff configured at\n`environment.task_sessions.retry`. Only transient dispositions retry;\npermanent and unknown dispositions stay terminal. Mixed-task Snowball\nand Mochi recipes select one retry for every task kind, the checked-in\nultra launch allows three, and checkpoint-evaluation recipes default to\none while preserving explicit overrides.\n\nThe retry covers only attempts with no recorded rollout steps and\nconfirmed cleanup, so failures after sampled work keep their stored\noutcome, and passthrough treatment keeps available verifier output\nwithout another attempt.\n\nAn authored setup command now classifies itself at raise time. A\ntimed-out or signal-killed command is transient and retries on a fresh\nmachine, restoring the retry that #12167 gave setup exits in the signal\nrange; a normal non-zero exit is the task's own permanent failure.\n`exception_identity` keeps a producer-owned disposition on the exception\nunless provider status or a permanent cause decides.\n\nDisposition decisions stay split by boundary because each owns inputs\nthe others lack: `daytona_error_identity` applies the Daytona backend's\nrules at its own raise site, and the task worker remaps timeouts by the\nrollout phase, which no exception object carries — `TaskMachineError`\nstays backend-agnostic, knowing only the machine operation.\n\nThe producer error identity from #11849 (closed, folded here) lands with\nit: `ErrorIdentity` carries the exception name, category, cause,\noperation, provider status, and safe diagnostics for task results, and\ntraining, archive, and scoring consumers read the stored category\nwithout loading the producer framework.\n\nNative Harbor keeps main's retry loop, teardown rule, and archive\nbehavior until the driver is deleted, so `RetrySettings` carries no\ncategory filters and rigging pins no Harbor dispositions. Moving the\nnative evaluator onto the shared policy is a follow-up.\n\nCloses #11849.\n\n---------\n\nCo-authored-by: penfeuer <penfeuer@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>\nCo-authored-by: Russell Power <russell.power@gmail.com>",
+      "sha": "55873063d50f5d91567a69005254b41da048388b",
+      "url": "https://github.com/marin-community/marin/commit/55873063d50f5d91567a69005254b41da048388b",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-27T07:54:43Z",
+      "committed_at": "2026-11-27T07:54:43Z",
+      "message": "[eval] Evaluate Hero at multiple context lengths (#10711)\n\nHero evals score 4K and the current training length, adding fixed 65K\nand 262K evals only once training reaches those lengths. Each distinct\nlength has its own metrics, such as\n`eval_dropless/seq_len_4096/paloma/macro_loss`;\n`eval_dropless/paloma/macro_loss` continues to report the\ntraining-length eval.\n\nAll eval lengths keep the training context-parallel width. The dropless\nmesh and PartitionSpec renaming reuse #10709's implementation: each\ndevice retains its training context group and uses its training (data,\nexpert) group for eval data. Eval therefore reuses the device groups\nwhose replacement caused NCCL memory growth in #10709. Batch sizes stay\nwithin the configured global padded-token budget per evaluation batch,\nrounded down to whole batch shards.\n\nContinuous-text validation retains incomplete final sequences with right\npadding and excludes padding from attention and loss, including the\nreal-to-pad prediction. Short Paloma corpora remain in the long-context\naggregate. Validation sequence statistics include the final partial\nsequence; stored token counts exclude padding. Overall loss and\nbits-per-byte macros exclude tags with no scored tokens.\n\nCPU tests check device groups, per-device parameter shards and the\nmulti-length eval-to-training handoff. No GPU rehearsal of this revision\nhas run.\n\nPart of #8435.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "b5c189df73428fe2574b7d05a70c086917310b66",
+      "url": "https://github.com/marin-community/marin/commit/b5c189df73428fe2574b7d05a70c086917310b66",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-27T07:20:08Z",
+      "committed_at": "2026-11-27T07:20:08Z",
+      "message": "[levanter] Bound FP32 TPU paged attention tile sizes (#12028)\n\nCap the query and KV tile sizes passed to JAX's Pallas paged attention\nkernel for Grug's FP32 cache. The upstream long-context tiles can exceed\nscoped vector memory. The caps are 128 query rows and eight KV pages.\n\nA v5p-8 test attended to a 64K cache with 129 zero query rows and\nmatched\nthe analytical causal mean of the visible values.\n[Iris\nrun](https://iris.oa.dev/#/job/%2Fdlwh%2Fsnowball-upstream-rpa-fp32-64k-v5p-20261123)",
+      "sha": "237c8f04674fa4ca2c13cfd73e6b962ff67ecbe5",
+      "url": "https://github.com/marin-community/marin/commit/237c8f04674fa4ca2c13cfd73e6b962ff67ecbe5",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "dlwh",
+      "author_name": "David Hall",
+      "authored_at": "2026-11-27T07:17:52Z",
+      "committed_at": "2026-11-27T07:17:52Z",
+      "message": "[levanter] Normalize policy logits on fixed FP32 row tiles (#12027)\n\nAdd a shared FP32 log-normalizer and log-softmax for vocabulary logits.\nA\nfixed row tile gives each token the same reduction schedule when scored\nalone or in a learner batch. This prevents a change in batch shape alone\nfrom changing policy log probabilities on TPU.\n\nThe primitive preserves leading-axis sharding and gathers vocabulary\nshards\nbefore reduction. The fused cross-entropy reference shares the accurate\nreduction. Serving and learner callers can adopt the fixed tiling\nseparately.",
+      "sha": "56bcf8d9ba7d2503d62f1ef61d251a5920ff18e3",
+      "url": "https://github.com/marin-community/marin/commit/56bcf8d9ba7d2503d62f1ef61d251a5920ff18e3",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-27T06:10:45Z",
+      "committed_at": "2026-11-27T06:10:45Z",
+      "message": "[rl] Avoid redundant gcloud project setup in nightly (#12384)\n\nInstall the Cloud SDK in both SkyRL nightly jobs without running `gcloud\nconfig set project`. The preceding WIF auth action already exports\n`CLOUDSDK_CORE_PROJECT`. The optional `project_id` input to\n`setup-gcloud` triggers an extra gcloud command; in [run\n45878870665](https://github.com/marin-community/marin/actions/runs/45878870665/job/140112802997),\nits token refresh lost the connection and stopped Grug before Iris\nsubmission.\n\nOPD and CatCount passed in that run. The controls job separately reached\nits six-hour timeout; #12370 handles controls reconciliation. The\nrevised setup has not yet run in a scheduled workflow.\n\nFixes #12383\n\n---------\n\nCo-authored-by: marin-ci <306337490+marin-ci@users.noreply.github.com>\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "2fa466ec0276faac1ed82b195fb87e965f672946",
+      "url": "https://github.com/marin-community/marin/commit/2fa466ec0276faac1ed82b195fb87e965f672946",
+      "verification_reason": "valid",
+      "verified": true
+    },
+    {
+      "author": "loom-oa-dev[bot]",
+      "author_name": "loom-oa-dev[bot]",
+      "authored_at": "2026-11-27T04:41:01Z",
+      "committed_at": "2026-11-27T04:41:01Z",
+      "message": "Alert on failed Iris controller checkpoints (#12351)\n\nPage when the latest periodic checkpoint upload from a CoreWeave Iris\ncontroller fails. The controller reports each attempt as a numeric\nFinelog metric, so the alert clears after a successful upload. The\nrunbook points to checkpoint storage credentials and explains why a\nrefreshed Secret can leave bundle uploads failing until the controller\nreplaces its startup S3 client.\n\nRNO2A rejected its mounted access key with `InvalidAccessKeyId` on three\ncheckpoint attempts before recovery\n([incident](https://marina.oa.dev/echo/wiki/1085)). Existing alerts\ncover controller liveness and storage capacity, but a running controller\nwith failed checkpoint uploads had no direct alert. Node storage probes\nuse a different bucket. The new rule requires checkpoint telemetry to\nreach the Marin hub; absent samples yield no checkpoint verdict.\n\n---------\n\nCo-authored-by: loom <claude-max-1@openathena.ai>",
+      "sha": "fa29ec5c639f19a554bf0c5d06598cabd784c7f2",
+      "url": "https://github.com/marin-community/marin/commit/fa29ec5c639f19a554bf0c5d06598cabd784c7f2",
+      "verification_reason": "valid",
+      "verified": true
+    }
+  ],
+  "source": "marin-community/marin",
+  "window": {
+    "end": "2026-11-28T00:00:00Z",
+    "start": "2026-11-27T00:00:00Z"
+  }
+}
